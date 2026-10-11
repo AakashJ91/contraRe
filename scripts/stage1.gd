@@ -19,10 +19,39 @@ const LEVEL_MIN_X: float = 0.0
 const LEVEL_MAX_X: float = 2800.0
 const BOSS_TRIGGER_X: float = 2400.0
 
+var bg_texture: Texture2D = null
+
 func _ready() -> void:
 	Global.screen_shake_requested.connect(_on_screen_shake)
+	_setup_background()
 	_setup_static_enemies()
 	queue_redraw()
+
+func _setup_background() -> void:
+	var bg_path := "res://assets/backgrounds/stage1_jungle.jpg"
+	if Global.current_stage == 2:
+		bg_path = "res://assets/backgrounds/stage2_waterfall.jpg"
+	elif Global.current_stage == 3:
+		bg_path = "res://assets/backgrounds/stage3_alien_hive.jpg"
+	
+	if ResourceLoader.exists(bg_path):
+		bg_texture = load(bg_path)
+		
+		var p_bg := ParallaxBackground.new()
+		p_bg.layer = -10
+		add_child(p_bg)
+		
+		var p_layer := ParallaxLayer.new()
+		p_layer.motion_scale = Vector2(0.3, 0.0)
+		p_layer.motion_mirroring = Vector2(960.0, 0.0)
+		p_bg.add_child(p_layer)
+		
+		var spr := Sprite2D.new()
+		spr.texture = bg_texture
+		var tex_size := bg_texture.get_size()
+		spr.scale = Vector2(960.0 / tex_size.x, 540.0 / tex_size.y)
+		spr.centered = false
+		p_layer.add_child(spr)
 
 func _physics_process(delta: float) -> void:
 	# Screen Shake
@@ -124,38 +153,58 @@ func _draw() -> void:
 	_draw_platforms()
 
 func _draw_backdrop() -> void:
+	if bg_texture != null:
+		# Parallax background handles sky and landscape above water.
+		# Render river, rapids, or magma hazard pool in the foreground water plane:
+		if Global.current_stage == 2:
+			# Raging rapids river
+			draw_rect(Rect2(-200.0, 450.0, 3400.0, 150.0), Color(0.1, 0.35, 0.6, 0.88))
+			for fl in range(10):
+				var wfx := -100.0 + float(fl) * 320.0
+				draw_line(Vector2(wfx, 465.0), Vector2(wfx + 180.0, 465.0), Color.WHITE, 2.0)
+				draw_line(Vector2(wfx + 60.0, 495.0), Vector2(wfx + 240.0, 495.0), Color(0.7, 0.88, 1.0), 2.0)
+		elif Global.current_stage == 3:
+			# Toxic alien magma base
+			draw_rect(Rect2(-200.0, 450.0, 3400.0, 150.0), Color(0.35, 0.08, 0.05, 0.88))
+			for w in range(35):
+				var wx := -100.0 + float(w) * 95.0
+				draw_line(Vector2(wx, 470.0), Vector2(wx + 50.0, 470.0), Color(1.0, 0.3, 0.1), 2.5)
+		else:
+			# Stage 1: Tropical Jungle River
+			draw_rect(Rect2(-200.0, 450.0, 3400.0, 150.0), Color(0.05, 0.20, 0.35, 0.88))
+			for w in range(40):
+				var wx := -100.0 + float(w) * 85.0
+				draw_line(Vector2(wx, 470.0), Vector2(wx + 45.0, 470.0), Color(0.1, 0.35, 0.55), 2.0)
+				draw_line(Vector2(wx + 20.0, 500.0), Vector2(wx + 65.0, 500.0), Color(0.1, 0.35, 0.55), 2.0)
+		return
+
 	if Global.current_stage == 2:
-		# Stage 2: Torrential Waterfall & Blue Cliffs
+		# Fallback Stage 2: Torrential Waterfall & Blue Cliffs
 		draw_rect(Rect2(-200.0, -100.0, 3400.0, 400.0), Color(0.05, 0.1, 0.18))
-		# High vertical cliffs
 		for i in range(14):
 			var mx := -100.0 + float(i) * 240.0
 			draw_rect(Rect2(mx, 120.0, 160.0, 340.0), Color(0.09, 0.15, 0.25))
-		# Massive cascading waterfalls
 		for wf in range(7):
 			var wfx := 150.0 + float(wf) * 420.0
 			draw_rect(Rect2(wfx, 40.0, 75.0, 420.0), Color(0.18, 0.55, 0.85, 0.75))
 			for fl in range(12):
 				var ly := 60.0 + float(fl) * 32.0 + sin(float(fl) * 2.0) * 10.0
 				draw_line(Vector2(wfx + 10.0, ly), Vector2(wfx + 65.0, ly + 8.0), Color.WHITE, 2.0)
-		# Raging rapids river
 		draw_rect(Rect2(-200.0, 450.0, 3400.0, 150.0), Color(0.1, 0.35, 0.6))
 	elif Global.current_stage == 3:
-		# Stage 3: Subterranean Alien Hive Core
+		# Fallback Stage 3: Subterranean Alien Hive Core
 		draw_rect(Rect2(-200.0, -100.0, 3400.0, 400.0), Color(0.12, 0.04, 0.07))
-		# Alien tendrils & biomechanical cavern pillars
 		for i in range(20):
 			var ax := -100.0 + float(i) * 160.0
 			var ay := 180.0 + sin(float(i) * 1.8) * 35.0
 			draw_circle(Vector2(ax, ay), 40.0, Color(0.28, 0.08, 0.12))
 			draw_circle(Vector2(ax, ay), 18.0, Color(0.8, 0.2, 0.15, 0.4))
-		# Toxic alien magma base
 		draw_rect(Rect2(-200.0, 450.0, 3400.0, 150.0), Color(0.35, 0.08, 0.05))
 		for w in range(35):
 			var wx := -100.0 + float(w) * 95.0
 			draw_line(Vector2(wx, 470.0), Vector2(wx + 50.0, 470.0), Color(1.0, 0.3, 0.1), 2.5)
 	else:
-		# Stage 1: Tropical Jungle Canopy & Calm Blue Water
+		# Fallback Stage 1: Tropical Jungle Canopy & Calm Blue Water
 		draw_rect(Rect2(-200.0, -100.0, 3400.0, 400.0), Color(0.08, 0.12, 0.22))
 		for i in range(16):
 			var mx := -100.0 + float(i) * 220.0

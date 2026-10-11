@@ -12,9 +12,11 @@ var sound_enabled: bool = true
 var show_instructions: bool = false
 var anim_timer: float = 0.0
 var stars: Array[Vector2] = []
+var bg_texture: Texture2D = null
 
 func _ready() -> void:
-	# Generate background starfield
+	if ResourceLoader.exists("res://assets/backgrounds/title_bg.jpg"):
+		bg_texture = load("res://assets/backgrounds/title_bg.jpg")
 	for i in range(50):
 		stars.append(Vector2(randf_range(0.0, 960.0), randf_range(0.0, 540.0)))
 	queue_redraw()
@@ -91,8 +93,12 @@ func _activate_menu_item(index: int) -> void:
 			queue_redraw()
 
 func _draw() -> void:
-	# Deep arcade space background
-	draw_rect(Rect2(0.0, 0.0, 960.0, 540.0), Color(0.04, 0.05, 0.1))
+	if bg_texture != null:
+		draw_texture_rect(bg_texture, Rect2(0.0, 0.0, 960.0, 540.0), false)
+		# Cinematic dark gradient wash for menu contrast
+		draw_rect(Rect2(0.0, 0.0, 960.0, 540.0), Color(0.02, 0.04, 0.08, 0.45))
+	else:
+		draw_rect(Rect2(0.0, 0.0, 960.0, 540.0), Color(0.04, 0.05, 0.1))
 	
 	# Twinkling stars
 	for i in range(stars.size()):

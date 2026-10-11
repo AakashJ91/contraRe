@@ -30,7 +30,18 @@ var stages_info: Array[Dictionary] = [
 	}
 ]
 
+var stage_thumbnails: Dictionary = {}
+var bg_texture: Texture2D = null
+
 func _ready() -> void:
+	if ResourceLoader.exists("res://assets/backgrounds/title_bg.jpg"):
+		bg_texture = load("res://assets/backgrounds/title_bg.jpg")
+	if ResourceLoader.exists("res://assets/backgrounds/stage1_jungle.jpg"):
+		stage_thumbnails[1] = load("res://assets/backgrounds/stage1_jungle.jpg")
+	if ResourceLoader.exists("res://assets/backgrounds/stage2_waterfall.jpg"):
+		stage_thumbnails[2] = load("res://assets/backgrounds/stage2_waterfall.jpg")
+	if ResourceLoader.exists("res://assets/backgrounds/stage3_alien_hive.jpg"):
+		stage_thumbnails[3] = load("res://assets/backgrounds/stage3_alien_hive.jpg")
 	queue_redraw()
 
 func _process(delta: float) -> void:
@@ -90,19 +101,24 @@ func _deploy(stage_id: int) -> void:
 	get_tree().create_timer(0.4).timeout.connect(func(): Global.start_game(stage_id))
 
 func _draw() -> void:
-	# Background
-	draw_rect(Rect2(0.0, 0.0, 960.0, 540.0), Color(0.06, 0.07, 0.12))
+	# Background Wallpaper
+	if bg_texture != null:
+		draw_texture_rect(bg_texture, Rect2(0.0, 0.0, 960.0, 540.0), false)
+		# Tactical dark tint wash
+		draw_rect(Rect2(0.0, 0.0, 960.0, 540.0), Color(0.05, 0.08, 0.14, 0.82))
+	else:
+		draw_rect(Rect2(0.0, 0.0, 960.0, 540.0), Color(0.06, 0.07, 0.12))
 	
-	# Tech Grid & Scan lines
+	# Tech Grid
 	for i in range(12):
 		var y := float(i) * 50.0
-		draw_line(Vector2(0.0, y), Vector2(960.0, y), Color(0.12, 0.16, 0.25, 0.4), 1.0)
+		draw_line(Vector2(0.0, y), Vector2(960.0, y), Color(0.12, 0.2, 0.35, 0.3), 1.0)
 	
 	var font := ThemeDB.fallback_font
 	
 	# Top Header
 	draw_string(font, Vector2(340.0, 52.0), "SELECT MISSION", HORIZONTAL_ALIGNMENT_LEFT, -1, 32, Color(1.0, 0.85, 0.2))
-	draw_string(font, Vector2(325.0, 82.0), "TACTICAL DEPLOYMENT MAP • OPERATION CONRA", HORIZONTAL_ALIGNMENT_LEFT, -1, 14, Color(0.3, 0.8, 1.0))
+	draw_string(font, Vector2(325.0, 82.0), "TACTICAL DEPLOYMENT MAP • OPERATION CONTRA", HORIZONTAL_ALIGNMENT_LEFT, -1, 14, Color(0.3, 0.8, 1.0))
 	draw_line(Vector2(50.0, 95.0), Vector2(910.0, 95.0), Color(0.2, 0.4, 0.7, 0.7), 2.0)
 	
 	# Stage Cards
@@ -120,7 +136,7 @@ func _draw() -> void:
 		var card_rect := Rect2(cx, start_y, card_w, card_h)
 		
 		# Card Background
-		var bg_col := Color(0.12, 0.18, 0.32, 0.95) if is_sel else Color(0.07, 0.09, 0.15, 0.85)
+		var bg_col := Color(0.12, 0.18, 0.32, 0.95) if is_sel else Color(0.07, 0.09, 0.15, 0.88)
 		draw_rect(card_rect, bg_col)
 		
 		# Border with glow if selected
@@ -164,31 +180,31 @@ func _draw() -> void:
 	draw_string(font, Vector2(400.0, 504.0), "[ USE ARROWS OR TAP CARD TO CHOOSE • TAP DEPLOY TO START ]", HORIZONTAL_ALIGNMENT_LEFT, -1, 12, Color(0.5, 0.65, 0.8))
 
 func _draw_thumbnail(rect: Rect2, stage_id: int) -> void:
-	draw_rect(rect, Color(0.08, 0.1, 0.15))
-	draw_rect(rect, Color(0.3, 0.4, 0.5), false, 1.0)
-	
-	match stage_id:
-		1:
-			# Jungle & Wall: green foliage, blue river, wall turret silhouette
-			draw_rect(Rect2(rect.position.x, rect.position.y + 70.0, rect.size.x, 40.0), Color(0.1, 0.3, 0.18))
-			draw_circle(Vector2(rect.position.x + 50.0, rect.position.y + 60.0), 28.0, Color(0.15, 0.45, 0.22))
-			draw_circle(Vector2(rect.position.x + 110.0, rect.position.y + 55.0), 32.0, Color(0.12, 0.4, 0.2))
-			draw_rect(Rect2(rect.position.x + 160.0, rect.position.y + 35.0, 60.0, 75.0), Color(0.25, 0.28, 0.32)) # Wall
-			draw_circle(Vector2(rect.position.x + 190.0, rect.position.y + 65.0), 9.0, Color(0.2, 0.8, 1.0)) # Alien core
-		2:
-			# Waterfall: rushing blue cascades and steel girder cliffs
-			draw_rect(Rect2(rect.position.x, rect.position.y, rect.size.x, rect.size.y), Color(0.08, 0.14, 0.26))
-			draw_rect(Rect2(rect.position.x + 70.0, rect.position.y, 60.0, rect.size.y), Color(0.2, 0.6, 0.9, 0.8)) # Waterfall stream
-			draw_line(Vector2(rect.position.x + 85.0, rect.position.y), Vector2(rect.position.x + 85.0, rect.position.y + rect.size.y), Color.WHITE, 2.0)
-			draw_line(Vector2(rect.position.x + 115.0, rect.position.y), Vector2(rect.position.x + 115.0, rect.position.y + rect.size.y), Color.WHITE, 2.0)
-			# Steel bridge
-			draw_rect(Rect2(rect.position.x + 20.0, rect.position.y + 55.0, rect.size.x - 40.0, 10.0), Color(0.4, 0.45, 0.5))
-		3:
-			# Alien Hive: biomechanical glowing tentacles and pulsating alien egg
-			draw_rect(Rect2(rect.position.x, rect.position.y, rect.size.x, rect.size.y), Color(0.18, 0.05, 0.08))
-			draw_circle(Vector2(rect.position.x + rect.size.x * 0.5, rect.position.y + 55.0), 34.0, Color(0.65, 0.15, 0.18))
-			draw_circle(Vector2(rect.position.x + rect.size.x * 0.5, rect.position.y + 55.0), 20.0, Color(0.95, 0.3, 0.2))
-			draw_circle(Vector2(rect.position.x + rect.size.x * 0.5, rect.position.y + 55.0), 8.0, Color(1.0, 0.85, 0.4))
+	if stage_thumbnails.has(stage_id) and stage_thumbnails[stage_id] != null:
+		draw_texture_rect(stage_thumbnails[stage_id], rect, false)
+		# Subtle tech overlay line and frame
+		draw_rect(rect, Color(0.0, 0.2, 0.4, 0.15))
+		draw_rect(rect, Color(0.4, 0.6, 0.9, 0.8), false, 1.5)
+		# Corner brackets
+		var blen := 8.0
+		draw_line(rect.position, rect.position + Vector2(blen, 0.0), Color.WHITE, 2.0)
+		draw_line(rect.position, rect.position + Vector2(0.0, blen), Color.WHITE, 2.0)
+		draw_line(rect.position + Vector2(rect.size.x, 0.0), rect.position + Vector2(rect.size.x - blen, 0.0), Color.WHITE, 2.0)
+		draw_line(rect.position + Vector2(rect.size.x, 0.0), rect.position + Vector2(rect.size.x, blen), Color.WHITE, 2.0)
+		draw_line(rect.end, rect.end - Vector2(blen, 0.0), Color.WHITE, 2.0)
+		draw_line(rect.end, rect.end - Vector2(0.0, blen), Color.WHITE, 2.0)
+		draw_line(rect.position + Vector2(0.0, rect.size.y), rect.position + Vector2(blen, rect.size.y), Color.WHITE, 2.0)
+		draw_line(rect.position + Vector2(0.0, rect.size.y), rect.position + Vector2(0.0, rect.size.y - blen), Color.WHITE, 2.0)
+	else:
+		draw_rect(rect, Color(0.08, 0.1, 0.15))
+		draw_rect(rect, Color(0.3, 0.4, 0.5), false, 1.0)
+		match stage_id:
+			1:
+				draw_rect(Rect2(rect.position.x, rect.position.y + 70.0, rect.size.x, 40.0), Color(0.1, 0.3, 0.18))
+			2:
+				draw_rect(Rect2(rect.position.x, rect.position.y, rect.size.x, rect.size.y), Color(0.08, 0.14, 0.26))
+			3:
+				draw_rect(Rect2(rect.position.x, rect.position.y, rect.size.x, rect.size.y), Color(0.18, 0.05, 0.08))
 
 func _draw_wrapped_text(font: Font, text: String, pos: Vector2, max_w: float, font_size: int, color: Color) -> void:
 	var words := text.split(" ")
