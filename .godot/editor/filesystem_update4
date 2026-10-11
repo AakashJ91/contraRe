@@ -1,0 +1,9 @@
+res://scripts/global.gd
+res://scripts/hud.gd
+res://scripts/main.gd
+res://scripts/touch_controls.gd
+res://scripts/sound_fx.gd
+res://scripts/stage1.gd
+res://scripts/level_select.gd
+res://scripts/title_screen.gd
+res://scripts/player.gd
