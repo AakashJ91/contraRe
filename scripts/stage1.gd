@@ -15,6 +15,7 @@ var shake_duration: float = 0.0
 var soldier_spawn_timer: float = 2.0
 var blimp_spawn_timer: float = 7.0
 var blimp_index: int = 0
+var anim_timer: float = 0.0
 
 const LEVEL_MIN_X: float = 0.0
 const LEVEL_MAX_X: float = 6700.0
@@ -110,6 +111,10 @@ func _setup_colliders() -> void:
 		c.position = b.position + b.size * 0.5
 		c.one_way_collision = true
 		world_colliders.add_child(c)
+
+func _process(delta: float) -> void:
+	anim_timer += delta
+	queue_redraw()
 
 func _physics_process(delta: float) -> void:
 	# Screen Shake
@@ -214,14 +219,16 @@ func _spawn_flying_blimp() -> void:
 	add_child(b)
 
 func _draw() -> void:
-	_draw_backdrop()
-	_draw_platforms()
+	var cam_x: float = camera.global_position.x if camera != null else 480.0
+	var view_left: float = cam_x - 560.0
+	var view_right: float = cam_x + 560.0
+	_draw_backdrop(view_left, view_right)
+	_draw_platforms(view_left, view_right)
 
-func _draw_backdrop() -> void:
+func _draw_backdrop(view_left: float, view_right: float) -> void:
 	if water_tile_texture != null:
-		# Draw textured water with wave crests and deep aquatic lighting across entire length
+		# Draw animated textured water with flowing currents and wave undulation
 		var water_w: float = 160.0
-		var num_water_tiles: int = int(ceil(7700.0 / water_w))
 		var tex_src := Rect2(0.0, 0.0, float(water_tile_texture.get_width()), float(water_tile_texture.get_height()))
 		var w_tint := Color.WHITE
 		if Global.current_stage == 2:
@@ -229,86 +236,92 @@ func _draw_backdrop() -> void:
 		elif Global.current_stage == 3:
 			w_tint = Color(1.3, 0.45, 0.35)
 		
-		for k in range(num_water_tiles):
-			var wx: float = -200.0 + float(k) * water_w
-			var w_rect := Rect2(wx, 442.0, water_w, 100.0)
+		# Flowing current offset
+		var flow_speed: float = 32.0 if Global.current_stage != 2 else 65.0
+		var flow_offset: float = fmod(anim_timer * flow_speed, water_w)
+		
+		var start_k: int = int(floor((view_left - flow_offset) / water_w)) - 1
+		var end_k: int = int(ceil((view_right - flow_offset) / water_w)) + 1
+		
+		for k in range(start_k, end_k):
+			var wx: float = float(k) * water_w + flow_offset
+			var wave_bob: float = sin(anim_timer * 3.6 + float(k) * 0.9) * 2.8
+			var w_rect := Rect2(wx, 442.0 + wave_bob, water_w, 100.0 - wave_bob)
 			draw_texture_rect_region(water_tile_texture, w_rect, tex_src, w_tint)
+		
+		# Animated dynamic surface foam ripples
+		_draw_water_surface_foam(view_left, view_right)
+		
+		# Player swimming ripples & splash interaction
+		_draw_player_water_interaction()
 		return
 
 	if bg_texture != null:
-		# Parallax background handles sky and landscape above water.
-		# Render river, rapids, or magma hazard pool in the foreground water plane:
+		# Fallback parallax background with water plane
 		if Global.current_stage == 2:
-			# Raging rapids river
-			draw_rect(Rect2(-200.0, 450.0, 7500.0, 150.0), Color(0.1, 0.35, 0.6, 0.88))
-			for fl in range(24):
-				var wfx := -100.0 + float(fl) * 320.0
-				draw_line(Vector2(wfx, 465.0), Vector2(wfx + 180.0, 465.0), Color.WHITE, 2.0)
-				draw_line(Vector2(wfx + 60.0, 495.0), Vector2(wfx + 240.0, 495.0), Color(0.7, 0.88, 1.0), 2.0)
+			draw_rect(Rect2(view_left, 450.0, view_right - view_left, 150.0), Color(0.1, 0.35, 0.6, 0.88))
+			for fl in range(12):
+				var wfx := view_left + float(fl) * 110.0 + fmod(anim_timer * 60.0, 110.0)
+				draw_line(Vector2(wfx, 465.0), Vector2(wfx + 70.0, 465.0), Color.WHITE, 2.0)
 		elif Global.current_stage == 3:
-			# Toxic alien magma base
-			draw_rect(Rect2(-200.0, 450.0, 7500.0, 150.0), Color(0.35, 0.08, 0.05, 0.88))
-			for w in range(80):
-				var wx := -100.0 + float(w) * 95.0
-				draw_line(Vector2(wx, 470.0), Vector2(wx + 50.0, 470.0), Color(1.0, 0.3, 0.1), 2.5)
+			draw_rect(Rect2(view_left, 450.0, view_right - view_left, 150.0), Color(0.35, 0.08, 0.05, 0.88))
+			for w in range(16):
+				var wx := view_left + float(w) * 80.0
+				var wy := 470.0 + sin(anim_timer * 4.0 + float(w)) * 3.0
+				draw_line(Vector2(wx, wy), Vector2(wx + 40.0, wy), Color(1.0, 0.3, 0.1), 2.5)
 		else:
-			# Stage 1: Tropical Jungle River
-			draw_rect(Rect2(-200.0, 450.0, 7500.0, 150.0), Color(0.05, 0.20, 0.35, 0.88))
-			for w in range(90):
-				var wx := -100.0 + float(w) * 85.0
-				draw_line(Vector2(wx, 470.0), Vector2(wx + 45.0, 470.0), Color(0.1, 0.35, 0.55), 2.0)
-				draw_line(Vector2(wx + 20.0, 500.0), Vector2(wx + 65.0, 500.0), Color(0.1, 0.35, 0.55), 2.0)
+			draw_rect(Rect2(view_left, 450.0, view_right - view_left, 150.0), Color(0.05, 0.20, 0.35, 0.88))
+			for w in range(16):
+				var wx := view_left + float(w) * 80.0 + fmod(anim_timer * 30.0, 80.0)
+				draw_line(Vector2(wx, 470.0), Vector2(wx + 40.0, 470.0), Color(0.1, 0.35, 0.55), 2.0)
+		_draw_water_surface_foam(view_left, view_right)
+		_draw_player_water_interaction()
 		return
 
-	if Global.current_stage == 2:
-		# Fallback Stage 2: Torrential Waterfall & Blue Cliffs
-		draw_rect(Rect2(-200.0, -100.0, 7500.0, 400.0), Color(0.05, 0.1, 0.18))
-		for i in range(32):
-			var mx := -100.0 + float(i) * 240.0
-			draw_rect(Rect2(mx, 120.0, 160.0, 340.0), Color(0.09, 0.15, 0.25))
-		for wf in range(16):
-			var wfx := 150.0 + float(wf) * 420.0
-			draw_rect(Rect2(wfx, 40.0, 75.0, 420.0), Color(0.18, 0.55, 0.85, 0.75))
-			for fl in range(12):
-				var ly := 60.0 + float(fl) * 32.0 + sin(float(fl) * 2.0) * 10.0
-				draw_line(Vector2(wfx + 10.0, ly), Vector2(wfx + 65.0, ly + 8.0), Color.WHITE, 2.0)
-		draw_rect(Rect2(-200.0, 450.0, 7500.0, 150.0), Color(0.1, 0.35, 0.6))
-	elif Global.current_stage == 3:
-		# Fallback Stage 3: Subterranean Alien Hive Core
-		draw_rect(Rect2(-200.0, -100.0, 7500.0, 400.0), Color(0.12, 0.04, 0.07))
-		for i in range(45):
-			var ax := -100.0 + float(i) * 160.0
-			var ay := 180.0 + sin(float(i) * 1.8) * 35.0
-			draw_circle(Vector2(ax, ay), 40.0, Color(0.28, 0.08, 0.12))
-			draw_circle(Vector2(ax, ay), 18.0, Color(0.8, 0.2, 0.15, 0.4))
-		draw_rect(Rect2(-200.0, 450.0, 7500.0, 150.0), Color(0.35, 0.08, 0.05))
-		for w in range(80):
-			var wx := -100.0 + float(w) * 95.0
-			draw_line(Vector2(wx, 470.0), Vector2(wx + 50.0, 470.0), Color(1.0, 0.3, 0.1), 2.5)
-	else:
-		# Fallback Stage 1: Tropical Jungle Canopy & Calm Blue Water
-		draw_rect(Rect2(-200.0, -100.0, 7500.0, 400.0), Color(0.08, 0.12, 0.22))
-		for i in range(35):
-			var mx := -100.0 + float(i) * 220.0
-			var my := 230.0 + sin(float(i) * 1.5) * 40.0
-			var mountain_col := Color(0.12, 0.18, 0.28)
-			draw_colored_polygon(PackedVector2Array([
-				Vector2(mx - 150.0, 420.0),
-				Vector2(mx, my),
-				Vector2(mx + 150.0, 420.0)
-			]), mountain_col)
-		for i in range(55):
-			var px := -50.0 + float(i) * 135.0
-			var py := 150.0 + sin(float(i) * 2.2) * 25.0
-			draw_circle(Vector2(px, py), 45.0, Color(0.08, 0.22, 0.15))
-			draw_circle(Vector2(px + 20.0, py + 10.0), 38.0, Color(0.12, 0.28, 0.18))
-		draw_rect(Rect2(-200.0, 450.0, 7500.0, 150.0), Color(0.05, 0.20, 0.35))
-		for w in range(90):
-			var wx := -100.0 + float(w) * 85.0
-			draw_line(Vector2(wx, 470.0), Vector2(wx + 45.0, 470.0), Color(0.1, 0.35, 0.55), 2.0)
-			draw_line(Vector2(wx + 20.0, 500.0), Vector2(wx + 65.0, 500.0), Color(0.1, 0.35, 0.55), 2.0)
+func _draw_water_surface_foam(v_left: float, v_right: float) -> void:
+	var step := 28.0
+	var num_pts := int((v_right - v_left) / step) + 3
+	var foam_pts := PackedVector2Array()
+	
+	for i in range(num_pts):
+		var px: float = v_left + float(i) * step
+		var wave_y: float = 444.0 + sin(anim_timer * 4.2 + px * 0.035) * 2.5 + cos(anim_timer * 2.1 + px * 0.015) * 1.5
+		foam_pts.append(Vector2(px, wave_y))
+	
+	for i in range(foam_pts.size() - 1):
+		var p1 := foam_pts[i]
+		var p2 := foam_pts[i + 1]
+		var foam_alpha := 0.6 + 0.35 * sin(anim_timer * 5.0 + p1.x * 0.05)
+		var foam_col := Color(1.0, 1.0, 1.0, foam_alpha)
+		if Global.current_stage == 3:
+			foam_col = Color(1.0, 0.45, 0.2, foam_alpha)
+		draw_line(p1, p2, foam_col, 2.2)
+		var shimmer_offset := Vector2(0.0, 5.0 + sin(anim_timer * 3.0 + p1.x * 0.08) * 1.5)
+		draw_line(p1 + shimmer_offset, p2 + shimmer_offset, Color(foam_col.r, foam_col.g, foam_col.b, foam_alpha * 0.4), 1.5)
 
-func _draw_platforms() -> void:
+func _draw_player_water_interaction() -> void:
+	if player == null or not is_instance_valid(player):
+		return
+	var py: float = player.global_position.y
+	var px: float = player.global_position.x
+	if py >= 435.0 and py <= 525.0:
+		var ripple_r1: float = fmod(anim_timer * 26.0, 22.0) + 4.0
+		var ripple_alpha1: float = 1.0 - (ripple_r1 / 26.0)
+		var ripple_r2: float = fmod(anim_timer * 26.0 + 11.0, 22.0) + 4.0
+		var ripple_alpha2: float = 1.0 - (ripple_r2 / 26.0)
+		
+		var rip_center := Vector2(px, 448.0)
+		draw_arc(rip_center, ripple_r1, 0.0, TAU, 16, Color(1.0, 1.0, 1.0, ripple_alpha1 * 0.7), 2.0)
+		draw_arc(rip_center, ripple_r2, 0.0, TAU, 16, Color(0.7, 0.9, 1.0, ripple_alpha2 * 0.5), 1.5)
+		
+		if abs(player.velocity.x) > 10.0:
+			for d in range(4):
+				var splash_dir := -1.0 if player.velocity.x > 0.0 else 1.0
+				var splash_x: float = px + splash_dir * (float(d) * 6.0 + 4.0)
+				var splash_y: float = 446.0 - absf(sin(anim_timer * 14.0 + float(d))) * 7.0
+				draw_circle(Vector2(splash_x, splash_y), 2.0, Color(1.0, 1.0, 1.0, 0.85))
+
+func _draw_platforms(view_left: float, view_right: float) -> void:
 	var col_grass := Color(0.2, 0.55, 0.25)
 	var col_dirt := Color(0.35, 0.25, 0.18)
 	var col_girder := Color(0.4, 0.42, 0.48)
@@ -324,8 +337,11 @@ func _draw_platforms() -> void:
 		col_girder = Color(0.45, 0.2, 0.25)
 		col_rivet = Color(0.2, 0.05, 0.08)
 	
-	# Main Ground segments
+	# Main Ground segments with frustum culling
 	for g in ground_segments:
+		if g.end.x < view_left - 50.0 or g.position.x > view_right + 50.0:
+			continue
+		
 		if ground_tile_texture != null:
 			var tile_w: float = 120.0
 			var num_tiles: int = int(ceil(g.size.x / tile_w))
@@ -349,11 +365,13 @@ func _draw_platforms() -> void:
 				var fx: float = g.position.x + float(j) * 40.0 + 10.0
 				draw_circle(Vector2(fx, g.position.y - 2.0), 4.0, col_grass)
 	
-	# Elevated Girder & Rock Bridges (High & Mid platforms)
+	# Elevated Girder & Rock Bridges with frustum culling
 	for b in bridge_platforms:
+		if b.end.x < view_left - 50.0 or b.position.x > view_right + 50.0:
+			continue
+		
 		draw_rect(b, col_girder)
 		draw_line(Vector2(b.position.x, b.position.y), Vector2(b.position.x + b.size.x, b.position.y), Color(0.6, 0.65, 0.7), 2.0)
-		# Steel cross-trusses
 		for k in range(int(b.size.x / 24.0)):
 			var kx: float = b.position.x + float(k) * 24.0
 			draw_line(Vector2(kx, b.position.y), Vector2(kx + 24.0, b.position.y + 16.0), col_rivet, 2.0)
