@@ -1,4 +1,4 @@
-[gd_scene load_steps=2 format=3 uid="uid://clevelselect001"]
+[gd_scene format=3 uid="uid://vgu73t183uls"]
 
 [ext_resource type="Script" path="res://scripts/level_select.gd" id="1_level_select"]
 

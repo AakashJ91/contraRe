@@ -1,29 +1,30 @@
 extends Control
 
-# Multi-touch virtual D-Pad and Action buttons for Android & Touchscreens
+# Dynamic Floating Multi-Touch Movement Controller & Action Buttons for Mobile
 
-var dpad_center: Vector2 = Vector2(130.0, 420.0)
+var default_dpad_center: Vector2 = Vector2(140.0, 410.0)
+var dpad_center: Vector2 = default_dpad_center
+var current_thumb_pos: Vector2 = default_dpad_center
 var dpad_radius: float = 75.0
 var dpad_touch_id: int = -1
 var dpad_vector: Vector2 = Vector2.ZERO
+var dpad_active: bool = false
 
 var btn_shoot_pos: Vector2 = Vector2(850.0, 430.0)
 var btn_shoot_radius: float = 48.0
 var btn_shoot_touch_id: int = -1
+var shoot_active: bool = false
 
 var btn_jump_pos: Vector2 = Vector2(740.0, 450.0)
 var btn_jump_radius: float = 45.0
 var btn_jump_touch_id: int = -1
+var jump_active: bool = false
 
 var btn_restart_pos: Vector2 = Vector2(880.0, 40.0)
 var btn_restart_radius: float = 24.0
 
 var btn_menu_pos: Vector2 = Vector2(810.0, 40.0)
 var btn_menu_radius: float = 24.0
-
-var dpad_active: bool = false
-var shoot_active: bool = false
-var jump_active: bool = false
 
 var last_actions: Dictionary = {
 	"move_left": false,
@@ -32,9 +33,19 @@ var last_actions: Dictionary = {
 	"move_down": false
 }
 
+var pulse_time: float = 0.0
+
 func _ready() -> void:
 	mouse_filter = Control.MOUSE_FILTER_PASS
 	set_process_input(true)
+	queue_redraw()
+
+func _process(delta: float) -> void:
+	pulse_time += delta * 5.0
+	# Smoothly return dpad to resting position when released
+	if not dpad_active:
+		dpad_center = dpad_center.lerp(default_dpad_center, 12.0 * delta)
+		current_thumb_pos = current_thumb_pos.lerp(default_dpad_center, 14.0 * delta)
 	queue_redraw()
 
 func _input(event: InputEvent) -> void:
@@ -45,7 +56,7 @@ func _input(event: InputEvent) -> void:
 			_handle_touch_up(event.index)
 	elif event is InputEventScreenDrag:
 		_handle_touch_drag(event.index, event.position)
-	# Also allow mouse simulation for desktop testing
+	# Mouse simulation for PC preview
 	elif event is InputEventMouseButton:
 		if event.pressed:
 			_handle_touch_down(99, event.position)
@@ -83,10 +94,14 @@ func _handle_touch_down(idx: int, pos: Vector2) -> void:
 		queue_redraw()
 		return
 	
-	# D-Pad (left half of screen)
-	if pos.x < 480.0 and pos.y > 250.0:
+	# DYNAMIC MOVEMENT CONTROLLER: Left half of screen (below top status bar)
+	if pos.x < 480.0 and pos.y > 80.0:
 		dpad_touch_id = idx
 		dpad_active = true
+		# Anchor the dynamic joystick origin right under the user's thumb!
+		dpad_center = pos
+		current_thumb_pos = pos
+		dpad_vector = Vector2.ZERO
 		_update_dpad(pos)
 		queue_redraw()
 
@@ -118,15 +133,48 @@ func _handle_touch_up(idx: int) -> void:
 func _update_dpad(pos: Vector2) -> void:
 	var offset: Vector2 = pos - dpad_center
 	var dist: float = offset.length()
-	if dist > dpad_radius:
-		offset = offset.normalized() * dpad_radius
-	dpad_vector = offset / dpad_radius
 	
-	var deadzone: float = 0.25
-	var cur_left: bool = dpad_vector.x < -deadzone
-	var cur_right: bool = dpad_vector.x > deadzone
-	var cur_up: bool = dpad_vector.y < -deadzone
-	var cur_down: bool = dpad_vector.y > deadzone
+	if dist > dpad_radius:
+		# Floating origin follow: smoothly pull center if thumb moves beyond radius
+		var dir := offset.normalized()
+		dpad_center = pos - dir * dpad_radius
+		current_thumb_pos = pos
+		dpad_vector = dir
+	else:
+		current_thumb_pos = pos
+		dpad_vector = offset / dpad_radius
+	
+	var deadzone: float = 0.22
+	var cur_left: bool = false
+	var cur_right: bool = false
+	var cur_up: bool = false
+	var cur_down: bool = false
+	
+	# 8-Directional angular sector calculation
+	if dpad_vector.length() >= deadzone:
+		var angle := dpad_vector.angle() # Range: -PI to +PI
+		var step := PI / 8.0 # 22.5 degrees
+		
+		if angle >= -step and angle < step:
+			cur_right = true
+		elif angle >= step and angle < 3.0 * step:
+			cur_right = true
+			cur_down = true
+		elif angle >= 3.0 * step and angle < 5.0 * step:
+			cur_down = true
+		elif angle >= 5.0 * step and angle < 7.0 * step:
+			cur_left = true
+			cur_down = true
+		elif angle >= 7.0 * step or angle < -7.0 * step:
+			cur_left = true
+		elif angle >= -7.0 * step and angle < -5.0 * step:
+			cur_left = true
+			cur_up = true
+		elif angle >= -5.0 * step and angle < -3.0 * step:
+			cur_up = true
+		elif angle >= -3.0 * step and angle < -step:
+			cur_right = true
+			cur_up = true
 	
 	_set_action_state("move_left", cur_left)
 	_set_action_state("move_right", cur_right)
@@ -151,23 +199,54 @@ func _draw() -> void:
 	var bg_alpha := 0.28
 	var fg_alpha := 0.65
 	
-	# D-Pad Outer Ring & Center
-	draw_circle(dpad_center, dpad_radius, Color(0.1, 0.1, 0.15, bg_alpha))
-	draw_arc(dpad_center, dpad_radius, 0.0, TAU, 32, Color(0.9, 0.9, 1.0, 0.4), 2.5)
+	# --- DYNAMIC JOYSTICK BASE ---
+	var base_ring_col := Color(0.2, 0.7, 1.0, 0.85) if dpad_active else Color(0.8, 0.85, 0.95, 0.35)
+	var base_bg_col := Color(0.04, 0.1, 0.2, 0.5) if dpad_active else Color(0.06, 0.08, 0.12, bg_alpha)
 	
-	# D-Pad Cross Directions
-	var cross_col := Color(0.85, 0.85, 0.95, 0.45)
-	var arm_len := 38.0
-	var arm_w := 14.0
-	draw_rect(Rect2(dpad_center.x - arm_w * 0.5, dpad_center.y - arm_len, arm_w, arm_len * 2.0), cross_col)
-	draw_rect(Rect2(dpad_center.x - arm_len, dpad_center.y - arm_w * 0.5, arm_len * 2.0, arm_w), cross_col)
+	# Outer Area Fill & Ring
+	draw_circle(dpad_center, dpad_radius, base_bg_col)
+	draw_arc(dpad_center, dpad_radius, 0.0, TAU, 36, base_ring_col, 2.5)
 	
-	# D-Pad Thumb Nub
-	var nub_pos: Vector2 = dpad_center + dpad_vector * (dpad_radius * 0.75)
-	var nub_color := Color(0.2, 0.6, 1.0, 0.85) if dpad_active else Color(0.7, 0.7, 0.8, 0.5)
-	draw_circle(nub_pos, 22.0, nub_color)
-	draw_circle(nub_pos, 8.0, Color(1.0, 1.0, 1.0, 0.8))
+	# Dynamic Pulse Ring when active
+	if dpad_active:
+		var pulse_radius := dpad_radius + sin(pulse_time) * 4.0
+		draw_arc(dpad_center, pulse_radius, 0.0, TAU, 32, Color(0.3, 0.8, 1.0, 0.35), 1.5)
+		# Tether line from center to thumb
+		draw_line(dpad_center, current_thumb_pos, Color(0.4, 0.8, 1.0, 0.6), 3.0)
 	
+	# Center anchor pip
+	draw_circle(dpad_center, 6.0, Color(0.4, 0.8, 1.0, 0.5 if dpad_active else 0.25))
+	
+	# 8-Way Directional Notches & Indicators
+	for i in range(8):
+		var a := float(i) * (TAU / 8.0)
+		var dir := Vector2(cos(a), sin(a))
+		var notch_start := dpad_center + dir * (dpad_radius - 12.0)
+		var notch_end := dpad_center + dir * dpad_radius
+		var is_highlighted := false
+		
+		# Check if this notch is currently active
+		if dpad_active and dpad_vector.length() > 0.2:
+			var angle_diff: float = absf(fposmod(dir.angle() - dpad_vector.angle() + PI, TAU) - PI)
+			if angle_diff < PI / 8.0:
+				is_highlighted = true
+		
+		var notch_col := Color(1.0, 0.85, 0.2, 0.95) if is_highlighted else Color(0.7, 0.8, 0.9, 0.3)
+		draw_line(notch_start, notch_end, notch_col, 3.5 if is_highlighted else 2.0)
+		if is_highlighted:
+			# Directional arrowhead
+			var arrow_pt := dpad_center + dir * (dpad_radius + 8.0)
+			draw_circle(arrow_pt, 4.0, Color(1.0, 0.85, 0.2))
+	
+	# --- THUMB KNOB ---
+	var knob_radius := 26.0
+	var knob_bg := Color(0.1, 0.45, 0.9, 0.9) if dpad_active else Color(0.45, 0.5, 0.6, 0.5)
+	draw_circle(current_thumb_pos, knob_radius, Color(0.02, 0.05, 0.1, 0.6))
+	draw_circle(current_thumb_pos, knob_radius * 0.85, knob_bg)
+	draw_arc(current_thumb_pos, knob_radius * 0.85, 0.0, TAU, 24, Color(0.8, 0.95, 1.0, 0.8), 2.0)
+	draw_circle(current_thumb_pos, 8.0, Color.WHITE)
+	
+	# --- ACTION BUTTONS (RIGHT SIDE) ---
 	# Jump Button (A)
 	var jump_col := Color(0.1, 0.55, 0.9, 0.9) if jump_active else Color(0.1, 0.4, 0.8, fg_alpha)
 	draw_circle(btn_jump_pos, btn_jump_radius, Color(0.05, 0.1, 0.2, bg_alpha))
@@ -198,7 +277,6 @@ func _draw() -> void:
 	# Menu Button
 	draw_circle(btn_menu_pos, btn_menu_radius, Color(0.15, 0.2, 0.3, 0.7))
 	draw_arc(btn_menu_pos, btn_menu_radius, 0.0, TAU, 18, Color(0.3, 0.7, 1.0, 0.6), 1.5)
-	# 3 Menu bars
 	draw_line(btn_menu_pos + Vector2(-7.0, -5.0), btn_menu_pos + Vector2(7.0, -5.0), Color.WHITE, 2.0)
 	draw_line(btn_menu_pos + Vector2(-7.0, 0.0), btn_menu_pos + Vector2(7.0, 0.0), Color.WHITE, 2.0)
 	draw_line(btn_menu_pos + Vector2(-7.0, 5.0), btn_menu_pos + Vector2(7.0, 5.0), Color.WHITE, 2.0)
