@@ -53,7 +53,9 @@ var bridge_platforms: Array[Rect2] = [
 
 func _ready() -> void:
 	Global.screen_shake_requested.connect(_on_screen_shake)
-	if ResourceLoader.exists("res://assets/tiles/ground_tile.jpg"):
+	if ResourceLoader.exists("res://assets/tiles/ground_tile.png"):
+		ground_tile_texture = load("res://assets/tiles/ground_tile.png")
+	elif ResourceLoader.exists("res://assets/tiles/ground_tile.jpg"):
 		ground_tile_texture = load("res://assets/tiles/ground_tile.jpg")
 	if ResourceLoader.exists("res://assets/tiles/water_tile.jpg"):
 		water_tile_texture = load("res://assets/tiles/water_tile.jpg")
