@@ -40,7 +40,9 @@ func _physics_process(delta: float) -> void:
 	
 	if state == PlayerState.RESPAWNING:
 		respawn_timer -= delta
-		velocity.y = 120.0
+		velocity.y = 380.0
+		var rx: float = Input.get_axis("move_left", "move_right")
+		velocity.x = rx * SPEED * 0.8
 		var collision = move_and_collide(velocity * delta)
 		if is_on_floor() or respawn_timer <= 0.0 or collision != null:
 			state = PlayerState.IDLE
@@ -220,13 +222,13 @@ func take_damage(_amount: float = 1.0) -> void:
 	
 	Global.lose_life()
 	if Global.lives >= 0:
-		get_tree().create_timer(1.2).timeout.connect(_respawn)
+		get_tree().create_timer(0.45).timeout.connect(_respawn)
 
 func _respawn() -> void:
 	state = PlayerState.RESPAWNING
-	respawn_timer = 2.0
-	# Respawn drop from top of screen near current X position
-	global_position.y = maxf(40.0, global_position.y - 250.0)
+	respawn_timer = 0.8
+	# Quick respawn drop near current X position
+	global_position.y = maxf(80.0, global_position.y - 130.0)
 	velocity = Vector2.ZERO
 	Global.set_weapon(Global.WeaponType.RIFLE) # Reset to default rifle on death
 
