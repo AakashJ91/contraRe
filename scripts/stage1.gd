@@ -100,9 +100,9 @@ func _setup_static_enemies() -> void:
 	# Turrets placed along jungle fortresses
 	var turret_positions: Array[Vector2] = [
 		Vector2(650.0, 435.0),
-		Vector2(1250.0, 310.0),
+		Vector2(1250.0, 345.0),
 		Vector2(1820.0, 435.0),
-		Vector2(2150.0, 310.0)
+		Vector2(2150.0, 340.0)
 	]
 	for pos in turret_positions:
 		if turret_scene != null:
@@ -112,10 +112,10 @@ func _setup_static_enemies() -> void:
 	
 	# Snipers placed on high perches
 	var sniper_positions: Array[Vector2] = [
-		Vector2(450.0, 305.0),
-		Vector2(950.0, 215.0),
-		Vector2(1580.0, 215.0),
-		Vector2(2350.0, 305.0)
+		Vector2(450.0, 345.0),
+		Vector2(950.0, 335.0),
+		Vector2(1580.0, 335.0),
+		Vector2(2350.0, 345.0)
 	]
 	for pos in sniper_positions:
 		if sniper_scene != null:
@@ -258,13 +258,13 @@ func _draw_platforms() -> void:
 	
 	# Elevated Girder & Rock Bridges (High & Mid platforms)
 	var bridge_platforms := [
-		Rect2(360.0, 320.0, 220.0, 16.0),
-		Rect2(850.0, 230.0, 240.0, 16.0),
-		Rect2(1150.0, 330.0, 220.0, 16.0),
-		Rect2(1480.0, 230.0, 240.0, 16.0),
-		Rect2(1740.0, 330.0, 200.0, 16.0),
-		Rect2(2050.0, 330.0, 220.0, 16.0),
-		Rect2(2250.0, 320.0, 180.0, 16.0)
+		Rect2(360.0, 360.0, 220.0, 16.0),
+		Rect2(850.0, 350.0, 240.0, 16.0),
+		Rect2(1150.0, 360.0, 220.0, 16.0),
+		Rect2(1480.0, 350.0, 240.0, 16.0),
+		Rect2(1740.0, 360.0, 200.0, 16.0),
+		Rect2(2050.0, 355.0, 220.0, 16.0),
+		Rect2(2250.0, 360.0, 180.0, 16.0)
 	]
 	for b in bridge_platforms:
 		draw_rect(b, col_girder)

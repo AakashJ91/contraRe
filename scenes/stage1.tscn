@@ -81,37 +81,37 @@ position = Vector2(1500, 520)
 shape = SubResource("Rect_water_floor")
 
 [node name="Bridge1" type="CollisionShape2D" parent="WorldColliders"]
-position = Vector2(470, 328)
+position = Vector2(470, 368)
 shape = SubResource("Rect_b1")
 one_way_collision = true
 
 [node name="Bridge2" type="CollisionShape2D" parent="WorldColliders"]
-position = Vector2(970, 238)
+position = Vector2(970, 358)
 shape = SubResource("Rect_b2")
 one_way_collision = true
 
 [node name="Bridge3" type="CollisionShape2D" parent="WorldColliders"]
-position = Vector2(1260, 338)
+position = Vector2(1260, 368)
 shape = SubResource("Rect_b3")
 one_way_collision = true
 
 [node name="Bridge4" type="CollisionShape2D" parent="WorldColliders"]
-position = Vector2(1600, 238)
+position = Vector2(1600, 358)
 shape = SubResource("Rect_b4")
 one_way_collision = true
 
 [node name="Bridge5" type="CollisionShape2D" parent="WorldColliders"]
-position = Vector2(1840, 338)
+position = Vector2(1840, 368)
 shape = SubResource("Rect_b5")
 one_way_collision = true
 
 [node name="Bridge6" type="CollisionShape2D" parent="WorldColliders"]
-position = Vector2(2160, 338)
+position = Vector2(2160, 363)
 shape = SubResource("Rect_b6")
 one_way_collision = true
 
 [node name="Bridge7" type="CollisionShape2D" parent="WorldColliders"]
-position = Vector2(2340, 328)
+position = Vector2(2340, 368)
 shape = SubResource("Rect_b7")
 one_way_collision = true
 
