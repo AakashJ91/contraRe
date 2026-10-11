@@ -1,0 +1,35 @@
+[gd_scene load_steps=4 format=3 uid="uid://chudscene001"]
+
+[ext_resource type="Script" path="res://scripts/hud.gd" id="1_hud"]
+[ext_resource type="Shader" path="res://shaders/crt.gdshader" id="2_crt"]
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_crt"]
+shader = ExtResource("2_crt")
+shader_parameter/scanline_count = 320.0
+shader_parameter/scanline_intensity = 0.18
+shader_parameter/vignette_intensity = 0.28
+shader_parameter/warp_amount = 0.015
+shader_parameter/chromatic_aberration = 0.0015
+
+[node name="HUD" type="CanvasLayer"]
+layer = 8
+
+[node name="HUDView" type="Control" parent="." node_paths=PackedStringArray("crt_rect")]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+script = ExtResource("1_hud")
+crt_rect = NodePath("../CRTRect")
+
+[node name="CRTRect" type="ColorRect" parent="."]
+material = SubResource("ShaderMaterial_crt")
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2

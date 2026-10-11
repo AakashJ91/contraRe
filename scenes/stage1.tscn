@@ -1,0 +1,122 @@
+[gd_scene load_steps=17 format=3 uid="uid://cstage1scene001"]
+
+[ext_resource type="Script" path="res://scripts/stage1.gd" id="1_stage"]
+[ext_resource type="PackedScene" path="res://scenes/player.tscn" id="2_player"]
+[ext_resource type="PackedScene" path="res://scenes/boss.tscn" id="3_boss"]
+
+[sub_resource type="RectangleShape2D" id="Rect_g1"]
+size = Vector2(700, 80)
+
+[sub_resource type="RectangleShape2D" id="Rect_g2"]
+size = Vector2(700, 80)
+
+[sub_resource type="RectangleShape2D" id="Rect_g3"]
+size = Vector2(600, 80)
+
+[sub_resource type="RectangleShape2D" id="Rect_g4"]
+size = Vector2(800, 80)
+
+[sub_resource type="RectangleShape2D" id="Rect_b1"]
+size = Vector2(220, 16)
+
+[sub_resource type="RectangleShape2D" id="Rect_b2"]
+size = Vector2(240, 16)
+
+[sub_resource type="RectangleShape2D" id="Rect_b3"]
+size = Vector2(220, 16)
+
+[sub_resource type="RectangleShape2D" id="Rect_b4"]
+size = Vector2(240, 16)
+
+[sub_resource type="RectangleShape2D" id="Rect_b5"]
+size = Vector2(200, 16)
+
+[sub_resource type="RectangleShape2D" id="Rect_b6"]
+size = Vector2(220, 16)
+
+[sub_resource type="RectangleShape2D" id="Rect_b7"]
+size = Vector2(180, 16)
+
+[sub_resource type="RectangleShape2D" id="Rect_wall_left"]
+size = Vector2(40, 600)
+
+[sub_resource type="RectangleShape2D" id="Rect_water_floor"]
+size = Vector2(3400, 40)
+
+[node name="Stage1" type="Node2D"]
+script = ExtResource("1_stage")
+
+[node name="Camera2D" type="Camera2D" parent="."]
+position = Vector2(480, 270)
+limit_left = 0
+limit_top = 0
+limit_bottom = 540
+
+[node name="WorldColliders" type="StaticBody2D" parent="."]
+collision_layer = 2
+collision_mask = 0
+
+[node name="WallLeft" type="CollisionShape2D" parent="WorldColliders"]
+position = Vector2(-20, 270)
+shape = SubResource("Rect_wall_left")
+
+[node name="Ground1" type="CollisionShape2D" parent="WorldColliders"]
+position = Vector2(350, 480)
+shape = SubResource("Rect_g1")
+
+[node name="Ground2" type="CollisionShape2D" parent="WorldColliders"]
+position = Vector2(1130, 480)
+shape = SubResource("Rect_g2")
+
+[node name="Ground3" type="CollisionShape2D" parent="WorldColliders"]
+position = Vector2(1860, 480)
+shape = SubResource("Rect_g3")
+
+[node name="Ground4" type="CollisionShape2D" parent="WorldColliders"]
+position = Vector2(2640, 480)
+shape = SubResource("Rect_g4")
+
+[node name="WaterFloor" type="CollisionShape2D" parent="WorldColliders"]
+position = Vector2(1500, 520)
+shape = SubResource("Rect_water_floor")
+
+[node name="Bridge1" type="CollisionShape2D" parent="WorldColliders"]
+position = Vector2(470, 328)
+shape = SubResource("Rect_b1")
+one_way_collision = true
+
+[node name="Bridge2" type="CollisionShape2D" parent="WorldColliders"]
+position = Vector2(970, 238)
+shape = SubResource("Rect_b2")
+one_way_collision = true
+
+[node name="Bridge3" type="CollisionShape2D" parent="WorldColliders"]
+position = Vector2(1260, 338)
+shape = SubResource("Rect_b3")
+one_way_collision = true
+
+[node name="Bridge4" type="CollisionShape2D" parent="WorldColliders"]
+position = Vector2(1600, 238)
+shape = SubResource("Rect_b4")
+one_way_collision = true
+
+[node name="Bridge5" type="CollisionShape2D" parent="WorldColliders"]
+position = Vector2(1840, 338)
+shape = SubResource("Rect_b5")
+one_way_collision = true
+
+[node name="Bridge6" type="CollisionShape2D" parent="WorldColliders"]
+position = Vector2(2160, 338)
+shape = SubResource("Rect_b6")
+one_way_collision = true
+
+[node name="Bridge7" type="CollisionShape2D" parent="WorldColliders"]
+position = Vector2(2340, 328)
+shape = SubResource("Rect_b7")
+one_way_collision = true
+
+[node name="Player" parent="." groups=["player"] instance=ExtResource("2_player")]
+position = Vector2(100, 410)
+
+[node name="Boss" parent="." instance=ExtResource("3_boss")]
+position = Vector2(2650, 360)

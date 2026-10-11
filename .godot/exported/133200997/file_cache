@@ -1,0 +1,13 @@
+res://scenes/boss.tscn::9f395dcf25097867bf6427df38cef9b9::1791731086::res://.godot/exported/133200997/export-7649a76be24b0454ff92379a9b1bf3ce-boss.scn
+res://scenes/bullet.tscn::1ae137cbec4675ad71f2c58356d2e6e5::1791730891::res://.godot/exported/133200997/export-6d8e6ff1e6f20a36e0402d27c623c86c-bullet.scn
+res://scenes/enemy_sniper.tscn::f73809680fc7bfbed80212257980f528::1791731010::res://.godot/exported/133200997/export-96d75bab30a32e45c6321a29a5960836-enemy_sniper.scn
+res://scenes/enemy_soldier.tscn::b6711cd4efc09d8e5d07062c844e5958::1791730972::res://.godot/exported/133200997/export-f59c2eeea824b7b3bd0c446b60ef7802-enemy_soldier.scn
+res://scenes/enemy_turret.tscn::80e81b1afe858cdb6276864a1a604b70::1791730990::res://.godot/exported/133200997/export-dc9694ddb5a2ec240033867c7b74b9d9-enemy_turret.scn
+res://scenes/explosion.tscn::4dd3c57f7d93f652763b4f53b48c55f4::1791730906::res://.godot/exported/133200997/export-19462905a0f3b4b39165a3350317f22c-explosion.scn
+res://scenes/hud.tscn::36763eae4e7f6c247852097bd57889ee::1791731287::res://.godot/exported/133200997/export-38bf74ff262409a94a41206b2b776d33-hud.scn
+res://scenes/main.tscn::131fdf26257a003a1195fb2a3597f94c::1791731206::res://.godot/exported/133200997/export-3ad5c15c4f3250da0cc7c1af1770d85f-main.scn
+res://scenes/player.tscn::5c8420500cfcd6d5999ce03dc8fdb9ff::1791730948::res://.godot/exported/133200997/export-234fb6894ec6226e856ab7f825500d3d-player.scn
+res://scenes/powerup_blimp.tscn::d2112f39251faf12312cc4d2404daede::1791731049::res://.godot/exported/133200997/export-382726d32753ddd13d54b3810060c864-powerup_blimp.scn
+res://scenes/powerup_item.tscn::a4c7b8ff182fdcb80bd0d6b15284a126::1791731031::res://.godot/exported/133200997/export-c9dc4248877ca58d96a6f5265f21bdc4-powerup_item.scn
+res://scenes/stage1.tscn::9d49718aef1babd2be44a2c6b8a45fe8::1791731192::res://.godot/exported/133200997/export-eb1b5d9bd4f62350feacb74c69527b9f-stage1.scn
+res://scenes/touch_controls.tscn::61a7fa0ebd84fbec6ca911df95973fda::1791731316::res://.godot/exported/133200997/export-f0ede4bb06c234cd60561a1c3c706c1e-touch_controls.scn

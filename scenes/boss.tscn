@@ -1,0 +1,39 @@
+[gd_scene load_steps=5 format=3 uid="uid://cbossscene001"]
+
+[ext_resource type="Script" path="res://scripts/boss.gd" id="1_boss"]
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_core"]
+radius = 18.0
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_left"]
+radius = 16.0
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_right"]
+radius = 16.0
+
+[node name="Boss" type="Node2D"]
+script = ExtResource("1_boss")
+
+[node name="CoreArea" type="Area2D" parent="."]
+position = Vector2(0, 8)
+collision_layer = 4
+collision_mask = 8
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="CoreArea"]
+shape = SubResource("CircleShape2D_core")
+
+[node name="LeftCannon" type="Area2D" parent="."]
+position = Vector2(-60, 40)
+collision_layer = 4
+collision_mask = 8
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="LeftCannon"]
+shape = SubResource("CircleShape2D_left")
+
+[node name="RightCannon" type="Area2D" parent="."]
+position = Vector2(60, 40)
+collision_layer = 4
+collision_mask = 8
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="RightCannon"]
+shape = SubResource("CircleShape2D_right")
