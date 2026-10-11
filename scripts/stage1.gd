@@ -8,22 +8,51 @@ extends Node2D
 @onready var camera: Camera2D = $Camera2D
 @onready var player: CharacterBody2D = $Player
 @onready var boss: Node2D = $Boss
+@onready var world_colliders: StaticBody2D = $WorldColliders
 
 var shake_intensity: float = 0.0
 var shake_duration: float = 0.0
 var soldier_spawn_timer: float = 2.0
-var blimp_spawn_timer: float = 8.0
+var blimp_spawn_timer: float = 7.0
 var blimp_index: int = 0
 
 const LEVEL_MIN_X: float = 0.0
-const LEVEL_MAX_X: float = 2800.0
-const BOSS_TRIGGER_X: float = 2400.0
+const LEVEL_MAX_X: float = 6700.0
+const BOSS_TRIGGER_X: float = 5800.0
 
 var bg_texture: Texture2D = null
+
+# 7 major ground sectors across the 6700px expanded mission
+var ground_segments: Array[Rect2] = [
+	Rect2(0.0, 440.0, 800.0, 80.0),       # Sector 1: Jungle Landing Beach
+	Rect2(900.0, 440.0, 800.0, 80.0),     # Sector 2: Outer Fortress Perimeter
+	Rect2(1800.0, 440.0, 800.0, 80.0),    # Sector 3: Jungle Ravine Catwalks
+	Rect2(2720.0, 440.0, 880.0, 80.0),    # Sector 4: Mid-Stage Heavy Battery
+	Rect2(3720.0, 440.0, 880.0, 80.0),    # Sector 5: Waterfall Cliffside
+	Rect2(4720.0, 440.0, 880.0, 80.0),    # Sector 6: Alien Hive Perimeter
+	Rect2(5720.0, 440.0, 980.0, 80.0)     # Sector 7: Wall Defense Boss Arena
+]
+
+# 12 distinct, non-overlapping bridges & tactical catwalks
+var bridge_platforms: Array[Rect2] = [
+	Rect2(350.0, 360.0, 300.0, 16.0),     # 1: Intro elevated ledge
+	Rect2(750.0, 360.0, 270.0, 16.0),     # 2: Spans Water Gap 1 (800-900)
+	Rect2(1200.0, 360.0, 350.0, 16.0),    # 3: Sector 2 elevated catwalk
+	Rect2(1650.0, 360.0, 270.0, 16.0),    # 4: Spans Water Gap 2 (1700-1800)
+	Rect2(2100.0, 360.0, 350.0, 16.0),    # 5: Sector 3 elevated platform
+	Rect2(2550.0, 360.0, 270.0, 16.0),    # 6: Spans Water Gap 3 (2600-2720)
+	Rect2(3000.0, 360.0, 450.0, 16.0),    # 7: Sector 4 fortress battery
+	Rect2(3550.0, 360.0, 270.0, 16.0),    # 8: Spans Water Gap 4 (3600-3720)
+	Rect2(4000.0, 360.0, 450.0, 16.0),    # 9: Sector 5 waterfall ridge
+	Rect2(4550.0, 360.0, 270.0, 16.0),    # 10: Spans Water Gap 5 (4600-4720)
+	Rect2(5000.0, 360.0, 450.0, 16.0),    # 11: Sector 6 alien rampart
+	Rect2(5550.0, 360.0, 270.0, 16.0)     # 12: Spans Water Gap 6 (5600-5720) into Boss Arena
+]
 
 func _ready() -> void:
 	Global.screen_shake_requested.connect(_on_screen_shake)
 	_setup_background()
+	_setup_colliders()
 	_setup_static_enemies()
 	queue_redraw()
 
@@ -53,6 +82,27 @@ func _setup_background() -> void:
 		spr.centered = false
 		p_layer.add_child(spr)
 
+func _setup_colliders() -> void:
+	if world_colliders == null:
+		return
+	
+	for g in ground_segments:
+		var c := CollisionShape2D.new()
+		var s := RectangleShape2D.new()
+		s.size = g.size
+		c.shape = s
+		c.position = g.position + g.size * 0.5
+		world_colliders.add_child(c)
+	
+	for b in bridge_platforms:
+		var c := CollisionShape2D.new()
+		var s := RectangleShape2D.new()
+		s.size = b.size
+		c.shape = s
+		c.position = b.position + b.size * 0.5
+		c.one_way_collision = true
+		world_colliders.add_child(c)
+
 func _physics_process(delta: float) -> void:
 	# Screen Shake
 	if shake_duration > 0.0:
@@ -64,7 +114,7 @@ func _physics_process(delta: float) -> void:
 	
 	# Camera horizontal tracking (arcade side-scrolling style)
 	if player != null and is_instance_valid(player):
-		var target_cam_x := clampf(player.global_position.x + 120.0, 480.0, 2400.0)
+		var target_cam_x := clampf(player.global_position.x + 120.0, 480.0, 5800.0)
 		camera.global_position.x = maxf(camera.global_position.x, target_cam_x)
 		
 		# Boss trigger check
@@ -75,21 +125,21 @@ func _physics_process(delta: float) -> void:
 	if camera.global_position.x < BOSS_TRIGGER_X:
 		soldier_spawn_timer -= delta
 		if soldier_spawn_timer <= 0.0:
-			var min_interval := 2.8
-			var max_interval := 5.0
+			var min_interval := 2.6
+			var max_interval := 4.8
 			if Global.current_stage == 2:
-				min_interval = 2.0
-				max_interval = 3.6
+				min_interval = 1.8
+				max_interval = 3.4
 			elif Global.current_stage == 3:
-				min_interval = 1.4
-				max_interval = 2.6
+				min_interval = 1.3
+				max_interval = 2.4
 			soldier_spawn_timer = randf_range(min_interval, max_interval)
 			_spawn_soldier_wave()
 		
 		# Flying Powerup Blimp Spawner
 		blimp_spawn_timer -= delta
 		if blimp_spawn_timer <= 0.0:
-			blimp_spawn_timer = 14.0
+			blimp_spawn_timer = 9.0
 			_spawn_flying_blimp()
 
 func _on_screen_shake(intensity: float, duration: float) -> void:
@@ -97,12 +147,16 @@ func _on_screen_shake(intensity: float, duration: float) -> void:
 	shake_duration = duration
 
 func _setup_static_enemies() -> void:
-	# Turrets placed along ground & fortress platforms
+	# 8 Turrets placed along ground & fortress platforms
 	var turret_positions: Array[Vector2] = [
-		Vector2(600.0, 435.0),
-		Vector2(1335.0, 345.0),
-		Vector2(1705.0, 435.0),
-		Vector2(2050.0, 435.0)
+		Vector2(700.0, 435.0),
+		Vector2(1375.0, 345.0),
+		Vector2(2020.0, 435.0),
+		Vector2(2275.0, 345.0),
+		Vector2(3225.0, 345.0),
+		Vector2(3920.0, 435.0),
+		Vector2(4225.0, 345.0),
+		Vector2(5225.0, 345.0)
 	]
 	for pos in turret_positions:
 		if turret_scene != null:
@@ -110,12 +164,16 @@ func _setup_static_enemies() -> void:
 			t.global_position = pos
 			add_child(t)
 	
-	# Snipers placed on elevated bridges
+	# 8 Snipers placed on elevated bridges
 	var sniper_positions: Array[Vector2] = [
-		Vector2(430.0, 345.0),
-		Vector2(1070.0, 345.0),
-		Vector2(1865.0, 345.0),
-		Vector2(2220.0, 345.0)
+		Vector2(500.0, 345.0),
+		Vector2(885.0, 345.0),
+		Vector2(1785.0, 345.0),
+		Vector2(2685.0, 345.0),
+		Vector2(3500.0, 435.0),
+		Vector2(3685.0, 345.0),
+		Vector2(4685.0, 345.0),
+		Vector2(5685.0, 345.0)
 	]
 	for pos in sniper_positions:
 		if sniper_scene != null:
@@ -148,7 +206,6 @@ func _spawn_flying_blimp() -> void:
 	add_child(b)
 
 func _draw() -> void:
-	# Parallax Jungle & Backdrop scenery drawn across 3000px length
 	_draw_backdrop()
 	_draw_platforms()
 
@@ -158,21 +215,21 @@ func _draw_backdrop() -> void:
 		# Render river, rapids, or magma hazard pool in the foreground water plane:
 		if Global.current_stage == 2:
 			# Raging rapids river
-			draw_rect(Rect2(-200.0, 450.0, 3400.0, 150.0), Color(0.1, 0.35, 0.6, 0.88))
-			for fl in range(10):
+			draw_rect(Rect2(-200.0, 450.0, 7500.0, 150.0), Color(0.1, 0.35, 0.6, 0.88))
+			for fl in range(24):
 				var wfx := -100.0 + float(fl) * 320.0
 				draw_line(Vector2(wfx, 465.0), Vector2(wfx + 180.0, 465.0), Color.WHITE, 2.0)
 				draw_line(Vector2(wfx + 60.0, 495.0), Vector2(wfx + 240.0, 495.0), Color(0.7, 0.88, 1.0), 2.0)
 		elif Global.current_stage == 3:
 			# Toxic alien magma base
-			draw_rect(Rect2(-200.0, 450.0, 3400.0, 150.0), Color(0.35, 0.08, 0.05, 0.88))
-			for w in range(35):
+			draw_rect(Rect2(-200.0, 450.0, 7500.0, 150.0), Color(0.35, 0.08, 0.05, 0.88))
+			for w in range(80):
 				var wx := -100.0 + float(w) * 95.0
 				draw_line(Vector2(wx, 470.0), Vector2(wx + 50.0, 470.0), Color(1.0, 0.3, 0.1), 2.5)
 		else:
 			# Stage 1: Tropical Jungle River
-			draw_rect(Rect2(-200.0, 450.0, 3400.0, 150.0), Color(0.05, 0.20, 0.35, 0.88))
-			for w in range(40):
+			draw_rect(Rect2(-200.0, 450.0, 7500.0, 150.0), Color(0.05, 0.20, 0.35, 0.88))
+			for w in range(90):
 				var wx := -100.0 + float(w) * 85.0
 				draw_line(Vector2(wx, 470.0), Vector2(wx + 45.0, 470.0), Color(0.1, 0.35, 0.55), 2.0)
 				draw_line(Vector2(wx + 20.0, 500.0), Vector2(wx + 65.0, 500.0), Color(0.1, 0.35, 0.55), 2.0)
@@ -180,33 +237,33 @@ func _draw_backdrop() -> void:
 
 	if Global.current_stage == 2:
 		# Fallback Stage 2: Torrential Waterfall & Blue Cliffs
-		draw_rect(Rect2(-200.0, -100.0, 3400.0, 400.0), Color(0.05, 0.1, 0.18))
-		for i in range(14):
+		draw_rect(Rect2(-200.0, -100.0, 7500.0, 400.0), Color(0.05, 0.1, 0.18))
+		for i in range(32):
 			var mx := -100.0 + float(i) * 240.0
 			draw_rect(Rect2(mx, 120.0, 160.0, 340.0), Color(0.09, 0.15, 0.25))
-		for wf in range(7):
+		for wf in range(16):
 			var wfx := 150.0 + float(wf) * 420.0
 			draw_rect(Rect2(wfx, 40.0, 75.0, 420.0), Color(0.18, 0.55, 0.85, 0.75))
 			for fl in range(12):
 				var ly := 60.0 + float(fl) * 32.0 + sin(float(fl) * 2.0) * 10.0
 				draw_line(Vector2(wfx + 10.0, ly), Vector2(wfx + 65.0, ly + 8.0), Color.WHITE, 2.0)
-		draw_rect(Rect2(-200.0, 450.0, 3400.0, 150.0), Color(0.1, 0.35, 0.6))
+		draw_rect(Rect2(-200.0, 450.0, 7500.0, 150.0), Color(0.1, 0.35, 0.6))
 	elif Global.current_stage == 3:
 		# Fallback Stage 3: Subterranean Alien Hive Core
-		draw_rect(Rect2(-200.0, -100.0, 3400.0, 400.0), Color(0.12, 0.04, 0.07))
-		for i in range(20):
+		draw_rect(Rect2(-200.0, -100.0, 7500.0, 400.0), Color(0.12, 0.04, 0.07))
+		for i in range(45):
 			var ax := -100.0 + float(i) * 160.0
 			var ay := 180.0 + sin(float(i) * 1.8) * 35.0
 			draw_circle(Vector2(ax, ay), 40.0, Color(0.28, 0.08, 0.12))
 			draw_circle(Vector2(ax, ay), 18.0, Color(0.8, 0.2, 0.15, 0.4))
-		draw_rect(Rect2(-200.0, 450.0, 3400.0, 150.0), Color(0.35, 0.08, 0.05))
-		for w in range(35):
+		draw_rect(Rect2(-200.0, 450.0, 7500.0, 150.0), Color(0.35, 0.08, 0.05))
+		for w in range(80):
 			var wx := -100.0 + float(w) * 95.0
 			draw_line(Vector2(wx, 470.0), Vector2(wx + 50.0, 470.0), Color(1.0, 0.3, 0.1), 2.5)
 	else:
 		# Fallback Stage 1: Tropical Jungle Canopy & Calm Blue Water
-		draw_rect(Rect2(-200.0, -100.0, 3400.0, 400.0), Color(0.08, 0.12, 0.22))
-		for i in range(16):
+		draw_rect(Rect2(-200.0, -100.0, 7500.0, 400.0), Color(0.08, 0.12, 0.22))
+		for i in range(35):
 			var mx := -100.0 + float(i) * 220.0
 			var my := 230.0 + sin(float(i) * 1.5) * 40.0
 			var mountain_col := Color(0.12, 0.18, 0.28)
@@ -215,13 +272,13 @@ func _draw_backdrop() -> void:
 				Vector2(mx, my),
 				Vector2(mx + 150.0, 420.0)
 			]), mountain_col)
-		for i in range(25):
+		for i in range(55):
 			var px := -50.0 + float(i) * 135.0
 			var py := 150.0 + sin(float(i) * 2.2) * 25.0
 			draw_circle(Vector2(px, py), 45.0, Color(0.08, 0.22, 0.15))
 			draw_circle(Vector2(px + 20.0, py + 10.0), 38.0, Color(0.12, 0.28, 0.18))
-		draw_rect(Rect2(-200.0, 450.0, 3400.0, 150.0), Color(0.05, 0.20, 0.35))
-		for w in range(40):
+		draw_rect(Rect2(-200.0, 450.0, 7500.0, 150.0), Color(0.05, 0.20, 0.35))
+		for w in range(90):
 			var wx := -100.0 + float(w) * 85.0
 			draw_line(Vector2(wx, 470.0), Vector2(wx + 45.0, 470.0), Color(0.1, 0.35, 0.55), 2.0)
 			draw_line(Vector2(wx + 20.0, 500.0), Vector2(wx + 65.0, 500.0), Color(0.1, 0.35, 0.55), 2.0)
@@ -243,12 +300,6 @@ func _draw_platforms() -> void:
 		col_rivet = Color(0.2, 0.05, 0.08)
 	
 	# Main Ground segments
-	var ground_segments := [
-		Rect2(0.0, 440.0, 700.0, 80.0),
-		Rect2(780.0, 440.0, 700.0, 80.0),
-		Rect2(1560.0, 440.0, 600.0, 80.0),
-		Rect2(2240.0, 440.0, 800.0, 80.0)
-	]
 	for g in ground_segments:
 		draw_rect(g, col_dirt)
 		draw_rect(Rect2(g.position.x, g.position.y, g.size.x, 8.0), col_grass)
@@ -257,15 +308,6 @@ func _draw_platforms() -> void:
 			draw_circle(Vector2(fx, g.position.y - 2.0), 4.0, col_grass)
 	
 	# Elevated Girder & Rock Bridges (High & Mid platforms)
-	var bridge_platforms := [
-		Rect2(320.0, 360.0, 220.0, 16.0),
-		Rect2(650.0, 360.0, 200.0, 16.0),
-		Rect2(960.0, 360.0, 220.0, 16.0),
-		Rect2(1250.0, 360.0, 170.0, 16.0),
-		Rect2(1460.0, 360.0, 200.0, 16.0),
-		Rect2(1750.0, 360.0, 230.0, 16.0),
-		Rect2(2120.0, 360.0, 200.0, 16.0)
-	]
 	for b in bridge_platforms:
 		draw_rect(b, col_girder)
 		draw_line(Vector2(b.position.x, b.position.y), Vector2(b.position.x + b.size.x, b.position.y), Color(0.6, 0.65, 0.7), 2.0)
