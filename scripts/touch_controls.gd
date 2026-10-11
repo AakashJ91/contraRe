@@ -18,6 +18,9 @@ var btn_jump_touch_id: int = -1
 var btn_restart_pos: Vector2 = Vector2(880.0, 40.0)
 var btn_restart_radius: float = 24.0
 
+var btn_menu_pos: Vector2 = Vector2(810.0, 40.0)
+var btn_menu_radius: float = 24.0
+
 var dpad_active: bool = false
 var shoot_active: bool = false
 var jump_active: bool = false
@@ -52,6 +55,12 @@ func _input(event: InputEvent) -> void:
 		_handle_touch_drag(99, event.position)
 
 func _handle_touch_down(idx: int, pos: Vector2) -> void:
+	# Menu / Title Button
+	if pos.distance_to(btn_menu_pos) <= btn_menu_radius * 1.3:
+		Global.play_sfx("menu_cursor")
+		Global.go_to_level_select()
+		return
+	
 	# Restart Button
 	if pos.distance_to(btn_restart_pos) <= btn_restart_radius * 1.3:
 		Global.reset_game()
@@ -185,3 +194,11 @@ func _draw() -> void:
 	draw_circle(btn_restart_pos, btn_restart_radius, Color(0.25, 0.2, 0.15, 0.7))
 	draw_arc(btn_restart_pos, btn_restart_radius, 0.0, TAU, 18, Color(0.9, 0.7, 0.3, 0.6), 1.5)
 	draw_arc(btn_restart_pos, 8.0, 0.5, 5.5, 16, Color.WHITE, 2.0)
+	
+	# Menu Button
+	draw_circle(btn_menu_pos, btn_menu_radius, Color(0.15, 0.2, 0.3, 0.7))
+	draw_arc(btn_menu_pos, btn_menu_radius, 0.0, TAU, 18, Color(0.3, 0.7, 1.0, 0.6), 1.5)
+	# 3 Menu bars
+	draw_line(btn_menu_pos + Vector2(-7.0, -5.0), btn_menu_pos + Vector2(7.0, -5.0), Color.WHITE, 2.0)
+	draw_line(btn_menu_pos + Vector2(-7.0, 0.0), btn_menu_pos + Vector2(7.0, 0.0), Color.WHITE, 2.0)
+	draw_line(btn_menu_pos + Vector2(-7.0, 5.0), btn_menu_pos + Vector2(7.0, 5.0), Color.WHITE, 2.0)

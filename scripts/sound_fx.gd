@@ -17,6 +17,8 @@ func _init_sounds() -> void:
 	sfx_players["powerup"] = _create_player(_generate_powerup_sound())
 	sfx_players["player_death"] = _create_player(_generate_death_sound())
 	sfx_players["boss_alarm"] = _create_player(_generate_boss_alarm())
+	sfx_players["menu_cursor"] = _create_player(_generate_cursor_sound())
+	sfx_players["menu_start"] = _create_player(_generate_start_sound())
 
 func _create_player(stream: AudioStreamWAV) -> AudioStreamPlayer:
 	var p := AudioStreamPlayer.new()
@@ -211,3 +213,42 @@ func _generate_boss_alarm() -> AudioStreamWAV:
 		var wave := 1.0 if sin(phase) > 0.0 else -1.0
 		samples[i] = wave * 0.3
 	return _create_wav(samples, rate)
+
+# Menu Cursor Blip
+func _generate_cursor_sound() -> AudioStreamWAV:
+	var rate := 22050
+	var duration := 0.06
+	var total_samples := int(rate * duration)
+	var samples := PackedFloat32Array()
+	samples.resize(total_samples)
+	var phase := 0.0
+	
+	for i in range(total_samples):
+		var t := float(i) / float(total_samples)
+		var freq := 580.0
+		phase += (freq * TAU) / float(rate)
+		var env := 1.0 - t
+		var wave := 1.0 if sin(phase) > 0.0 else -1.0
+		samples[i] = wave * env * 0.35
+	return _create_wav(samples, rate)
+
+# Menu Start / Confirm Jingle
+func _generate_start_sound() -> AudioStreamWAV:
+	var rate := 22050
+	var duration := 0.4
+	var total_samples := int(rate * duration)
+	var samples := PackedFloat32Array()
+	samples.resize(total_samples)
+	var notes := [440.0, 554.37, 659.25, 880.0] # A4, C#5, E5, A5
+	var phase := 0.0
+	
+	for i in range(total_samples):
+		var t := float(i) / float(total_samples)
+		var idx := clampi(int(t * 4.0), 0, 3)
+		var freq: float = notes[idx]
+		phase += (freq * TAU) / float(rate)
+		var env := 1.0 - (fposmod(t * 4.0, 1.0) * 0.4)
+		var wave := 1.0 if sin(phase) > 0.0 else -1.0
+		samples[i] = wave * env * 0.4
+	return _create_wav(samples, rate)
+

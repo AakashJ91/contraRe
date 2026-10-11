@@ -101,10 +101,11 @@ func _draw() -> void:
 		_draw_text("GAME OVER", Vector2(380.0, 230.0), Color(1.0, 0.2, 0.2), 32)
 		_draw_text("PRESS RESTART OR TAP SCREEN TO RETRY", Vector2(280.0, 275.0), Color(1.0, 0.9, 0.3), 18)
 	elif victory_displayed:
-		draw_rect(Rect2(0.0, 160.0, 960.0, 160.0), Color(0.0, 0.0, 0.0, 0.85))
-		_draw_text("STAGE 1 CLEAR!", Vector2(350.0, 220.0), Color(0.2, 1.0, 0.4), 32)
-		_draw_text("EXCELLENT WORK, COMMANDO!", Vector2(330.0, 260.0), Color(1.0, 1.0, 1.0), 20)
-		_draw_text("STAGE SCORE: " + str(score), Vector2(390.0, 295.0), Color(1.0, 0.85, 0.2), 18)
+		draw_rect(Rect2(0.0, 150.0, 960.0, 190.0), Color(0.0, 0.0, 0.0, 0.88))
+		_draw_text("STAGE " + str(Global.current_stage) + " CLEAR!", Vector2(340.0, 210.0), Color(0.2, 1.0, 0.4), 32)
+		_draw_text("EXCELLENT WORK, COMMANDO!", Vector2(330.0, 250.0), Color(1.0, 1.0, 1.0), 20)
+		_draw_text("STAGE SCORE: " + str(score), Vector2(390.0, 285.0), Color(1.0, 0.85, 0.2), 18)
+		_draw_text("[ TAP MENU BUTTON TO RETURN TO LEVEL SELECT ]", Vector2(250.0, 320.0), Color(0.3, 0.85, 1.0), 15)
 
 func _draw_text(text: String, pos: Vector2, col: Color, font_size: int = 14) -> void:
 	var font := ThemeDB.fallback_font

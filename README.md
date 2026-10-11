@@ -23,10 +23,10 @@ An authentic retro arcade clone of **Contra** (Stage 1 Jungle & Wall Defense Cor
   - **Platform Snipers**: Camouflaged marksmen aiming long rifles from elevated vantage points.
 - **Stage 1 Wall Defense Boss**:
   - Massive armored entrance fortress with twin heavy cannons, top hatch defense, and glowing alien core sensor with chained explosion sequences upon defeat.
-- **Visuals & Audio**:
-  - **Multi-Touch Android Controls**: Responsive on-screen virtual 8-way D-Pad, Jump (A), and Shoot (B) buttons.
-  - **Procedural 8-bit Sound Synthesizer**: Zero external audio dependencies—all sound effects (gunshots, spread bursts, explosions, laser sweeps, jumps, powerups, boss siren) are mathematically synthesized at runtime into WAV streams.
-  - **Crisp Pixel Art Rendering**: Clean, high-performance 2D visuals with smooth 60fps animations.
+- **Title Screen & Tactical Level Selection**:
+  - **Retro Arcade Title Screen**: Metallic red & gold **CONTRA RE** logo, glowing falcon insignia, animated starfield, and retro synth music cues.
+  - **Interactive Start Menu**: `START MISSION`, `SELECT LEVEL`, `HOW TO PLAY` (briefing dialog), and `SOUND TOGGLE`.
+  - **Mission Level Select**: Tactical theater deployment cards for **Stage 1 (Jungle Perimeter)**, **Stage 2 (Waterfall Fortress)**, and **Stage 3 (Alien Hive Core)** with mission objectives and custom backdrop themes.
 
 ---
 
@@ -36,18 +36,19 @@ An authentic retro arcade clone of **Contra** (Stage 1 Jungle & Wall Defense Cor
 - **Left Side Virtual D-Pad**: Move Left / Right, Aim Up / Down, and 8-way diagonal combinations.
 - **(A) Blue Button**: Jump (Press Down on D-Pad + Jump to drop down through bridges).
 - **(B) Red Button**: Shoot (Hold for continuous Machine Gun fire).
-- **Top Right Button**: Quick restart.
+- **Top Right Buttons**: Quick Restart & `[MENU]` Button (return to Level Select / Title Screen).
+- **Menus & Level Select**: Directly tap cards or menu options to deploy.
 
 ### PC / Keyboard Controls
 | Action | Key |
 | :--- | :--- |
 | **Move / Aim** | `W, A, S, D` or `Arrow Keys` |
-| **Jump** | `Space` or `K` |
+| **Jump / Confirm** | `Space` or `K` / `Enter` |
 | **Shoot** | `J` or `X` |
 | **Drop Through Platform** | `S + Space` / `Down + Jump` |
 | **Prone (Crouch)** | Hold `S` / `Down` |
-| **Restart Game** | `R` |
-| **Quit Game** | `Esc` |
+| **Restart Current Stage** | `R` |
+| **Return to Menu / Title** | `M` or `Esc` |
 
 ---
 

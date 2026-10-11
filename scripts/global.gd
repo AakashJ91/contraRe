@@ -13,6 +13,7 @@ var lives: int = 3
 var current_weapon: WeaponType = WeaponType.RIFLE
 var is_game_over: bool = false
 var is_victory: bool = false
+var current_stage: int = 1
 
 signal score_changed(new_score: int)
 signal lives_changed(new_lives: int)
@@ -62,3 +63,15 @@ func reset_game() -> void:
 	score_changed.emit(score)
 	lives_changed.emit(lives)
 	weapon_changed.emit(current_weapon)
+
+func start_game(stage_idx: int = 1) -> void:
+	current_stage = stage_idx
+	reset_game()
+	get_tree().change_scene_to_file("res://scenes/main.tscn")
+
+func go_to_title() -> void:
+	get_tree().change_scene_to_file("res://scenes/title_screen.tscn")
+
+func go_to_level_select() -> void:
+	get_tree().change_scene_to_file("res://scenes/level_select.tscn")
+

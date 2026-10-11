@@ -46,7 +46,15 @@ func _physics_process(delta: float) -> void:
 	if camera.global_position.x < BOSS_TRIGGER_X:
 		soldier_spawn_timer -= delta
 		if soldier_spawn_timer <= 0.0:
-			soldier_spawn_timer = randf_range(2.8, 5.0)
+			var min_interval := 2.8
+			var max_interval := 5.0
+			if Global.current_stage == 2:
+				min_interval = 2.0
+				max_interval = 3.6
+			elif Global.current_stage == 3:
+				min_interval = 1.4
+				max_interval = 2.6
+			soldier_spawn_timer = randf_range(min_interval, max_interval)
 			_spawn_soldier_wave()
 		
 		# Flying Powerup Blimp Spawner
@@ -116,40 +124,74 @@ func _draw() -> void:
 	_draw_platforms()
 
 func _draw_backdrop() -> void:
-	# Sky gradient background
-	draw_rect(Rect2(-200.0, -100.0, 3400.0, 400.0), Color(0.08, 0.12, 0.22))
-	
-	# Distant misty alien mountains
-	for i in range(16):
-		var mx := -100.0 + float(i) * 220.0
-		var my := 230.0 + sin(float(i) * 1.5) * 40.0
-		var mountain_col := Color(0.12, 0.18, 0.28)
-		draw_colored_polygon(PackedVector2Array([
-			Vector2(mx - 150.0, 420.0),
-			Vector2(mx, my),
-			Vector2(mx + 150.0, 420.0)
-		]), mountain_col)
-	
-	# Tropical jungle canopy & palm silhouettes
-	for i in range(25):
-		var px := -50.0 + float(i) * 135.0
-		var py := 150.0 + sin(float(i) * 2.2) * 25.0
-		draw_circle(Vector2(px, py), 45.0, Color(0.08, 0.22, 0.15))
-		draw_circle(Vector2(px + 20.0, py + 10.0), 38.0, Color(0.12, 0.28, 0.18))
-	
-	# Blue river / swamp water at bottom
-	draw_rect(Rect2(-200.0, 450.0, 3400.0, 150.0), Color(0.05, 0.20, 0.35))
-	for w in range(40):
-		var wx := -100.0 + float(w) * 85.0
-		draw_line(Vector2(wx, 470.0), Vector2(wx + 45.0, 470.0), Color(0.1, 0.35, 0.55), 2.0)
-		draw_line(Vector2(wx + 20.0, 500.0), Vector2(wx + 65.0, 500.0), Color(0.1, 0.35, 0.55), 2.0)
+	if Global.current_stage == 2:
+		# Stage 2: Torrential Waterfall & Blue Cliffs
+		draw_rect(Rect2(-200.0, -100.0, 3400.0, 400.0), Color(0.05, 0.1, 0.18))
+		# High vertical cliffs
+		for i in range(14):
+			var mx := -100.0 + float(i) * 240.0
+			draw_rect(Rect2(mx, 120.0, 160.0, 340.0), Color(0.09, 0.15, 0.25))
+		# Massive cascading waterfalls
+		for wf in range(7):
+			var wfx := 150.0 + float(wf) * 420.0
+			draw_rect(Rect2(wfx, 40.0, 75.0, 420.0), Color(0.18, 0.55, 0.85, 0.75))
+			for fl in range(12):
+				var ly := 60.0 + float(fl) * 32.0 + sin(float(fl) * 2.0) * 10.0
+				draw_line(Vector2(wfx + 10.0, ly), Vector2(wfx + 65.0, ly + 8.0), Color.WHITE, 2.0)
+		# Raging rapids river
+		draw_rect(Rect2(-200.0, 450.0, 3400.0, 150.0), Color(0.1, 0.35, 0.6))
+	elif Global.current_stage == 3:
+		# Stage 3: Subterranean Alien Hive Core
+		draw_rect(Rect2(-200.0, -100.0, 3400.0, 400.0), Color(0.12, 0.04, 0.07))
+		# Alien tendrils & biomechanical cavern pillars
+		for i in range(20):
+			var ax := -100.0 + float(i) * 160.0
+			var ay := 180.0 + sin(float(i) * 1.8) * 35.0
+			draw_circle(Vector2(ax, ay), 40.0, Color(0.28, 0.08, 0.12))
+			draw_circle(Vector2(ax, ay), 18.0, Color(0.8, 0.2, 0.15, 0.4))
+		# Toxic alien magma base
+		draw_rect(Rect2(-200.0, 450.0, 3400.0, 150.0), Color(0.35, 0.08, 0.05))
+		for w in range(35):
+			var wx := -100.0 + float(w) * 95.0
+			draw_line(Vector2(wx, 470.0), Vector2(wx + 50.0, 470.0), Color(1.0, 0.3, 0.1), 2.5)
+	else:
+		# Stage 1: Tropical Jungle Canopy & Calm Blue Water
+		draw_rect(Rect2(-200.0, -100.0, 3400.0, 400.0), Color(0.08, 0.12, 0.22))
+		for i in range(16):
+			var mx := -100.0 + float(i) * 220.0
+			var my := 230.0 + sin(float(i) * 1.5) * 40.0
+			var mountain_col := Color(0.12, 0.18, 0.28)
+			draw_colored_polygon(PackedVector2Array([
+				Vector2(mx - 150.0, 420.0),
+				Vector2(mx, my),
+				Vector2(mx + 150.0, 420.0)
+			]), mountain_col)
+		for i in range(25):
+			var px := -50.0 + float(i) * 135.0
+			var py := 150.0 + sin(float(i) * 2.2) * 25.0
+			draw_circle(Vector2(px, py), 45.0, Color(0.08, 0.22, 0.15))
+			draw_circle(Vector2(px + 20.0, py + 10.0), 38.0, Color(0.12, 0.28, 0.18))
+		draw_rect(Rect2(-200.0, 450.0, 3400.0, 150.0), Color(0.05, 0.20, 0.35))
+		for w in range(40):
+			var wx := -100.0 + float(w) * 85.0
+			draw_line(Vector2(wx, 470.0), Vector2(wx + 45.0, 470.0), Color(0.1, 0.35, 0.55), 2.0)
+			draw_line(Vector2(wx + 20.0, 500.0), Vector2(wx + 65.0, 500.0), Color(0.1, 0.35, 0.55), 2.0)
 
 func _draw_platforms() -> void:
-	# Visual rendering of terrain platforms matching physical collision boxes
 	var col_grass := Color(0.2, 0.55, 0.25)
 	var col_dirt := Color(0.35, 0.25, 0.18)
 	var col_girder := Color(0.4, 0.42, 0.48)
 	var col_rivet := Color(0.2, 0.22, 0.26)
+	
+	if Global.current_stage == 2:
+		col_grass = Color(0.2, 0.45, 0.6)
+		col_dirt = Color(0.18, 0.22, 0.3)
+		col_girder = Color(0.32, 0.38, 0.48)
+	elif Global.current_stage == 3:
+		col_grass = Color(0.7, 0.2, 0.25)
+		col_dirt = Color(0.25, 0.1, 0.12)
+		col_girder = Color(0.45, 0.2, 0.25)
+		col_rivet = Color(0.2, 0.05, 0.08)
 	
 	# Main Ground segments
 	var ground_segments := [
@@ -161,7 +203,6 @@ func _draw_platforms() -> void:
 	for g in ground_segments:
 		draw_rect(g, col_dirt)
 		draw_rect(Rect2(g.position.x, g.position.y, g.size.x, 8.0), col_grass)
-		# Surface foliage tufts
 		for j in range(int(g.size.x / 40.0)):
 			var fx: float = g.position.x + float(j) * 40.0 + 10.0
 			draw_circle(Vector2(fx, g.position.y - 2.0), 4.0, col_grass)

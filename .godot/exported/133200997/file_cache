@@ -11,3 +11,5 @@ res://scenes/powerup_blimp.tscn::d2112f39251faf12312cc4d2404daede::1791731049::r
 res://scenes/powerup_item.tscn::a4c7b8ff182fdcb80bd0d6b15284a126::1791731031::res://.godot/exported/133200997/export-c9dc4248877ca58d96a6f5265f21bdc4-powerup_item.scn
 res://scenes/stage1.tscn::9d49718aef1babd2be44a2c6b8a45fe8::1791731192::res://.godot/exported/133200997/export-eb1b5d9bd4f62350feacb74c69527b9f-stage1.scn
 res://scenes/touch_controls.tscn::61a7fa0ebd84fbec6ca911df95973fda::1791731316::res://.godot/exported/133200997/export-f0ede4bb06c234cd60561a1c3c706c1e-touch_controls.scn
+res://scenes/level_select.tscn::aeabeb793abe02cea2d5d3acaa919186::1791735277::res://.godot/exported/133200997/export-0c939b19205267a005b2e63ce5e60e4d-level_select.scn
+res://scenes/title_screen.tscn::6ecb8051b13c32491d482403f7ea0755::1791735238::res://.godot/exported/133200997/export-c315eff7b5f8a8ce1d6c4c72650ddc19-title_screen.scn

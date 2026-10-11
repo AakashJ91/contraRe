@@ -8,5 +8,5 @@ func _unhandled_input(event: InputEvent) -> void:
 		if event.keycode == KEY_R:
 			Global.reset_game()
 			get_tree().reload_current_scene()
-		elif event.keycode == KEY_ESCAPE:
-			get_tree().quit()
+		elif event.keycode == KEY_ESCAPE or event.keycode == KEY_M:
+			Global.go_to_level_select()
