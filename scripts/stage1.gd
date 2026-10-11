@@ -21,6 +21,8 @@ const LEVEL_MAX_X: float = 6700.0
 const BOSS_TRIGGER_X: float = 5800.0
 
 var bg_texture: Texture2D = null
+var ground_tile_texture: Texture2D = null
+var water_tile_texture: Texture2D = null
 
 # 7 major ground sectors across the 6700px expanded mission
 var ground_segments: Array[Rect2] = [
@@ -51,6 +53,10 @@ var bridge_platforms: Array[Rect2] = [
 
 func _ready() -> void:
 	Global.screen_shake_requested.connect(_on_screen_shake)
+	if ResourceLoader.exists("res://assets/tiles/ground_tile.jpg"):
+		ground_tile_texture = load("res://assets/tiles/ground_tile.jpg")
+	if ResourceLoader.exists("res://assets/tiles/water_tile.jpg"):
+		water_tile_texture = load("res://assets/tiles/water_tile.jpg")
 	_setup_background()
 	_setup_colliders()
 	_setup_static_enemies()
@@ -210,6 +216,23 @@ func _draw() -> void:
 	_draw_platforms()
 
 func _draw_backdrop() -> void:
+	if water_tile_texture != null:
+		# Draw textured water with wave crests and deep aquatic lighting across entire length
+		var water_w: float = 160.0
+		var num_water_tiles: int = int(ceil(7700.0 / water_w))
+		var tex_src := Rect2(0.0, 0.0, float(water_tile_texture.get_width()), float(water_tile_texture.get_height()))
+		var w_tint := Color.WHITE
+		if Global.current_stage == 2:
+			w_tint = Color(0.85, 0.95, 1.1)
+		elif Global.current_stage == 3:
+			w_tint = Color(1.3, 0.45, 0.35)
+		
+		for k in range(num_water_tiles):
+			var wx: float = -200.0 + float(k) * water_w
+			var w_rect := Rect2(wx, 442.0, water_w, 100.0)
+			draw_texture_rect_region(water_tile_texture, w_rect, tex_src, w_tint)
+		return
+
 	if bg_texture != null:
 		# Parallax background handles sky and landscape above water.
 		# Render river, rapids, or magma hazard pool in the foreground water plane:
@@ -301,11 +324,28 @@ func _draw_platforms() -> void:
 	
 	# Main Ground segments
 	for g in ground_segments:
-		draw_rect(g, col_dirt)
-		draw_rect(Rect2(g.position.x, g.position.y, g.size.x, 8.0), col_grass)
-		for j in range(int(g.size.x / 40.0)):
-			var fx: float = g.position.x + float(j) * 40.0 + 10.0
-			draw_circle(Vector2(fx, g.position.y - 2.0), 4.0, col_grass)
+		if ground_tile_texture != null:
+			var tile_w: float = 120.0
+			var num_tiles: int = int(ceil(g.size.x / tile_w))
+			var g_src := Rect2(0.0, 0.0, float(ground_tile_texture.get_width()), float(ground_tile_texture.get_height()))
+			var g_tint := Color.WHITE
+			if Global.current_stage == 2:
+				g_tint = Color(0.8, 0.9, 1.05)
+			elif Global.current_stage == 3:
+				g_tint = Color(1.15, 0.65, 0.65)
+			
+			for j in range(num_tiles):
+				var tx: float = g.position.x + float(j) * tile_w
+				var tw: float = minf(tile_w, g.end.x - tx)
+				var trect := Rect2(tx, g.position.y - 14.0, tw, g.size.y + 14.0)
+				var src_partial := Rect2(0.0, 0.0, g_src.size.x * (tw / tile_w), g_src.size.y)
+				draw_texture_rect_region(ground_tile_texture, trect, src_partial, g_tint)
+		else:
+			draw_rect(g, col_dirt)
+			draw_rect(Rect2(g.position.x, g.position.y, g.size.x, 8.0), col_grass)
+			for j in range(int(g.size.x / 40.0)):
+				var fx: float = g.position.x + float(j) * 40.0 + 10.0
+				draw_circle(Vector2(fx, g.position.y - 2.0), 4.0, col_grass)
 	
 	# Elevated Girder & Rock Bridges (High & Mid platforms)
 	for b in bridge_platforms:
