@@ -1,6 +1,5 @@
 extends Control
 
-@export var crt_rect: ColorRect = null
 
 var score: int = 0
 var high_score: int = 20000
@@ -22,8 +21,6 @@ func _ready() -> void:
 	queue_redraw()
 
 func _process(_delta: float) -> void:
-	if crt_rect != null:
-		crt_rect.visible = Global.crt_enabled
 	queue_redraw()
 
 func _on_score_changed(new_score: int) -> void:

@@ -11,7 +11,6 @@ var score: int = 0
 var high_score: int = 20000
 var lives: int = 3
 var current_weapon: WeaponType = WeaponType.RIFLE
-var crt_enabled: bool = true
 var is_game_over: bool = false
 var is_victory: bool = false
 

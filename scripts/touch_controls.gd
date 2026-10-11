@@ -15,10 +15,7 @@ var btn_jump_pos: Vector2 = Vector2(740.0, 450.0)
 var btn_jump_radius: float = 45.0
 var btn_jump_touch_id: int = -1
 
-var btn_crt_pos: Vector2 = Vector2(890.0, 40.0)
-var btn_crt_radius: float = 24.0
-
-var btn_restart_pos: Vector2 = Vector2(820.0, 40.0)
+var btn_restart_pos: Vector2 = Vector2(880.0, 40.0)
 var btn_restart_radius: float = 24.0
 
 var dpad_active: bool = false
@@ -55,12 +52,6 @@ func _input(event: InputEvent) -> void:
 		_handle_touch_drag(99, event.position)
 
 func _handle_touch_down(idx: int, pos: Vector2) -> void:
-	# CRT Toggle
-	if pos.distance_to(btn_crt_pos) <= btn_crt_radius * 1.3:
-		Global.crt_enabled = not Global.crt_enabled
-		queue_redraw()
-		return
-	
 	# Restart Button
 	if pos.distance_to(btn_restart_pos) <= btn_restart_radius * 1.3:
 		Global.reset_game()
@@ -189,12 +180,6 @@ func _draw() -> void:
 	draw_line(btn_shoot_pos + Vector2(-7.0, -9.0), btn_shoot_pos + Vector2(-7.0, 9.0), Color.WHITE, 3.0)
 	draw_arc(btn_shoot_pos + Vector2(-5.0, -4.5), 5.5, -PI*0.5, PI*0.5, 12, Color.WHITE, 2.5)
 	draw_arc(btn_shoot_pos + Vector2(-5.0, 4.5), 5.5, -PI*0.5, PI*0.5, 12, Color.WHITE, 2.5)
-	
-	# Quick Toggle Buttons at top right
-	# CRT Toggle
-	draw_circle(btn_crt_pos, btn_crt_radius, Color(0.15, 0.2, 0.25, 0.7))
-	draw_arc(btn_crt_pos, btn_crt_radius, 0.0, TAU, 18, Color(0.4, 0.8, 0.9, 0.6), 1.5)
-	draw_rect(Rect2(btn_crt_pos.x - 9.0, btn_crt_pos.y - 7.0, 18.0, 14.0), Color.WHITE, false, 2.0)
 	
 	# Restart Button
 	draw_circle(btn_restart_pos, btn_restart_radius, Color(0.25, 0.2, 0.15, 0.7))

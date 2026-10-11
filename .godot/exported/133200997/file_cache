@@ -4,7 +4,7 @@ res://scenes/enemy_sniper.tscn::f73809680fc7bfbed80212257980f528::1791731010::re
 res://scenes/enemy_soldier.tscn::b6711cd4efc09d8e5d07062c844e5958::1791730972::res://.godot/exported/133200997/export-f59c2eeea824b7b3bd0c446b60ef7802-enemy_soldier.scn
 res://scenes/enemy_turret.tscn::80e81b1afe858cdb6276864a1a604b70::1791730990::res://.godot/exported/133200997/export-dc9694ddb5a2ec240033867c7b74b9d9-enemy_turret.scn
 res://scenes/explosion.tscn::4dd3c57f7d93f652763b4f53b48c55f4::1791730906::res://.godot/exported/133200997/export-19462905a0f3b4b39165a3350317f22c-explosion.scn
-res://scenes/hud.tscn::36763eae4e7f6c247852097bd57889ee::1791731287::res://.godot/exported/133200997/export-38bf74ff262409a94a41206b2b776d33-hud.scn
+res://scenes/hud.tscn::7666f8bf9f7910fba6b5f1980760f71b::1791731927::res://.godot/exported/133200997/export-38bf74ff262409a94a41206b2b776d33-hud.scn
 res://scenes/main.tscn::131fdf26257a003a1195fb2a3597f94c::1791731206::res://.godot/exported/133200997/export-3ad5c15c4f3250da0cc7c1af1770d85f-main.scn
 res://scenes/player.tscn::5c8420500cfcd6d5999ce03dc8fdb9ff::1791730948::res://.godot/exported/133200997/export-234fb6894ec6226e856ab7f825500d3d-player.scn
 res://scenes/powerup_blimp.tscn::d2112f39251faf12312cc4d2404daede::1791731049::res://.godot/exported/133200997/export-382726d32753ddd13d54b3810060c864-powerup_blimp.scn

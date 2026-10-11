@@ -26,7 +26,7 @@ An authentic retro arcade clone of **Contra** (Stage 1 Jungle & Wall Defense Cor
 - **Visuals & Audio**:
   - **Multi-Touch Android Controls**: Responsive on-screen virtual 8-way D-Pad, Jump (A), and Shoot (B) buttons.
   - **Procedural 8-bit Sound Synthesizer**: Zero external audio dependencies—all sound effects (gunshots, spread bursts, explosions, laser sweeps, jumps, powerups, boss siren) are mathematically synthesized at runtime into WAV streams.
-  - **CRT Scanline Arcade Post-Processing**: Toggleable shader simulating retro CRT monitor scanlines, curvature, and chromatic aberration.
+  - **Crisp Pixel Art Rendering**: Clean, high-performance 2D visuals with smooth 60fps animations.
 
 ---
 
@@ -36,7 +36,7 @@ An authentic retro arcade clone of **Contra** (Stage 1 Jungle & Wall Defense Cor
 - **Left Side Virtual D-Pad**: Move Left / Right, Aim Up / Down, and 8-way diagonal combinations.
 - **(A) Blue Button**: Jump (Press Down on D-Pad + Jump to drop down through bridges).
 - **(B) Red Button**: Shoot (Hold for continuous Machine Gun fire).
-- **Top Right Buttons**: Toggle CRT shader & Quick restart.
+- **Top Right Button**: Quick restart.
 
 ### PC / Keyboard Controls
 | Action | Key |
@@ -46,7 +46,6 @@ An authentic retro arcade clone of **Contra** (Stage 1 Jungle & Wall Defense Cor
 | **Shoot** | `J` or `X` |
 | **Drop Through Platform** | `S + Space` / `Down + Jump` |
 | **Prone (Crouch)** | Hold `S` / `Down` |
-| **Toggle CRT Shader** | `C` |
 | **Restart Game** | `R` |
 | **Quit Game** | `Esc` |
 
