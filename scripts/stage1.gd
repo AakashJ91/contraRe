@@ -504,8 +504,10 @@ func _draw_platforms(view_left: float, view_right: float) -> void:
 			
 			PlatformType.GIRDER:
 				# 2. Industrial Steel Girder with Suspension Chains & Caution Edge
-				_draw_vertical_chain(Vector2(b.position.x + 12.0, b.position.y - 130.0), Vector2(b.position.x + 12.0, b.position.y + 4.0), 12.0, p_tint)
-				_draw_vertical_chain(Vector2(b.end.x - 12.0, b.position.y - 130.0), Vector2(b.end.x - 12.0, b.position.y + 4.0), 12.0, p_tint)
+				var chain_lx: float = b.position.x + 16.0
+				var chain_rx: float = b.end.x - 24.0 if b.size.x >= 120.0 else b.end.x - 12.0
+				_draw_vertical_chain(Vector2(chain_lx, -12.0), Vector2(chain_lx, b.position.y + 4.0), 12.0, p_tint)
+				_draw_vertical_chain(Vector2(chain_rx, -12.0), Vector2(chain_rx, b.position.y + 4.0), 12.0, p_tint)
 				if b.size.x >= 90.0:
 					_draw_hanging_chain_hook(Vector2(b.position.x + b.size.x * 0.5, b.position.y + 24.0), 52.0, p_tint)
 				
@@ -541,8 +543,10 @@ func _draw_platforms(view_left: float, view_right: float) -> void:
 			
 			PlatformType.HIGH_PERCH:
 				# 4. High-Tech Vantage Lookout / Sniper Tower with hanging chains & aviation beacon
-				_draw_vertical_chain(Vector2(b.position.x + 8.0, b.position.y - 140.0), Vector2(b.position.x + 8.0, b.position.y), 12.0, p_tint)
-				_draw_vertical_chain(Vector2(b.end.x - 8.0, b.position.y - 140.0), Vector2(b.end.x - 8.0, b.position.y), 12.0, p_tint)
+				var perch_lx: float = b.position.x + 12.0
+				var perch_rx: float = b.end.x - 12.0
+				_draw_vertical_chain(Vector2(perch_lx, -12.0), Vector2(perch_lx, b.position.y), 12.0, p_tint)
+				_draw_vertical_chain(Vector2(perch_rx, -12.0), Vector2(perch_rx, b.position.y), 12.0, p_tint)
 				_draw_hanging_chain_hook(Vector2(b.position.x + b.size.x * 0.5, b.position.y + 26.0), 60.0, p_tint)
 				
 				if platform_tech_texture != null:
@@ -574,15 +578,14 @@ func _draw_vertical_chain(top_pos: Vector2, bottom_pos: Vector2, chain_w: float 
 	if total_len <= 0.0:
 		return
 	var x: float = top_pos.x - chain_w * 0.5
-	var y: float = top_pos.y
 	var tex_w: float = float(platform_chain_texture.get_width())
 	var tex_h: float = float(platform_chain_texture.get_height())
-	while y < bottom_pos.y:
-		var link_h: float = minf(chain_h, bottom_pos.y - y)
-		var crect := Rect2(x, y, chain_w, link_h)
-		var csrc := Rect2(0.0, 0.0, tex_w, tex_h * (link_h / chain_h))
+	var cur_y: float = bottom_pos.y - chain_h
+	while cur_y >= top_pos.y - chain_h:
+		var crect := Rect2(x, cur_y, chain_w, chain_h)
+		var csrc := Rect2(0.0, 0.0, tex_w, tex_h)
 		draw_texture_rect_region(platform_chain_texture, crect, csrc, tint)
-		y += chain_h
+		cur_y -= chain_h
 
 func _draw_hanging_chain_hook(attach_pos: Vector2, chain_len: float = 54.0, tint: Color = Color.WHITE) -> void:
 	if platform_chain_hook_texture == null:
