@@ -288,21 +288,46 @@ func is_position_over_ground(pos_x: float) -> bool:
 	return false
 
 func _spawn_soldier_wave() -> void:
-	if soldier_scene == null:
+	if soldier_scene == null or camera == null or player == null or not is_instance_valid(player):
 		return
 	var cam_x := camera.global_position.x
-	# Spawn ahead of camera
-	var spawn_x := cam_x + 520.0
+	var player_x := player.global_position.x
 	
-	# If spawn_x happens to fall over a pit gap, shift onto the next solid ground segment
+	# Identify the ground segment closest to the player
+	var cur_seg: Rect2 = ground_segments[0]
+	for g in ground_segments:
+		if player_x >= g.position.x - 80.0 and player_x <= g.end.x + 80.0:
+			cur_seg = g
+			break
+	
+	# 60% spawn ahead running left, 40% spawn behind running right
+	var spawn_from_right: bool = randf() > 0.4
+	var spawn_x: float
+	var initial_facing: int
+	
+	if spawn_from_right:
+		var target_x := minf(cam_x + 460.0, cur_seg.end.x - 40.0)
+		if target_x <= player_x + 100.0:
+			target_x = cam_x + 460.0
+		spawn_x = target_x
+		initial_facing = -1
+	else:
+		var target_x := maxf(cam_x - 460.0, cur_seg.position.x + 40.0)
+		if target_x >= player_x - 100.0:
+			target_x = cam_x - 460.0
+		spawn_x = target_x
+		initial_facing = 1
+	
+	# If spawn_x happens to fall over a pit gap, adjust to solid ground edge
 	for i in range(ground_segments.size() - 1):
 		var pit_start := ground_segments[i].end.x
 		var pit_end := ground_segments[i + 1].position.x
 		if spawn_x >= pit_start - 20.0 and spawn_x <= pit_end + 20.0:
-			spawn_x = pit_end + 30.0
+			spawn_x = pit_end + 40.0 if initial_facing == -1 else pit_start - 40.0
 			break
 	
 	var s = soldier_scene.instantiate()
+	s.facing_dir = initial_facing
 	s.global_position = Vector2(spawn_x, 420.0)
 	add_child(s)
 

@@ -1,6 +1,13 @@
 extends CharacterBody2D
 
-const SPEED: float = 90.0
+const RUN_TEXTURES: Array[Texture2D] = [
+	preload("res://assets/enemies/enemy_soldier_run_0.png"),
+	preload("res://assets/enemies/enemy_soldier_run_1.png"),
+	preload("res://assets/enemies/enemy_soldier_run_2.png"),
+	preload("res://assets/enemies/enemy_soldier_run_3.png")
+]
+
+const SPEED: float = 130.0
 const GRAVITY: float = 950.0
 
 @export var bullet_scene: PackedScene = preload("res://scenes/bullet.tscn")
@@ -13,22 +20,11 @@ var run_frame: float = 0.0
 var jump_cooldown: float = 0.0
 var turn_cooldown: float = 0.0
 var flash_timer: float = 0.0
-var tex_run: Array[Texture2D] = []
-var soldier_texture: Texture2D = null
 
 func _ready() -> void:
 	collision_layer = 1 << 2 # Layer 3: Enemies
 	collision_mask = (1 << 1) # Layer 2: World
 	shoot_timer = randf_range(1.5, 3.5)
-	
-	for i in range(4):
-		var p := "res://assets/enemies/enemy_soldier_run_%d.png" % i
-		if ResourceLoader.exists(p):
-			tex_run.append(load(p))
-	
-	if tex_run.is_empty() and ResourceLoader.exists("res://assets/enemies/enemy_soldier.png"):
-		soldier_texture = load("res://assets/enemies/enemy_soldier.png")
-	
 	queue_redraw()
 
 func _physics_process(delta: float) -> void:
@@ -37,8 +33,9 @@ func _physics_process(delta: float) -> void:
 	
 	if not is_on_floor():
 		velocity.y += GRAVITY * delta
-	else:
-		run_frame += delta * 9.0
+	
+	# Continuously cycle run frames while moving
+	run_frame += delta * 8.5
 	
 	shoot_timer -= delta
 	jump_cooldown -= delta
@@ -53,14 +50,20 @@ func _physics_process(delta: float) -> void:
 			var desired_dir: int = 1 if diff > 0.0 else -1
 			if desired_dir != facing_dir:
 				facing_dir = desired_dir
-				turn_cooldown = 0.6 # Maintain charge before turning around again
+				turn_cooldown = 0.7 # Maintain charge before turning around again
 	
 	velocity.x = facing_dir * SPEED
 	
-	# Hop over obstacles or gaps
-	if is_on_wall() and is_on_floor() and jump_cooldown <= 0.0:
-		velocity.y = -330.0
-		jump_cooldown = 1.2
+	# Leap over gaps/pits or hop over walls
+	if is_on_floor() and jump_cooldown <= 0.0:
+		var space_state := get_world_2d().direct_space_state
+		if space_state != null:
+			var probe_pos := global_position + Vector2(facing_dir * 28.0, 0.0)
+			var query := PhysicsRayQueryParameters2D.create(probe_pos, probe_pos + Vector2(0.0, 48.0), collision_mask)
+			var result := space_state.intersect_ray(query)
+			if result.is_empty() or is_on_wall():
+				velocity.y = -350.0
+				jump_cooldown = 1.0
 	
 	move_and_slide()
 	
@@ -116,26 +119,13 @@ func _draw() -> void:
 	var std_rect := Rect2(-16.0, -17.2, spr_w, spr_h)
 	var scale_x: float = 1.0 if facing_dir >= 0 else -1.0
 	
-	if tex_run.size() > 0:
-		var cur_tex: Texture2D
-		var bob_y: float = 0.0
-		if is_on_floor():
-			var idx: int = int(fmod(run_frame, float(tex_run.size())))
-			cur_tex = tex_run[idx]
-			bob_y = -1.0 if (idx == 1 or idx == 3) else 0.0
-		else:
-			cur_tex = tex_run[0] # Stride jump pose in air
-		
-		draw_set_transform(Vector2(0.0, bob_y), 0.0, Vector2(scale_x, 1.0))
-		draw_texture_rect(cur_tex, std_rect, false, col)
-		draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
-		return
+	var idx: int = int(fmod(run_frame, float(RUN_TEXTURES.size())))
+	var cur_tex: Texture2D = RUN_TEXTURES[idx]
+	var bob_y: float = -1.0 if (is_on_floor() and (idx == 1 or idx == 3)) else 0.0
 	
-	if soldier_texture != null:
-		draw_set_transform(Vector2.ZERO, 0.0, Vector2(scale_x, 1.0))
-		draw_texture_rect(soldier_texture, std_rect, false, col)
-		draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
-		return
+	draw_set_transform(Vector2(0.0, bob_y), 0.0, Vector2(scale_x, 1.0))
+	draw_texture_rect(cur_tex, std_rect, false, col)
+	draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
 	
 	# Procedural fallback
 	var col_suit := Color(0.85, 0.25, 0.20) # Red uniform
