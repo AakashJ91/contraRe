@@ -399,12 +399,20 @@ func _draw_platforms(view_left: float, view_right: float) -> void:
 				var tw: float = minf(tile_w, g.end.x - tx)
 				var ratio_w: float = tw / tile_w
 				
-				# Subterranean matching earthy dirt fill down to screen end (y=640)
-				var sub_rect := Rect2(tx, g.position.y + 34.0, tw, g.size.y - 34.0)
-				draw_rect(sub_rect, Color(66.0/255.0, 38.0/255.0, 25.0/255.0) * g_tint)
+				# 1. Base solid soil backing to guarantee zero gaps
+				draw_rect(Rect2(tx, g.position.y + 24.0, tw, g.size.y - 24.0), Color(66.0/255.0, 38.0/255.0, 25.0/255.0) * g_tint)
 				
-				# Surface tile block
-				var trect := Rect2(tx, g.position.y - 12.0, tw, gh)
+				# 2. Subterranean repeating dirt texture down to screen end (y=640)
+				var cur_y: float = g.position.y - 16.0 + gh
+				while cur_y < g.end.y:
+					var step_h: float = minf(22.0, g.end.y - cur_y)
+					var sub_trect := Rect2(tx, cur_y, tw, step_h)
+					var sub_src := Rect2(0.0, 25.0, gw * ratio_w, step_h)
+					draw_texture_rect_region(ground_tile_texture, sub_trect, sub_src, g_tint)
+					cur_y += 22.0
+				
+				# 3. Surface grass & topsoil tile block
+				var trect := Rect2(tx, g.position.y - 16.0, tw, gh)
 				var src_partial := Rect2(0.0, 0.0, gw * ratio_w, gh)
 				draw_texture_rect_region(ground_tile_texture, trect, src_partial, g_tint)
 		else:
