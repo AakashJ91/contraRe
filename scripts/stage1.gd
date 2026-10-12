@@ -23,7 +23,6 @@ const BOSS_TRIGGER_X: float = 5800.0
 
 var bg_texture: Texture2D = null
 var ground_tile_texture: Texture2D = null
-var water_tile_texture: Texture2D = null
 var platform_girder_texture: Texture2D = null
 var platform_bridge_texture: Texture2D = null
 var platform_turf_texture: Texture2D = null
@@ -36,15 +35,9 @@ enum PlatformType {
 	HIGH_PERCH
 }
 
-# 7 major ground sectors across the 6700px expanded mission (extended to 200px depth to reach screen end)
+# Seamless continuous ground floor across the entire 6700px battlefield
 var ground_segments: Array[Rect2] = [
-	Rect2(0.0, 440.0, 800.0, 200.0),       # Sector 1: Jungle Landing Beach
-	Rect2(900.0, 440.0, 800.0, 200.0),     # Sector 2: Outer Fortress Perimeter
-	Rect2(1800.0, 440.0, 800.0, 200.0),    # Sector 3: Jungle Ravine Catwalks
-	Rect2(2720.0, 440.0, 880.0, 200.0),    # Sector 4: Mid-Stage Heavy Battery
-	Rect2(3720.0, 440.0, 880.0, 200.0),    # Sector 5: Waterfall Cliffside
-	Rect2(4720.0, 440.0, 880.0, 200.0),    # Sector 6: Alien Hive Perimeter
-	Rect2(5720.0, 440.0, 980.0, 200.0)     # Sector 7: Wall Defense Boss Arena
+	Rect2(0.0, 440.0, 6700.0, 200.0)
 ]
 
 # Rich multi-tiered tactical platforms with 4 distinct archetypes
@@ -95,8 +88,6 @@ func _ready() -> void:
 	Global.screen_shake_requested.connect(_on_screen_shake)
 	if ResourceLoader.exists("res://assets/tiles/ground_tile.png"):
 		ground_tile_texture = load("res://assets/tiles/ground_tile.png")
-	if ResourceLoader.exists("res://assets/tiles/water_tile.jpg"):
-		water_tile_texture = load("res://assets/tiles/water_tile.jpg")
 	if ResourceLoader.exists("res://assets/tiles/platform_girder.png"):
 		platform_girder_texture = load("res://assets/tiles/platform_girder.png")
 	if ResourceLoader.exists("res://assets/tiles/platform_bridge.png"):
@@ -268,104 +259,7 @@ func _draw() -> void:
 	var cam_x: float = camera.global_position.x if camera != null else 480.0
 	var view_left: float = cam_x - 560.0
 	var view_right: float = cam_x + 560.0
-	_draw_backdrop(view_left, view_right)
 	_draw_platforms(view_left, view_right)
-
-func _draw_backdrop(view_left: float, view_right: float) -> void:
-	if water_tile_texture != null:
-		# Draw animated textured water with flowing currents and wave undulation
-		var water_w: float = 160.0
-		var tex_src := Rect2(0.0, 0.0, float(water_tile_texture.get_width()), float(water_tile_texture.get_height()))
-		var w_tint := Color.WHITE
-		if Global.current_stage == 2:
-			w_tint = Color(0.85, 0.95, 1.1)
-		elif Global.current_stage == 3:
-			w_tint = Color(1.3, 0.45, 0.35)
-		
-		# Flowing current offset
-		var flow_speed: float = 32.0 if Global.current_stage != 2 else 65.0
-		var flow_offset: float = fmod(anim_timer * flow_speed, water_w)
-		
-		var start_k: int = int(floor((view_left - flow_offset) / water_w)) - 1
-		var end_k: int = int(ceil((view_right - flow_offset) / water_w)) + 1
-		
-		for k in range(start_k, end_k):
-			var wx: float = float(k) * water_w + flow_offset
-			var wave_bob: float = sin(anim_timer * 3.6 + float(k) * 0.9) * 2.8
-			var w_rect := Rect2(wx, 442.0 + wave_bob, water_w, 200.0 - wave_bob)
-			draw_texture_rect_region(water_tile_texture, w_rect, tex_src, w_tint)
-		
-		# Animated dynamic surface foam ripples
-		_draw_water_surface_foam(view_left, view_right)
-		
-		# Player swimming ripples & splash interaction
-		_draw_player_water_interaction()
-		return
-
-	if bg_texture != null:
-		# Fallback parallax background with water plane extended to screen end
-		if Global.current_stage == 2:
-			draw_rect(Rect2(view_left, 442.0, view_right - view_left, 200.0), Color(0.1, 0.35, 0.6, 0.88))
-			for fl in range(12):
-				var wfx := view_left + float(fl) * 110.0 + fmod(anim_timer * 60.0, 110.0)
-				draw_line(Vector2(wfx, 465.0), Vector2(wfx + 70.0, 465.0), Color.WHITE, 2.0)
-		elif Global.current_stage == 3:
-			draw_rect(Rect2(view_left, 442.0, view_right - view_left, 200.0), Color(0.35, 0.08, 0.05, 0.88))
-			for w in range(16):
-				var wx := view_left + float(w) * 80.0
-				var wy := 470.0 + sin(anim_timer * 4.0 + float(w)) * 3.0
-				draw_line(Vector2(wx, wy), Vector2(wx + 40.0, wy), Color(1.0, 0.3, 0.1), 2.5)
-		else:
-			draw_rect(Rect2(view_left, 442.0, view_right - view_left, 200.0), Color(0.05, 0.20, 0.35, 0.88))
-			for w in range(16):
-				var wx := view_left + float(w) * 80.0 + fmod(anim_timer * 30.0, 80.0)
-				draw_line(Vector2(wx, 470.0), Vector2(wx + 40.0, 470.0), Color(0.1, 0.35, 0.55), 2.0)
-		_draw_water_surface_foam(view_left, view_right)
-		_draw_player_water_interaction()
-		return
-
-func _draw_water_surface_foam(v_left: float, v_right: float) -> void:
-	var step := 28.0
-	var num_pts := int((v_right - v_left) / step) + 3
-	var foam_pts := PackedVector2Array()
-	
-	for i in range(num_pts):
-		var px: float = v_left + float(i) * step
-		var wave_y: float = 444.0 + sin(anim_timer * 4.2 + px * 0.035) * 2.5 + cos(anim_timer * 2.1 + px * 0.015) * 1.5
-		foam_pts.append(Vector2(px, wave_y))
-	
-	for i in range(foam_pts.size() - 1):
-		var p1 := foam_pts[i]
-		var p2 := foam_pts[i + 1]
-		var foam_alpha := 0.6 + 0.35 * sin(anim_timer * 5.0 + p1.x * 0.05)
-		var foam_col := Color(1.0, 1.0, 1.0, foam_alpha)
-		if Global.current_stage == 3:
-			foam_col = Color(1.0, 0.45, 0.2, foam_alpha)
-		draw_line(p1, p2, foam_col, 2.2)
-		var shimmer_offset := Vector2(0.0, 5.0 + sin(anim_timer * 3.0 + p1.x * 0.08) * 1.5)
-		draw_line(p1 + shimmer_offset, p2 + shimmer_offset, Color(foam_col.r, foam_col.g, foam_col.b, foam_alpha * 0.4), 1.5)
-
-func _draw_player_water_interaction() -> void:
-	if player == null or not is_instance_valid(player):
-		return
-	var py: float = player.global_position.y
-	var px: float = player.global_position.x
-	if py >= 435.0 and py <= 525.0:
-		var ripple_r1: float = fmod(anim_timer * 26.0, 22.0) + 4.0
-		var ripple_alpha1: float = 1.0 - (ripple_r1 / 26.0)
-		var ripple_r2: float = fmod(anim_timer * 26.0 + 11.0, 22.0) + 4.0
-		var ripple_alpha2: float = 1.0 - (ripple_r2 / 26.0)
-		
-		var rip_center := Vector2(px, 448.0)
-		draw_arc(rip_center, ripple_r1, 0.0, TAU, 16, Color(1.0, 1.0, 1.0, ripple_alpha1 * 0.7), 2.0)
-		draw_arc(rip_center, ripple_r2, 0.0, TAU, 16, Color(0.7, 0.9, 1.0, ripple_alpha2 * 0.5), 1.5)
-		
-		if abs(player.velocity.x) > 10.0:
-			for d in range(4):
-				var splash_dir := -1.0 if player.velocity.x > 0.0 else 1.0
-				var splash_x: float = px + splash_dir * (float(d) * 6.0 + 4.0)
-				var splash_y: float = 446.0 - absf(sin(anim_timer * 14.0 + float(d))) * 7.0
-				draw_circle(Vector2(splash_x, splash_y), 2.0, Color(1.0, 1.0, 1.0, 0.85))
 
 func _draw_platforms(view_left: float, view_right: float) -> void:
 	var col_grass := Color(0.2, 0.55, 0.25)
