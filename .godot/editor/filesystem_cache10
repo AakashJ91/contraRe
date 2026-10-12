@@ -46,7 +46,7 @@ platform_chain_shackle.png::CompressedTexture2D::7019282973502909788::1791811214
 platform_girder.png::CompressedTexture2D::7376295290941342214::1791793650::1791793683::1::::<><><>0<>0<>fedb572139db43b6307ac9c5c794d196<>res://.godot/imported/platform_girder.png-970b32d77b663c85b9c3fe1e1bf3ac2a.ctex::
 platform_tech.png::CompressedTexture2D::3042460262432095622::1791812472::1791812502::1::::<><><>0<>0<>e2ea562fc2aa74b5a4ce8c458f28cb8d<>res://.godot/imported/platform_tech.png-5c0c09c59b200faf809f6481d45e9419.ctex::
 platform_turf.png::CompressedTexture2D::5920044679420392501::1791794264::1791794273::1::::<><><>0<>0<>79e74bae107e36ac6295a7736ddc697c<>res://.godot/imported/platform_turf.png-ae5b52e7cc3a6b650432c4e3b9638aef.ctex::
-::res://builds/::1791812518
+::res://builds/::1791812979
 ::res://scenes/::1791800980
 boss.tscn::PackedScene::4873057498450368320::1791731086::0::1::::<><><>0<>0<><>::res://scripts/boss.gd
 bullet.tscn::PackedScene::2362714244831789120::1791730891::0::1::::<><><>0<>0<><>::res://scripts/bullet.gd
@@ -72,7 +72,7 @@ enemy_soldier.gd::GDScript::31266212114827197::1791806459::0::1::::<>CharacterBo
 enemy_turret.gd::GDScript::8013459904596700637::1791778496::0::1::::<>Area2D<><>0<>0<><>::
 explosion.gd::GDScript::2749002296635562725::1791730901::0::1::::<>Node2D<><>0<>0<><>::
 global.gd::GDScript::8272179116311418044::1791735195::0::1::::<>Node<><>0<>0<><>::
-hud.gd::GDScript::660943498226779045::1791735403::0::1::::<>Control<><>0<>0<><>::
+hud.gd::GDScript::660943498226779045::1791812966::0::1::::<>Control<><>0<>0<><>::
 level_select.gd::GDScript::4152736274661902785::1791736653::0::1::::<>Control<><>0<>0<><>::
 main.gd::GDScript::6358952176660829600::1791735330::0::1::::<>Node2D<><>0<>0<><>::
 player.gd::GDScript::8277212307693904783::1791797651::0::1::::<>CharacterBody2D<><>0<>0<><>::
