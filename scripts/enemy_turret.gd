@@ -9,10 +9,13 @@ var shoot_timer: float = 2.0
 var burst_count: int = 0
 var burst_timer: float = 0.0
 var flash_timer: float = 0.0
+var turret_texture: Texture2D = null
 
 func _ready() -> void:
 	collision_layer = 1 << 2 # Layer 3: Enemies
 	collision_mask = (1 << 3) # Layer 4: PlayerBullets
+	if ResourceLoader.exists("res://assets/enemies/enemy_turret.png"):
+		turret_texture = load("res://assets/enemies/enemy_turret.png")
 	queue_redraw()
 
 func _physics_process(delta: float) -> void:
@@ -73,8 +76,25 @@ func _draw() -> void:
 	if flash_timer > 0.0:
 		col_base = Color(1.0, 0.4, 0.4)
 		col_trim = Color(1.0, 0.8, 0.8)
+		col_barrel = Color(1.0, 0.6, 0.6)
 	
-	# Bunker base dome
+	if turret_texture != null:
+		var spr_w: float = 34.0
+		var spr_h: float = 28.0
+		var col: Color = Color(1.8, 0.4, 0.4) if flash_timer > 0.0 else Color.WHITE
+		draw_texture_rect(turret_texture, Rect2(-spr_w * 0.5, -spr_h * 0.5, spr_w, spr_h), false, col)
+		
+		# Twin gun barrels pointing in aim_angle from dome center
+		var barrel_dir := Vector2(cos(aim_angle), sin(aim_angle))
+		var perp := Vector2(-barrel_dir.y, barrel_dir.x) * 3.5
+		var center_offset := Vector2(0.0, -2.0)
+		draw_line(center_offset + perp, center_offset + perp + barrel_dir * 18.0, col_barrel, 3.5)
+		draw_line(center_offset - perp, center_offset - perp + barrel_dir * 18.0, col_barrel, 3.5)
+		# Red sensor dot
+		draw_circle(center_offset, 3.5, Color(1.0, 0.15, 0.15))
+		return
+	
+	# Bunker base dome fallback
 	draw_circle(Vector2.ZERO, 15.0, col_base)
 	draw_arc(Vector2.ZERO, 15.0, 0.0, TAU, 24, col_trim, 2.5)
 	draw_circle(Vector2.ZERO, 8.0, Color(0.18, 0.2, 0.22))

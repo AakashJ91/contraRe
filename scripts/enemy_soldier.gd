@@ -11,14 +11,21 @@ var health: float = 1.0
 var shoot_timer: float = 0.0
 var run_frame: float = 0.0
 var jump_cooldown: float = 0.0
+var flash_timer: float = 0.0
+var soldier_texture: Texture2D = null
 
 func _ready() -> void:
 	collision_layer = 1 << 2 # Layer 3: Enemies
 	collision_mask = (1 << 1) # Layer 2: World
 	shoot_timer = randf_range(1.5, 3.5)
+	if ResourceLoader.exists("res://assets/enemies/enemy_soldier.png"):
+		soldier_texture = load("res://assets/enemies/enemy_soldier.png")
 	queue_redraw()
 
 func _physics_process(delta: float) -> void:
+	if flash_timer > 0.0:
+		flash_timer -= delta
+	
 	if not is_on_floor():
 		velocity.y += GRAVITY * delta
 	
@@ -69,6 +76,7 @@ func _shoot() -> void:
 
 func take_damage(dmg: float = 1.0) -> void:
 	health -= dmg
+	flash_timer = 0.08
 	Global.play_sfx("hit")
 	if health <= 0.0:
 		_die()
@@ -82,6 +90,21 @@ func _die() -> void:
 	queue_free()
 
 func _draw() -> void:
+	if soldier_texture != null:
+		var spr_w: float = 28.0
+		var spr_h: float = 30.0
+		var bounce: float = abs(sin(run_frame)) * 2.0
+		var tilt: float = sin(run_frame) * 0.05
+		var col: Color = Color(1.8, 0.4, 0.4) if flash_timer > 0.0 else Color.WHITE
+		
+		# Facing transform: soldier sprite faces right by default (facing_dir == 1)
+		var scale_x: float = 1.0 if facing_dir >= 0 else -1.0
+		draw_set_transform(Vector2(0.0, -bounce), tilt * scale_x, Vector2(scale_x, 1.0))
+		draw_texture_rect(soldier_texture, Rect2(-spr_w * 0.5, -17.0, spr_w, spr_h), false, col)
+		draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+		return
+	
+	# Procedural fallback
 	var col_suit := Color(0.85, 0.25, 0.20) # Red uniform
 	var col_skin := Color(0.9, 0.75, 0.6)
 	var col_helmet := Color(0.4, 0.15, 0.15)

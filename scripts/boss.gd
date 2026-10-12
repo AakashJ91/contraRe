@@ -22,12 +22,15 @@ var death_explosions_left: int = 14
 
 var left_cannon_hp: float = 12.0
 var right_cannon_hp: float = 12.0
+var boss_texture: Texture2D = null
 
 func _ready() -> void:
 	Global.boss_health_changed.emit(current_health, max_health)
 	core_area.area_entered.connect(_on_core_hit)
 	left_cannon.area_entered.connect(_on_left_cannon_hit)
 	right_cannon.area_entered.connect(_on_right_cannon_hit)
+	if ResourceLoader.exists("res://assets/enemies/boss_wall.png"):
+		boss_texture = load("res://assets/enemies/boss_wall.png")
 	queue_redraw()
 
 func activate() -> void:
@@ -169,26 +172,34 @@ func _process_death_sequence(delta: float) -> void:
 			get_parent().add_child(exp_node)
 
 func _draw() -> void:
-	# Heavy armored bunker wall
-	var col_wall := Color(0.24, 0.27, 0.32)
-	var col_wall_dark := Color(0.16, 0.18, 0.22)
-	var col_plates := Color(0.35, 0.38, 0.44)
-	var col_hazard := Color(0.9, 0.7, 0.1)
-	
-	# Wall foundation structure (220 x 180)
-	draw_rect(Rect2(-110.0, -90.0, 220.0, 180.0), col_wall_dark)
-	draw_rect(Rect2(-100.0, -80.0, 200.0, 160.0), col_wall)
-	
-	# Armor plating rivets & panels
-	draw_rect(Rect2(-90.0, -70.0, 60.0, 45.0), col_plates)
-	draw_rect(Rect2(30.0, -70.0, 60.0, 45.0), col_plates)
-	draw_rect(Rect2(-90.0, 15.0, 50.0, 55.0), col_plates)
-	draw_rect(Rect2(40.0, 15.0, 50.0, 55.0), col_plates)
-	
-	# Hazard warning stripes at bottom
-	for i in range(10):
-		var x_pos := -95.0 + float(i) * 19.0
-		draw_line(Vector2(x_pos, 70.0), Vector2(x_pos + 10.0, 80.0), col_hazard, 3.0)
+	if boss_texture != null:
+		var wall_w: float = 230.0
+		var wall_h: float = 190.0
+		var col: Color = Color(1.8, 0.4, 0.4) if core_flash_timer > 0.0 else Color.WHITE
+		if is_dead:
+			col = Color(0.4, 0.4, 0.45)
+		draw_texture_rect(boss_texture, Rect2(-wall_w * 0.5, -95.0, wall_w, wall_h), false, col)
+	else:
+		# Heavy armored bunker wall fallback
+		var col_wall := Color(0.24, 0.27, 0.32)
+		var col_wall_dark := Color(0.16, 0.18, 0.22)
+		var col_plates := Color(0.35, 0.38, 0.44)
+		var col_hazard := Color(0.9, 0.7, 0.1)
+		
+		# Wall foundation structure (220 x 180)
+		draw_rect(Rect2(-110.0, -90.0, 220.0, 180.0), col_wall_dark)
+		draw_rect(Rect2(-100.0, -80.0, 200.0, 160.0), col_wall)
+		
+		# Armor plating rivets & panels
+		draw_rect(Rect2(-90.0, -70.0, 60.0, 45.0), col_plates)
+		draw_rect(Rect2(30.0, -70.0, 60.0, 45.0), col_plates)
+		draw_rect(Rect2(-90.0, 15.0, 50.0, 55.0), col_plates)
+		draw_rect(Rect2(40.0, 15.0, 50.0, 55.0), col_plates)
+		
+		# Hazard warning stripes at bottom
+		for i in range(10):
+			var x_pos := -95.0 + float(i) * 19.0
+			draw_line(Vector2(x_pos, 70.0), Vector2(x_pos + 10.0, 80.0), col_hazard, 3.0)
 	
 	# Left heavy cannon
 	if left_cannon_hp > 0.0:

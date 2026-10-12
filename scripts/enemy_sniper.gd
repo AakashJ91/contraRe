@@ -7,10 +7,13 @@ var health: float = 2.0
 var shoot_timer: float = 2.2
 var flash_timer: float = 0.0
 var facing_dir: int = -1
+var sniper_texture: Texture2D = null
 
 func _ready() -> void:
 	collision_layer = 1 << 2 # Layer 3: Enemies
 	collision_mask = (1 << 3) # Layer 4: PlayerBullets
+	if ResourceLoader.exists("res://assets/enemies/enemy_sniper.png"):
+		sniper_texture = load("res://assets/enemies/enemy_sniper.png")
 	queue_redraw()
 
 func _physics_process(delta: float) -> void:
@@ -55,6 +58,19 @@ func _die() -> void:
 	queue_free()
 
 func _draw() -> void:
+	if sniper_texture != null:
+		var spr_w: float = 34.0
+		var spr_h: float = 28.0
+		var col: Color = Color(1.8, 0.4, 0.4) if flash_timer > 0.0 else Color.WHITE
+		
+		# Sniper sprite aims left by default (facing_dir == -1). Flip horizontally if facing_dir == 1.
+		var scale_x: float = -1.0 if facing_dir > 0 else 1.0
+		draw_set_transform(Vector2.ZERO, 0.0, Vector2(scale_x, 1.0))
+		draw_texture_rect(sniper_texture, Rect2(-spr_w * 0.5, -spr_h * 0.5 - 2.0, spr_w, spr_h), false, col)
+		draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+		return
+	
+	# Procedural fallback
 	var col_suit := Color(0.2, 0.45, 0.25) # Jungle camouflage green
 	var col_skin := Color(0.9, 0.75, 0.6)
 	var col_gun := Color(0.15, 0.15, 0.18)
