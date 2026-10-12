@@ -542,7 +542,7 @@ func _draw_platforms(view_left: float, view_right: float) -> void:
 					draw_line(Vector2(b.position.x + b.size.x * 0.5, b.position.y - 8.0), Vector2(b.position.x + b.size.x * 0.5, b.position.y + 14.0), Color(0.38, 0.25, 0.14), 2.5)
 			
 			PlatformType.HIGH_PERCH:
-				# 4. High-Tech Vantage Lookout / Sniper Tower with hanging chains & aviation beacon
+				# 4. High-Tech Vantage Lookout / Sniper Tower with hanging chains
 				var perch_lx: float = b.position.x + 12.0
 				var perch_rx: float = b.end.x - 12.0
 				_draw_vertical_chain(Vector2(perch_lx, -12.0), Vector2(perch_lx, b.position.y), 12.0, p_tint)
@@ -552,22 +552,12 @@ func _draw_platforms(view_left: float, view_right: float) -> void:
 				if platform_tech_texture != null:
 					var prect := Rect2(b.position.x, b.position.y - 16.0, b.size.x, 56.0)
 					draw_texture_rect(platform_tech_texture, prect, false, p_tint)
-					# Blinking aviation LED beacon overlay
-					var beacon_alpha: float = 0.5 + 0.5 * sin(anim_timer * 6.0)
-					var beacon_col := Color(1.0, 0.25, 0.2, beacon_alpha) if Global.current_stage != 2 else Color(0.2, 0.9, 1.0, beacon_alpha)
-					draw_circle(Vector2(b.position.x + 12.0, b.position.y - 10.0), 3.5, beacon_col)
-					draw_circle(Vector2(b.end.x - 12.0, b.position.y - 10.0), 3.5, beacon_col)
 				else:
 					draw_rect(b, Color(0.20, 0.24, 0.30))
 					draw_line(Vector2(b.position.x, b.position.y), Vector2(b.end.x, b.position.y), Color(0.55, 0.70, 0.85), 2.0)
 					for m in range(int(b.size.x / 10.0)):
 						var mx := b.position.x + float(m) * 10.0 + 3.0
 						draw_rect(Rect2(mx, b.position.y + 4.0, 4.0, 8.0), Color(0.12, 0.14, 0.18))
-					# Blinking aviation LED beacon
-					var beacon_alpha: float = 0.5 + 0.5 * sin(anim_timer * 6.0)
-					var beacon_col := Color(1.0, 0.25, 0.2, beacon_alpha) if Global.current_stage != 2 else Color(0.2, 0.9, 1.0, beacon_alpha)
-					draw_circle(Vector2(b.position.x + 4.0, b.position.y - 4.0), 3.0, beacon_col)
-					draw_circle(Vector2(b.end.x - 4.0, b.position.y - 4.0), 3.0, beacon_col)
 
 func _draw_vertical_chain(top_pos: Vector2, bottom_pos: Vector2, chain_w: float = 12.0, tint: Color = Color.WHITE) -> void:
 	if platform_chain_texture == null:
