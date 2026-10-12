@@ -17,16 +17,26 @@ func _physics_process(delta: float) -> void:
 	velocity_y += 500.0 * delta
 	global_position.y += velocity_y * delta
 	
-	# Stop falling when near floor height or bounced
-	if velocity_y > 0.0 and bounce_count < 2:
-		# Check simple ground hit simulation
-		if global_position.y >= 430.0:
+	var over_ground := true
+	var stage = get_tree().current_scene
+	if stage != null and stage.has_method("is_position_over_ground"):
+		over_ground = stage.is_position_over_ground(global_position.x)
+	
+	if over_ground:
+		# Stop falling when near floor height or bounced
+		if velocity_y > 0.0 and bounce_count < 2:
+			if global_position.y >= 430.0:
+				global_position.y = 430.0
+				velocity_y = -100.0
+				bounce_count += 1
+		elif bounce_count >= 2 and global_position.y > 430.0:
 			global_position.y = 430.0
-			velocity_y = -100.0
-			bounce_count += 1
-	elif bounce_count >= 2 and global_position.y > 430.0:
-		global_position.y = 430.0
-		velocity_y = 0.0
+			velocity_y = 0.0
+	else:
+		# Fall into bottomless pit
+		if global_position.y > 550.0:
+			queue_free()
+			return
 	
 	queue_redraw()
 

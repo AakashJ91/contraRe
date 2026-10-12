@@ -35,9 +35,15 @@ enum PlatformType {
 	HIGH_PERCH
 }
 
-# Seamless continuous ground floor across the entire 6700px battlefield
+# 7 Tactical ground sectors separated by 6 bottomless chasm pits
 var ground_segments: Array[Rect2] = [
-	Rect2(0.0, 440.0, 6700.0, 200.0)
+	Rect2(0.0, 440.0, 800.0, 200.0),       # Sector 1: Jungle Landing Beach (0 - 800)
+	Rect2(920.0, 440.0, 780.0, 200.0),     # Sector 2: Outer Fortress Perimeter (920 - 1700)
+	Rect2(1820.0, 440.0, 780.0, 200.0),    # Sector 3: Jungle Ravine Catwalks (1820 - 2600)
+	Rect2(2740.0, 440.0, 860.0, 200.0),    # Sector 4: Mid-Stage Heavy Battery (2740 - 3600)
+	Rect2(3740.0, 440.0, 860.0, 200.0),    # Sector 5: Waterfall Cliffside (3740 - 4600)
+	Rect2(4740.0, 440.0, 860.0, 200.0),    # Sector 6: Alien Hive Perimeter (4740 - 5600)
+	Rect2(5740.0, 440.0, 960.0, 200.0)     # Sector 7: Final Defense Wall & Boss Arena (5740 - 6700)
 ]
 
 # Rich multi-tiered tactical platforms with 4 distinct archetypes
@@ -45,42 +51,42 @@ var platforms: Array[Dictionary] = [
 	# Sector 1: Jungle Landing Beach (0 - 800)
 	{"rect": Rect2(250.0, 370.0, 200.0, 16.0), "type": PlatformType.TURF},
 	{"rect": Rect2(420.0, 290.0, 180.0, 16.0), "type": PlatformType.HIGH_PERCH},
-	# Water Gap 1 (800 - 900)
+	# Pit Chasm 1 (800 - 920)
 	{"rect": Rect2(760.0, 340.0, 240.0, 16.0), "type": PlatformType.ROPE_BRIDGE},
 
-	# Sector 2: Outer Fortress Perimeter (900 - 1700)
+	# Sector 2: Outer Fortress Perimeter (920 - 1700)
 	{"rect": Rect2(1050.0, 370.0, 220.0, 16.0), "type": PlatformType.GIRDER},
 	{"rect": Rect2(1250.0, 300.0, 260.0, 16.0), "type": PlatformType.GIRDER},
 	{"rect": Rect2(1480.0, 230.0, 180.0, 16.0), "type": PlatformType.HIGH_PERCH},
-	# Water Gap 2 (1700 - 1800)
+	# Pit Chasm 2 (1700 - 1820)
 	{"rect": Rect2(1660.0, 330.0, 240.0, 16.0), "type": PlatformType.ROPE_BRIDGE},
 
-	# Sector 3: Jungle Ravine Catwalks (1800 - 2600)
+	# Sector 3: Jungle Ravine Catwalks (1820 - 2600)
 	{"rect": Rect2(1920.0, 370.0, 200.0, 16.0), "type": PlatformType.TURF},
 	{"rect": Rect2(2100.0, 300.0, 240.0, 16.0), "type": PlatformType.TURF},
 	{"rect": Rect2(2320.0, 230.0, 180.0, 16.0), "type": PlatformType.HIGH_PERCH},
-	# Water Gap 3 (2600 - 2720)
+	# Pit Chasm 3 (2600 - 2740)
 	{"rect": Rect2(2560.0, 340.0, 240.0, 16.0), "type": PlatformType.ROPE_BRIDGE},
 
-	# Sector 4: Mid-Stage Heavy Battery (2720 - 3600)
+	# Sector 4: Mid-Stage Heavy Battery (2740 - 3600)
 	{"rect": Rect2(2880.0, 370.0, 240.0, 16.0), "type": PlatformType.GIRDER},
 	{"rect": Rect2(3100.0, 290.0, 320.0, 16.0), "type": PlatformType.GIRDER},
 	{"rect": Rect2(3400.0, 220.0, 160.0, 16.0), "type": PlatformType.HIGH_PERCH},
-	# Water Gap 4 (3600 - 3720)
+	# Pit Chasm 4 (3600 - 3740)
 	{"rect": Rect2(3560.0, 330.0, 240.0, 16.0), "type": PlatformType.ROPE_BRIDGE},
 
-	# Sector 5: Waterfall Cliffside (3720 - 4600)
+	# Sector 5: Waterfall Cliffside (3740 - 4600)
 	{"rect": Rect2(3860.0, 370.0, 220.0, 16.0), "type": PlatformType.TURF},
 	{"rect": Rect2(4060.0, 300.0, 260.0, 16.0), "type": PlatformType.TURF},
 	{"rect": Rect2(4300.0, 230.0, 200.0, 16.0), "type": PlatformType.HIGH_PERCH},
-	# Water Gap 5 (4600 - 4720)
+	# Pit Chasm 5 (4600 - 4740)
 	{"rect": Rect2(4560.0, 340.0, 240.0, 16.0), "type": PlatformType.ROPE_BRIDGE},
 
-	# Sector 6: Alien Hive Perimeter (4720 - 5600)
+	# Sector 6: Alien Hive Perimeter (4740 - 5600)
 	{"rect": Rect2(4860.0, 370.0, 220.0, 16.0), "type": PlatformType.GIRDER},
 	{"rect": Rect2(5060.0, 300.0, 280.0, 16.0), "type": PlatformType.GIRDER},
 	{"rect": Rect2(5320.0, 230.0, 180.0, 16.0), "type": PlatformType.HIGH_PERCH},
-	# Water Gap 6 (5600 - 5720) into Boss Arena
+	# Pit Chasm 6 (5600 - 5740) into Boss Arena
 	{"rect": Rect2(5560.0, 340.0, 240.0, 16.0), "type": PlatformType.ROPE_BRIDGE}
 ]
 
@@ -231,12 +237,50 @@ func _setup_static_enemies() -> void:
 			s.global_position = pos
 			add_child(s)
 
+func get_safe_respawn_position(target_x: float) -> Vector2:
+	# If target_x is safely over any solid ground segment (with 40px margin from cliff edges)
+	for g in ground_segments:
+		if target_x >= g.position.x + 40.0 and target_x <= g.end.x - 40.0:
+			return Vector2(target_x, 80.0)
+	
+	# If target_x falls in a pit or too close to an edge, find the closest safe ground position
+	var best_x: float = 200.0
+	var min_dist: float = 999999.0
+	for g in ground_segments:
+		var safe_left := g.position.x + 60.0
+		var safe_right := g.end.x - 60.0
+		var d_left := absf(target_x - safe_left)
+		var d_right := absf(target_x - safe_right)
+		if d_left < min_dist:
+			min_dist = d_left
+			best_x = safe_left
+		if d_right < min_dist:
+			min_dist = d_right
+			best_x = safe_right
+			
+	return Vector2(best_x, 80.0)
+
+func is_position_over_ground(pos_x: float) -> bool:
+	for g in ground_segments:
+		if pos_x >= g.position.x and pos_x <= g.end.x:
+			return true
+	return false
+
 func _spawn_soldier_wave() -> void:
 	if soldier_scene == null:
 		return
 	var cam_x := camera.global_position.x
 	# Spawn ahead of camera
 	var spawn_x := cam_x + 520.0
+	
+	# If spawn_x happens to fall over a pit gap, shift onto the next solid ground segment
+	for i in range(ground_segments.size() - 1):
+		var pit_start := ground_segments[i].end.x
+		var pit_end := ground_segments[i + 1].position.x
+		if spawn_x >= pit_start - 20.0 and spawn_x <= pit_end + 20.0:
+			spawn_x = pit_end + 30.0
+			break
+	
 	var s = soldier_scene.instantiate()
 	s.global_position = Vector2(spawn_x, 420.0)
 	add_child(s)
@@ -323,6 +367,39 @@ func _draw_platforms(view_left: float, view_right: float) -> void:
 			for j in range(int(g.size.x / 40.0)):
 				var fx: float = g.position.x + float(j) * 40.0 + 10.0
 				draw_circle(Vector2(fx, g.position.y - 2.0), 4.0, col_grass)
+	
+	# Bottomless Pit Chasms between consecutive ground segments
+	for i in range(ground_segments.size() - 1):
+		var pit_left := ground_segments[i].end.x
+		var pit_right := ground_segments[i + 1].position.x
+		var pit_w := pit_right - pit_left
+		if pit_right < view_left - 50.0 or pit_left > view_right + 50.0:
+			continue
+		
+		# 1. Abyss darkness void
+		# Upper chasm depth shadow
+		draw_rect(Rect2(pit_left, 440.0, pit_w, 200.0), Color(0.04, 0.04, 0.06, 0.95))
+		# Mid-depth darkness
+		draw_rect(Rect2(pit_left, 475.0, pit_w, 165.0), Color(0.015, 0.015, 0.02, 0.98))
+		# Pitch-black bottomless abyss
+		draw_rect(Rect2(pit_left, 510.0, pit_w, 130.0), Color(0.0, 0.0, 0.0, 1.0))
+		
+		# 2. Cliff drop-off rock walls and fissures
+		var col_cliff := col_dirt * 0.4
+		var col_cliff_hi := col_dirt * 0.65
+		# Left cliff wall
+		draw_line(Vector2(pit_left, 440.0), Vector2(pit_left, 560.0), col_cliff, 3.5)
+		draw_line(Vector2(pit_left - 3.0, 440.0), Vector2(pit_left - 3.0, 520.0), col_cliff_hi, 2.0)
+		draw_line(Vector2(pit_left - 8.0, 470.0), Vector2(pit_left, 476.0), col_cliff, 2.0)
+		draw_line(Vector2(pit_left - 6.0, 505.0), Vector2(pit_left, 512.0), col_cliff, 2.0)
+		draw_line(Vector2(pit_left - 2.0, 440.0), Vector2(pit_left - 1.0, 448.0), col_grass, 2.0)
+		
+		# Right cliff wall
+		draw_line(Vector2(pit_right, 440.0), Vector2(pit_right, 560.0), col_cliff, 3.5)
+		draw_line(Vector2(pit_right + 3.0, 440.0), Vector2(pit_right + 3.0, 520.0), col_cliff_hi, 2.0)
+		draw_line(Vector2(pit_right + 8.0, 470.0), Vector2(pit_right, 476.0), col_cliff, 2.0)
+		draw_line(Vector2(pit_right + 6.0, 505.0), Vector2(pit_right, 512.0), col_cliff, 2.0)
+		draw_line(Vector2(pit_right + 2.0, 440.0), Vector2(pit_right + 1.0, 448.0), col_grass, 2.0)
 	
 	# Elevated Tactical Platforms with Frustum Culling & Archetype Variety
 	var p_tint := Color.WHITE

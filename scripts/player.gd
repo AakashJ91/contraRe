@@ -148,6 +148,11 @@ func _physics_process(delta: float) -> void:
 	
 	move_and_slide()
 	
+	# Bottomless pit hazard death
+	if global_position.y > 545.0:
+		take_damage(999.0)
+		return
+	
 	# Continuous shooting for Machine Gun, single tap or cooldown for others
 	if is_shooting and shoot_cooldown <= 0.0:
 		_shoot()
@@ -257,8 +262,11 @@ func take_damage(_amount: float = 1.0) -> void:
 func _respawn() -> void:
 	state = PlayerState.RESPAWNING
 	respawn_timer = 0.8
-	# Quick respawn drop near current X position
-	global_position.y = maxf(80.0, global_position.y - 130.0)
+	var current_scene = get_tree().current_scene
+	if current_scene != null and current_scene.has_method("get_safe_respawn_position"):
+		global_position = current_scene.get_safe_respawn_position(global_position.x)
+	else:
+		global_position.y = 80.0
 	velocity = Vector2.ZERO
 	Global.set_weapon(Global.WeaponType.RIFLE) # Reset to default rifle on death
 

@@ -49,6 +49,11 @@ func _physics_process(delta: float) -> void:
 	
 	move_and_slide()
 	
+	# Despawn if fallen into bottomless pit
+	if global_position.y > 550.0:
+		queue_free()
+		return
+	
 	# Shoot at player
 	if shoot_timer <= 0.0:
 		shoot_timer = randf_range(2.0, 4.0)
