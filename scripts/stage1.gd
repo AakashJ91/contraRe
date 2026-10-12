@@ -91,11 +91,9 @@ var platforms: Array[Dictionary] = [
 
 func _ready() -> void:
 	Global.screen_shake_requested.connect(_on_screen_shake)
-	if ResourceLoader.exists("res://assets/tiles/ground_top.png"):
-		ground_top_texture = load("res://assets/tiles/ground_top.png")
-	if ResourceLoader.exists("res://assets/tiles/ground_bottom.png"):
-		ground_bottom_texture = load("res://assets/tiles/ground_bottom.png")
-	if ResourceLoader.exists("res://assets/tiles/ground_tile.png"):
+	if ResourceLoader.exists("res://assets/tiles/genrate_ground_tiles.png"):
+		ground_tile_texture = load("res://assets/tiles/genrate_ground_tiles.png")
+	elif ResourceLoader.exists("res://assets/tiles/ground_tile.png"):
 		ground_tile_texture = load("res://assets/tiles/ground_tile.png")
 	elif ResourceLoader.exists("res://assets/tiles/ground_tile.jpg"):
 		ground_tile_texture = load("res://assets/tiles/ground_tile.jpg")
@@ -390,46 +388,24 @@ func _draw_platforms(view_left: float, view_right: float) -> void:
 		elif Global.current_stage == 3:
 			g_tint = Color(1.15, 0.65, 0.65)
 		
-		if ground_top_texture != null and ground_bottom_texture != null:
-			var tile_w: float = 128.0
+		if ground_tile_texture != null:
+			var gw: float = float(ground_tile_texture.get_width())
+			var gh: float = float(ground_tile_texture.get_height())
+			var tile_w: float = gw
 			var num_tiles: int = int(ceil(g.size.x / tile_w))
-			var top_src_w: float = float(ground_top_texture.get_width())
-			var top_src_h: float = float(ground_top_texture.get_height())
-			var bot_src_w: float = float(ground_bottom_texture.get_width())
-			var bot_src_h: float = float(ground_bottom_texture.get_height())
-			
-			var top_layer_h: float = 64.0
-			var bot_start_y: float = g.position.y + 40.0
 			
 			for j in range(num_tiles):
 				var tx: float = g.position.x + float(j) * tile_w
 				var tw: float = minf(tile_w, g.end.x - tx)
 				var ratio_w: float = tw / tile_w
 				
-				# 1. Lower Layer: Repeating subterranean bedrock strata down to screen end
-				var bot_step_h: float = 128.0
-				var cur_y: float = bot_start_y
-				while cur_y < g.end.y:
-					var step_h: float = minf(bot_step_h, g.end.y - cur_y)
-					var b_rect := Rect2(tx, cur_y, tw, step_h)
-					var b_src := Rect2(0.0, 0.0, bot_src_w * ratio_w, bot_src_h * (step_h / bot_step_h))
-					draw_texture_rect_region(ground_bottom_texture, b_rect, b_src, g_tint)
-					cur_y += bot_step_h
+				# Subterranean matching earthy dirt fill down to screen end (y=640)
+				var sub_rect := Rect2(tx, g.position.y + 34.0, tw, g.size.y - 34.0)
+				draw_rect(sub_rect, Color(66.0/255.0, 38.0/255.0, 25.0/255.0) * g_tint)
 				
-				# 2. Upper Layer: Surface grass turf & root crust
-				var t_rect := Rect2(tx, g.position.y - 16.0, tw, top_layer_h)
-				var t_src := Rect2(0.0, 0.0, top_src_w * ratio_w, top_src_h)
-				draw_texture_rect_region(ground_top_texture, t_rect, t_src, g_tint)
-		elif ground_tile_texture != null:
-			var tile_w: float = 128.0
-			var num_tiles: int = int(ceil(g.size.x / tile_w))
-			var g_src := Rect2(0.0, 0.0, float(ground_tile_texture.get_width()), float(ground_tile_texture.get_height()))
-			
-			for j in range(num_tiles):
-				var tx: float = g.position.x + float(j) * tile_w
-				var tw: float = minf(tile_w, g.end.x - tx)
-				var trect := Rect2(tx, g.position.y - 16.0, tw, g.size.y + 16.0)
-				var src_partial := Rect2(0.0, 0.0, g_src.size.x * (tw / tile_w), g_src.size.y)
+				# Surface tile block
+				var trect := Rect2(tx, g.position.y - 12.0, tw, gh)
+				var src_partial := Rect2(0.0, 0.0, gw * ratio_w, gh)
 				draw_texture_rect_region(ground_tile_texture, trect, src_partial, g_tint)
 		else:
 			draw_rect(g, col_dirt)
@@ -448,10 +424,16 @@ func _draw_platforms(view_left: float, view_right: float) -> void:
 		match ptype:
 			PlatformType.TURF:
 				# 1. Lush Jungle Turf Ledge with hanging vines
-				if ground_top_texture != null:
-					var trect := Rect2(b.position.x, b.position.y - 10.0, b.size.x, b.size.y + 10.0)
-					var tsrc := Rect2(0.0, 0.0, float(ground_top_texture.get_width()), float(ground_top_texture.get_height()) * 0.45)
-					draw_texture_rect_region(ground_top_texture, trect, tsrc, Color.WHITE)
+				if ground_tile_texture != null:
+					var gw: float = float(ground_tile_texture.get_width())
+					var gh: float = float(ground_tile_texture.get_height())
+					var num_p_tiles: int = int(ceil(b.size.x / gw))
+					for k in range(num_p_tiles):
+						var ptx: float = b.position.x + float(k) * gw
+						var ptw: float = minf(gw, b.end.x - ptx)
+						var prect := Rect2(ptx, b.position.y - 10.0, ptw, minf(gh, b.size.y + 10.0))
+						var psrc := Rect2(0.0, 0.0, gw * (ptw / gw), prect.size.y)
+						draw_texture_rect_region(ground_tile_texture, prect, psrc, Color.WHITE)
 				else:
 					draw_rect(b, col_dirt)
 					draw_rect(Rect2(b.position.x, b.position.y - 3.0, b.size.x, 7.0), col_grass)
