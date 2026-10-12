@@ -28,6 +28,8 @@ var platform_girder_texture: Texture2D = null
 var platform_bridge_texture: Texture2D = null
 var platform_turf_texture: Texture2D = null
 var platform_tech_texture: Texture2D = null
+var platform_chain_texture: Texture2D = null
+var platform_chain_hook_texture: Texture2D = null
 var ground_edge_right_texture: Texture2D = null
 var ground_edge_left_texture: Texture2D = null
 
@@ -105,6 +107,10 @@ func _ready() -> void:
 		platform_turf_texture = load("res://assets/tiles/platform_turf.png")
 	if ResourceLoader.exists("res://assets/tiles/platform_tech.png"):
 		platform_tech_texture = load("res://assets/tiles/platform_tech.png")
+	if ResourceLoader.exists("res://assets/tiles/platform_chain.png"):
+		platform_chain_texture = load("res://assets/tiles/platform_chain.png")
+	if ResourceLoader.exists("res://assets/tiles/platform_chain_hook.png"):
+		platform_chain_hook_texture = load("res://assets/tiles/platform_chain_hook.png")
 	if ResourceLoader.exists("res://assets/tiles/ground_edge_right.png"):
 		ground_edge_right_texture = load("res://assets/tiles/ground_edge_right.png")
 	if ResourceLoader.exists("res://assets/tiles/ground_edge_left.png"):
@@ -497,7 +503,12 @@ func _draw_platforms(view_left: float, view_right: float) -> void:
 						draw_line(Vector2(vx, b.end.y), Vector2(vx + sin(anim_timer * 1.5 + float(v)) * 3.0, b.end.y + v_len), Color(0.18, 0.45, 0.2), 1.8)
 			
 			PlatformType.GIRDER:
-				# 2. Industrial Steel Girder with Caution Hazard Warning Edge
+				# 2. Industrial Steel Girder with Suspension Chains & Caution Edge
+				_draw_vertical_chain(Vector2(b.position.x + 12.0, b.position.y - 130.0), Vector2(b.position.x + 12.0, b.position.y + 4.0), 12.0)
+				_draw_vertical_chain(Vector2(b.end.x - 12.0, b.position.y - 130.0), Vector2(b.end.x - 12.0, b.position.y + 4.0), 12.0)
+				if b.size.x >= 90.0:
+					_draw_hanging_chain_hook(Vector2(b.position.x + b.size.x * 0.5, b.position.y + 24.0), 52.0)
+				
 				if platform_girder_texture != null:
 					var prect := Rect2(b.position.x, b.position.y, b.size.x, 36.0)
 					draw_texture_rect(platform_girder_texture, prect, false, p_tint)
@@ -529,13 +540,14 @@ func _draw_platforms(view_left: float, view_right: float) -> void:
 					draw_line(Vector2(b.position.x + b.size.x * 0.5, b.position.y - 8.0), Vector2(b.position.x + b.size.x * 0.5, b.position.y + 14.0), Color(0.38, 0.25, 0.14), 2.5)
 			
 			PlatformType.HIGH_PERCH:
-				# 4. High-Tech Vantage Lookout / Sniper Tower with aviation warning beacon
+				# 4. High-Tech Vantage Lookout / Sniper Tower with hanging chains & aviation beacon
+				_draw_vertical_chain(Vector2(b.position.x + 8.0, b.position.y - 140.0), Vector2(b.position.x + 8.0, b.position.y), 12.0)
+				_draw_vertical_chain(Vector2(b.end.x - 8.0, b.position.y - 140.0), Vector2(b.end.x - 8.0, b.position.y), 12.0)
+				_draw_hanging_chain_hook(Vector2(b.position.x + b.size.x * 0.5, b.position.y + 26.0), 60.0)
+				
 				if platform_tech_texture != null:
 					var prect := Rect2(b.position.x, b.position.y - 16.0, b.size.x, 56.0)
 					draw_texture_rect(platform_tech_texture, prect, false, p_tint)
-					# Structural suspension cables going upwards
-					draw_line(Vector2(b.position.x + 8.0, b.position.y), Vector2(b.position.x + 8.0, b.position.y - 140.0), Color(0.45, 0.50, 0.55, 0.7), 1.5)
-					draw_line(Vector2(b.end.x - 8.0, b.position.y), Vector2(b.end.x - 8.0, b.position.y - 140.0), Color(0.45, 0.50, 0.55, 0.7), 1.5)
 					# Blinking aviation LED beacon overlay
 					var beacon_alpha: float = 0.5 + 0.5 * sin(anim_timer * 6.0)
 					var beacon_col := Color(1.0, 0.25, 0.2, beacon_alpha) if Global.current_stage != 2 else Color(0.2, 0.9, 1.0, beacon_alpha)
@@ -547,11 +559,40 @@ func _draw_platforms(view_left: float, view_right: float) -> void:
 					for m in range(int(b.size.x / 10.0)):
 						var mx := b.position.x + float(m) * 10.0 + 3.0
 						draw_rect(Rect2(mx, b.position.y + 4.0, 4.0, 8.0), Color(0.12, 0.14, 0.18))
-					# Structural suspension cables going upwards
-					draw_line(Vector2(b.position.x + 8.0, b.position.y), Vector2(b.position.x + 8.0, b.position.y - 140.0), Color(0.45, 0.50, 0.55, 0.7), 1.5)
-					draw_line(Vector2(b.end.x - 8.0, b.position.y), Vector2(b.end.x - 8.0, b.position.y - 140.0), Color(0.45, 0.50, 0.55, 0.7), 1.5)
 					# Blinking aviation LED beacon
 					var beacon_alpha: float = 0.5 + 0.5 * sin(anim_timer * 6.0)
 					var beacon_col := Color(1.0, 0.25, 0.2, beacon_alpha) if Global.current_stage != 2 else Color(0.2, 0.9, 1.0, beacon_alpha)
 					draw_circle(Vector2(b.position.x + 4.0, b.position.y - 4.0), 3.0, beacon_col)
 					draw_circle(Vector2(b.end.x - 4.0, b.position.y - 4.0), 3.0, beacon_col)
+
+func _draw_vertical_chain(top_pos: Vector2, bottom_pos: Vector2, chain_w: float = 12.0) -> void:
+	if platform_chain_texture == null:
+		draw_line(top_pos, bottom_pos, Color(0.45, 0.50, 0.55, 0.8), 2.0)
+		return
+	var chain_h: float = chain_w * 2.0
+	var total_len: float = bottom_pos.y - top_pos.y
+	if total_len <= 0.0:
+		return
+	var x: float = top_pos.x - chain_w * 0.5
+	var y: float = top_pos.y
+	var tex_w: float = float(platform_chain_texture.get_width())
+	var tex_h: float = float(platform_chain_texture.get_height())
+	while y < bottom_pos.y:
+		var link_h: float = minf(chain_h, bottom_pos.y - y)
+		var crect := Rect2(x, y, chain_w, link_h)
+		var csrc := Rect2(0.0, 0.0, tex_w, tex_h * (link_h / chain_h))
+		draw_texture_rect_region(platform_chain_texture, crect, csrc)
+		y += chain_h
+
+func _draw_hanging_chain_hook(attach_pos: Vector2, chain_len: float = 54.0) -> void:
+	if platform_chain_hook_texture == null:
+		return
+	var hook_w: float = 16.0
+	var full_h: float = hook_w * (float(platform_chain_hook_texture.get_height()) / float(platform_chain_hook_texture.get_width()))
+	var hook_h: float = minf(full_h, chain_len)
+	var hrect := Rect2(attach_pos.x - hook_w * 0.5, attach_pos.y, hook_w, hook_h)
+	var src_ratio: float = hook_h / full_h
+	var tex_w: float = float(platform_chain_hook_texture.get_width())
+	var tex_h: float = float(platform_chain_hook_texture.get_height())
+	var hsrc := Rect2(0.0, tex_h * (1.0 - src_ratio), tex_w, tex_h * src_ratio)
+	draw_texture_rect_region(platform_chain_hook_texture, hrect, hsrc)
