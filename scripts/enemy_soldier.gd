@@ -114,20 +114,22 @@ func _die() -> void:
 
 func _draw() -> void:
 	var col: Color = Color(1.8, 0.4, 0.4) if flash_timer > 0.0 else Color.WHITE
-	var spr_w: float = 32.0
-	var spr_h: float = 32.0
-	var std_rect := Rect2(-16.0, -17.2, spr_w, spr_h)
+	var spr_w: float = 34.0
+	var spr_h: float = 34.0
+	var std_rect := Rect2(-17.0, -19.0, spr_w, spr_h)
 	var scale_x: float = 1.0 if facing_dir >= 0 else -1.0
 	
 	var idx: int = int(fmod(run_frame, float(RUN_TEXTURES.size())))
+	if not is_on_floor():
+		idx = 0
 	var cur_tex: Texture2D = RUN_TEXTURES[idx]
-	var bob_y: float = -1.0 if (is_on_floor() and (idx == 1 or idx == 3)) else 0.0
+	if cur_tex != null:
+		draw_set_transform(Vector2.ZERO, 0.0, Vector2(scale_x, 1.0))
+		draw_texture_rect(cur_tex, std_rect, false, col)
+		draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+		return
 	
-	draw_set_transform(Vector2(0.0, bob_y), 0.0, Vector2(scale_x, 1.0))
-	draw_texture_rect(cur_tex, std_rect, false, col)
-	draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
-	
-	# Procedural fallback
+	# Procedural fallback (only used if textures fail to load)
 	var col_suit := Color(0.85, 0.25, 0.20) # Red uniform
 	var col_skin := Color(0.9, 0.75, 0.6)
 	var col_helmet := Color(0.4, 0.15, 0.15)

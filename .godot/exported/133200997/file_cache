@@ -9,7 +9,8 @@ res://scenes/main.tscn::131fdf26257a003a1195fb2a3597f94c::1791731206::res://.god
 res://scenes/player.tscn::5c8420500cfcd6d5999ce03dc8fdb9ff::1791730948::res://.godot/exported/133200997/export-234fb6894ec6226e856ab7f825500d3d-player.scn
 res://scenes/powerup_blimp.tscn::d2112f39251faf12312cc4d2404daede::1791731049::res://.godot/exported/133200997/export-382726d32753ddd13d54b3810060c864-powerup_blimp.scn
 res://scenes/powerup_item.tscn::a4c7b8ff182fdcb80bd0d6b15284a126::1791731031::res://.godot/exported/133200997/export-c9dc4248877ca58d96a6f5265f21bdc4-powerup_item.scn
-res://scenes/stage1.tscn::b7ceaab9c0ac285df4ad458e1ec96bdf::1791739748::res://.godot/exported/133200997/export-eb1b5d9bd4f62350feacb74c69527b9f-stage1.scn
+res://scenes/stage1.tscn::63928091c8f69ce87a876cdfe82592a7::1791795501::res://.godot/exported/133200997/export-eb1b5d9bd4f62350feacb74c69527b9f-stage1.scn
 res://scenes/touch_controls.tscn::61a7fa0ebd84fbec6ca911df95973fda::1791731316::res://.godot/exported/133200997/export-f0ede4bb06c234cd60561a1c3c706c1e-touch_controls.scn
 res://scenes/level_select.tscn::4c1b33f2bc7b8c6d8d54a6abfdde2fb0::1791735647::res://.godot/exported/133200997/export-0c939b19205267a005b2e63ce5e60e4d-level_select.scn
 res://scenes/title_screen.tscn::01a45865b13902b078bdea9d44356ddc::1791735647::res://.godot/exported/133200997/export-c315eff7b5f8a8ce1d6c4c72650ddc19-title_screen.scn
+res://scenes/powerup_sensor.tscn::4d317f3e760ce48d0c522a4bc0b5656d::1791800980::res://.godot/exported/133200997/export-bb3ab8c7e778a28ca3167f2593973855-powerup_sensor.scn
