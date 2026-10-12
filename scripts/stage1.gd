@@ -24,6 +24,10 @@ const BOSS_TRIGGER_X: float = 5800.0
 var bg_texture: Texture2D = null
 var ground_tile_texture: Texture2D = null
 var water_tile_texture: Texture2D = null
+var platform_girder_texture: Texture2D = null
+var platform_bridge_texture: Texture2D = null
+var platform_turf_texture: Texture2D = null
+var platform_tech_texture: Texture2D = null
 
 enum PlatformType {
 	TURF,
@@ -93,6 +97,14 @@ func _ready() -> void:
 		ground_tile_texture = load("res://assets/tiles/ground_tile.png")
 	if ResourceLoader.exists("res://assets/tiles/water_tile.jpg"):
 		water_tile_texture = load("res://assets/tiles/water_tile.jpg")
+	if ResourceLoader.exists("res://assets/tiles/platform_girder.png"):
+		platform_girder_texture = load("res://assets/tiles/platform_girder.png")
+	if ResourceLoader.exists("res://assets/tiles/platform_bridge.png"):
+		platform_bridge_texture = load("res://assets/tiles/platform_bridge.png")
+	if ResourceLoader.exists("res://assets/tiles/platform_turf.png"):
+		platform_turf_texture = load("res://assets/tiles/platform_turf.png")
+	if ResourceLoader.exists("res://assets/tiles/platform_tech.png"):
+		platform_tech_texture = load("res://assets/tiles/platform_tech.png")
 	_setup_background()
 	_setup_colliders()
 	_setup_static_enemies()
@@ -419,6 +431,12 @@ func _draw_platforms(view_left: float, view_right: float) -> void:
 				draw_circle(Vector2(fx, g.position.y - 2.0), 4.0, col_grass)
 	
 	# Elevated Tactical Platforms with Frustum Culling & Archetype Variety
+	var p_tint := Color.WHITE
+	if Global.current_stage == 2:
+		p_tint = Color(0.85, 0.95, 1.05)
+	elif Global.current_stage == 3:
+		p_tint = Color(1.10, 0.75, 0.75)
+		
 	for p in platforms:
 		var b: Rect2 = p["rect"]
 		var ptype: int = p["type"]
@@ -428,7 +446,10 @@ func _draw_platforms(view_left: float, view_right: float) -> void:
 		match ptype:
 			PlatformType.TURF:
 				# 1. Lush Jungle Turf Ledge with hanging vines
-				if ground_tile_texture != null:
+				if platform_turf_texture != null:
+					var prect := Rect2(b.position.x, b.position.y - 6.0, b.size.x, 46.0)
+					draw_texture_rect(platform_turf_texture, prect, false, p_tint)
+				elif ground_tile_texture != null:
 					var gw: float = float(ground_tile_texture.get_width())
 					var gh: float = float(ground_tile_texture.get_height())
 					var p_tile_w: float = 128.0 if gh > 100.0 else gw
@@ -443,47 +464,67 @@ func _draw_platforms(view_left: float, view_right: float) -> void:
 				else:
 					draw_rect(b, col_dirt)
 					draw_rect(Rect2(b.position.x, b.position.y - 3.0, b.size.x, 7.0), col_grass)
-				for v in range(int(b.size.x / 36.0)):
-					var vx := b.position.x + float(v) * 36.0 + 12.0
-					var v_len: float = 12.0 + sin(anim_timer * 2.0 + vx * 0.05) * 3.0
-					draw_line(Vector2(vx, b.end.y), Vector2(vx + sin(anim_timer * 1.5 + float(v)) * 3.0, b.end.y + v_len), Color(0.18, 0.45, 0.2), 1.8)
+					for v in range(int(b.size.x / 36.0)):
+						var vx := b.position.x + float(v) * 36.0 + 12.0
+						var v_len: float = 12.0 + sin(anim_timer * 2.0 + vx * 0.05) * 3.0
+						draw_line(Vector2(vx, b.end.y), Vector2(vx + sin(anim_timer * 1.5 + float(v)) * 3.0, b.end.y + v_len), Color(0.18, 0.45, 0.2), 1.8)
 			
 			PlatformType.GIRDER:
 				# 2. Industrial Steel Girder with Caution Hazard Warning Edge
-				draw_rect(b, col_girder)
-				draw_rect(Rect2(b.position.x, b.position.y, b.size.x, 4.0), Color(0.92, 0.80, 0.15))
-				for s in range(int(b.size.x / 16.0)):
-					var sx := b.position.x + float(s) * 16.0
-					draw_line(Vector2(sx, b.position.y), Vector2(sx + 8.0, b.position.y + 4.0), Color(0.15, 0.15, 0.15), 2.0)
-				for k in range(int(b.size.x / 24.0)):
-					var kx: float = b.position.x + float(k) * 24.0
-					draw_line(Vector2(kx, b.position.y + 4.0), Vector2(kx + 24.0, b.position.y + 16.0), col_rivet, 2.0)
-					draw_line(Vector2(kx + 24.0, b.position.y + 4.0), Vector2(kx, b.position.y + 16.0), col_rivet, 2.0)
+				if platform_girder_texture != null:
+					var prect := Rect2(b.position.x, b.position.y, b.size.x, 36.0)
+					draw_texture_rect(platform_girder_texture, prect, false, p_tint)
+				else:
+					draw_rect(b, col_girder)
+					draw_rect(Rect2(b.position.x, b.position.y, b.size.x, 4.0), Color(0.92, 0.80, 0.15))
+					for s in range(int(b.size.x / 16.0)):
+						var sx := b.position.x + float(s) * 16.0
+						draw_line(Vector2(sx, b.position.y), Vector2(sx + 8.0, b.position.y + 4.0), Color(0.15, 0.15, 0.15), 2.0)
+					for k in range(int(b.size.x / 24.0)):
+						var kx: float = b.position.x + float(k) * 24.0
+						draw_line(Vector2(kx, b.position.y + 4.0), Vector2(kx + 24.0, b.position.y + 16.0), col_rivet, 2.0)
+						draw_line(Vector2(kx + 24.0, b.position.y + 4.0), Vector2(kx, b.position.y + 16.0), col_rivet, 2.0)
 			
 			PlatformType.ROPE_BRIDGE:
 				# 3. Jungle Chasm Rope Suspension Bridge
-				var plank_w := 14.0
-				for pl in range(int(b.size.x / plank_w)):
-					var px := b.position.x + float(pl) * plank_w
-					var col_plank := Color(0.55, 0.38, 0.22) if (pl % 2 == 0) else Color(0.46, 0.30, 0.16)
-					draw_rect(Rect2(px + 1.0, b.position.y + 3.0, plank_w - 2.0, 11.0), col_plank)
-				draw_line(Vector2(b.position.x, b.position.y - 6.0), Vector2(b.end.x, b.position.y - 6.0), Color(0.75, 0.60, 0.35), 2.5)
-				draw_line(Vector2(b.position.x + 2.0, b.position.y - 8.0), Vector2(b.position.x + 2.0, b.position.y + 14.0), Color(0.38, 0.25, 0.14), 3.0)
-				draw_line(Vector2(b.end.x - 2.0, b.position.y - 8.0), Vector2(b.end.x - 2.0, b.position.y + 14.0), Color(0.38, 0.25, 0.14), 3.0)
-				draw_line(Vector2(b.position.x + b.size.x * 0.5, b.position.y - 8.0), Vector2(b.position.x + b.size.x * 0.5, b.position.y + 14.0), Color(0.38, 0.25, 0.14), 2.5)
+				if platform_bridge_texture != null:
+					var prect := Rect2(b.position.x, b.position.y - 28.0, b.size.x, 52.0)
+					draw_texture_rect(platform_bridge_texture, prect, false, p_tint)
+				else:
+					var plank_w := 14.0
+					for pl in range(int(b.size.x / plank_w)):
+						var px := b.position.x + float(pl) * plank_w
+						var col_plank := Color(0.55, 0.38, 0.22) if (pl % 2 == 0) else Color(0.46, 0.30, 0.16)
+						draw_rect(Rect2(px + 1.0, b.position.y + 3.0, plank_w - 2.0, 11.0), col_plank)
+					draw_line(Vector2(b.position.x, b.position.y - 6.0), Vector2(b.end.x, b.position.y - 6.0), Color(0.75, 0.60, 0.35), 2.5)
+					draw_line(Vector2(b.position.x + 2.0, b.position.y - 8.0), Vector2(b.position.x + 2.0, b.position.y + 14.0), Color(0.38, 0.25, 0.14), 3.0)
+					draw_line(Vector2(b.end.x - 2.0, b.position.y - 8.0), Vector2(b.end.x - 2.0, b.position.y + 14.0), Color(0.38, 0.25, 0.14), 3.0)
+					draw_line(Vector2(b.position.x + b.size.x * 0.5, b.position.y - 8.0), Vector2(b.position.x + b.size.x * 0.5, b.position.y + 14.0), Color(0.38, 0.25, 0.14), 2.5)
 			
 			PlatformType.HIGH_PERCH:
 				# 4. High-Tech Vantage Lookout / Sniper Tower with aviation warning beacon
-				draw_rect(b, Color(0.20, 0.24, 0.30))
-				draw_line(Vector2(b.position.x, b.position.y), Vector2(b.end.x, b.position.y), Color(0.55, 0.70, 0.85), 2.0)
-				for m in range(int(b.size.x / 10.0)):
-					var mx := b.position.x + float(m) * 10.0 + 3.0
-					draw_rect(Rect2(mx, b.position.y + 4.0, 4.0, 8.0), Color(0.12, 0.14, 0.18))
-				# Structural suspension cables going upwards
-				draw_line(Vector2(b.position.x + 8.0, b.position.y), Vector2(b.position.x + 8.0, b.position.y - 140.0), Color(0.45, 0.50, 0.55, 0.7), 1.5)
-				draw_line(Vector2(b.end.x - 8.0, b.position.y), Vector2(b.end.x - 8.0, b.position.y - 140.0), Color(0.45, 0.50, 0.55, 0.7), 1.5)
-				# Blinking aviation LED beacon
-				var beacon_alpha: float = 0.5 + 0.5 * sin(anim_timer * 6.0)
-				var beacon_col := Color(1.0, 0.25, 0.2, beacon_alpha) if Global.current_stage != 2 else Color(0.2, 0.9, 1.0, beacon_alpha)
-				draw_circle(Vector2(b.position.x + 4.0, b.position.y - 4.0), 3.0, beacon_col)
-				draw_circle(Vector2(b.end.x - 4.0, b.position.y - 4.0), 3.0, beacon_col)
+				if platform_tech_texture != null:
+					var prect := Rect2(b.position.x, b.position.y - 16.0, b.size.x, 56.0)
+					draw_texture_rect(platform_tech_texture, prect, false, p_tint)
+					# Structural suspension cables going upwards
+					draw_line(Vector2(b.position.x + 8.0, b.position.y), Vector2(b.position.x + 8.0, b.position.y - 140.0), Color(0.45, 0.50, 0.55, 0.7), 1.5)
+					draw_line(Vector2(b.end.x - 8.0, b.position.y), Vector2(b.end.x - 8.0, b.position.y - 140.0), Color(0.45, 0.50, 0.55, 0.7), 1.5)
+					# Blinking aviation LED beacon overlay
+					var beacon_alpha: float = 0.5 + 0.5 * sin(anim_timer * 6.0)
+					var beacon_col := Color(1.0, 0.25, 0.2, beacon_alpha) if Global.current_stage != 2 else Color(0.2, 0.9, 1.0, beacon_alpha)
+					draw_circle(Vector2(b.position.x + 12.0, b.position.y - 10.0), 3.5, beacon_col)
+					draw_circle(Vector2(b.end.x - 12.0, b.position.y - 10.0), 3.5, beacon_col)
+				else:
+					draw_rect(b, Color(0.20, 0.24, 0.30))
+					draw_line(Vector2(b.position.x, b.position.y), Vector2(b.end.x, b.position.y), Color(0.55, 0.70, 0.85), 2.0)
+					for m in range(int(b.size.x / 10.0)):
+						var mx := b.position.x + float(m) * 10.0 + 3.0
+						draw_rect(Rect2(mx, b.position.y + 4.0, 4.0, 8.0), Color(0.12, 0.14, 0.18))
+					# Structural suspension cables going upwards
+					draw_line(Vector2(b.position.x + 8.0, b.position.y), Vector2(b.position.x + 8.0, b.position.y - 140.0), Color(0.45, 0.50, 0.55, 0.7), 1.5)
+					draw_line(Vector2(b.end.x - 8.0, b.position.y), Vector2(b.end.x - 8.0, b.position.y - 140.0), Color(0.45, 0.50, 0.55, 0.7), 1.5)
+					# Blinking aviation LED beacon
+					var beacon_alpha: float = 0.5 + 0.5 * sin(anim_timer * 6.0)
+					var beacon_col := Color(1.0, 0.25, 0.2, beacon_alpha) if Global.current_stage != 2 else Color(0.2, 0.9, 1.0, beacon_alpha)
+					draw_circle(Vector2(b.position.x + 4.0, b.position.y - 4.0), 3.0, beacon_col)
+					draw_circle(Vector2(b.end.x - 4.0, b.position.y - 4.0), 3.0, beacon_col)
