@@ -27,6 +27,8 @@ var platform_girder_texture: Texture2D = null
 var platform_bridge_texture: Texture2D = null
 var platform_turf_texture: Texture2D = null
 var platform_tech_texture: Texture2D = null
+var ground_edge_right_texture: Texture2D = null
+var ground_edge_left_texture: Texture2D = null
 
 enum PlatformType {
 	TURF,
@@ -102,6 +104,10 @@ func _ready() -> void:
 		platform_turf_texture = load("res://assets/tiles/platform_turf.png")
 	if ResourceLoader.exists("res://assets/tiles/platform_tech.png"):
 		platform_tech_texture = load("res://assets/tiles/platform_tech.png")
+	if ResourceLoader.exists("res://assets/tiles/ground_edge_right.png"):
+		ground_edge_right_texture = load("res://assets/tiles/ground_edge_right.png")
+	if ResourceLoader.exists("res://assets/tiles/ground_edge_left.png"):
+		ground_edge_left_texture = load("res://assets/tiles/ground_edge_left.png")
 	_setup_background()
 	_setup_colliders()
 	_setup_static_enemies()
@@ -321,7 +327,30 @@ func _draw_platforms(view_left: float, view_right: float) -> void:
 		col_girder = Color(0.45, 0.2, 0.25)
 		col_rivet = Color(0.2, 0.05, 0.08)
 	
-	# Main Ground segments with frustum culling
+	# Bottomless Pit Chasms between consecutive ground segments (drawn first so cliff overhangs reveal the abyss)
+	for i in range(ground_segments.size() - 1):
+		var pit_left := ground_segments[i].end.x
+		var pit_right := ground_segments[i + 1].position.x
+		var pit_w := pit_right - pit_left
+		if pit_right < view_left - 80.0 or pit_left > view_right + 80.0:
+			continue
+		
+		# 1. Abyss darkness void (extends 40px behind cliff overhangs so rock fringes reveal pitch-black void)
+		draw_rect(Rect2(pit_left - 40.0, 440.0, pit_w + 80.0, 200.0), Color(0.04, 0.04, 0.06, 0.98))
+		draw_rect(Rect2(pit_left - 30.0, 475.0, pit_w + 60.0, 165.0), Color(0.015, 0.015, 0.02, 1.0))
+		draw_rect(Rect2(pit_left - 20.0, 505.0, pit_w + 40.0, 135.0), Color(0.0, 0.0, 0.0, 1.0))
+		
+		# Fallback cliff drop-off lines if edge textures are unavailable
+		if ground_edge_right_texture == null or ground_edge_left_texture == null:
+			var col_cliff := col_dirt * 0.4
+			var col_cliff_hi := col_dirt * 0.65
+			draw_line(Vector2(pit_left, 440.0), Vector2(pit_left, 560.0), col_cliff, 3.5)
+			draw_line(Vector2(pit_left - 3.0, 440.0), Vector2(pit_left - 3.0, 520.0), col_cliff_hi, 2.0)
+			draw_line(Vector2(pit_right, 440.0), Vector2(pit_right, 560.0), col_cliff, 3.5)
+			draw_line(Vector2(pit_right + 3.0, 440.0), Vector2(pit_right + 3.0, 520.0), col_cliff_hi, 2.0)
+
+	# Main Ground segments with high-res cliff edges and repeating soil tiles
+	var edge_w: float = 96.0
 	for g in ground_segments:
 		if g.end.x < view_left - 50.0 or g.position.x > view_right + 50.0:
 			continue
@@ -332,19 +361,29 @@ func _draw_platforms(view_left: float, view_right: float) -> void:
 		elif Global.current_stage == 3:
 			g_tint = Color(1.15, 0.65, 0.65)
 		
+		var has_left_edge: bool = (g.position.x > 0.0)
+		var has_right_edge: bool = (g.end.x < LEVEL_MAX_X)
+		var actual_left_edge_w: float = edge_w if (has_left_edge and ground_edge_left_texture != null) else 0.0
+		var actual_right_edge_w: float = edge_w if (has_right_edge and ground_edge_right_texture != null) else 0.0
+		
+		var mid_start_x: float = g.position.x + actual_left_edge_w
+		var mid_end_x: float = g.end.x - actual_right_edge_w
+		var mid_width: float = maxf(0.0, mid_end_x - mid_start_x)
+		
+		# Draw middle repeating ground tile
 		if ground_tile_texture != null:
 			var gw: float = float(ground_tile_texture.get_width())
 			var gh: float = float(ground_tile_texture.get_height())
 			var tile_w: float = 128.0 if gh > 100.0 else gw
-			var num_tiles: int = int(ceil(g.size.x / tile_w))
+			var num_tiles: int = int(ceil(mid_width / tile_w))
 			
 			for j in range(num_tiles):
-				var tx: float = g.position.x + float(j) * tile_w
-				var tw: float = minf(tile_w, g.end.x - tx)
+				var tx: float = mid_start_x + float(j) * tile_w
+				var tw: float = minf(tile_w, mid_end_x - tx)
 				var ratio_w: float = tw / tile_w
 				
 				if gh > 100.0:
-					# High-res seamless ground tile (1024x729): covers top grass down through bedrock
+					# High-res seamless ground tile: covers top grass down through bedrock
 					var trect := Rect2(tx, g.position.y - 16.0, tw, g.size.y + 16.0)
 					var src_partial := Rect2(0.0, 0.0, gw * ratio_w, gh)
 					draw_texture_rect_region(ground_tile_texture, trect, src_partial, g_tint)
@@ -362,44 +401,18 @@ func _draw_platforms(view_left: float, view_right: float) -> void:
 					var src_partial := Rect2(0.0, 0.0, gw * ratio_w, gh)
 					draw_texture_rect_region(ground_tile_texture, trect, src_partial, g_tint)
 		else:
-			draw_rect(g, col_dirt)
-			draw_rect(Rect2(g.position.x, g.position.y, g.size.x, 8.0), col_grass)
-			for j in range(int(g.size.x / 40.0)):
-				var fx: float = g.position.x + float(j) * 40.0 + 10.0
-				draw_circle(Vector2(fx, g.position.y - 2.0), 4.0, col_grass)
-	
-	# Bottomless Pit Chasms between consecutive ground segments
-	for i in range(ground_segments.size() - 1):
-		var pit_left := ground_segments[i].end.x
-		var pit_right := ground_segments[i + 1].position.x
-		var pit_w := pit_right - pit_left
-		if pit_right < view_left - 50.0 or pit_left > view_right + 50.0:
-			continue
+			draw_rect(Rect2(mid_start_x, g.position.y, mid_width, g.size.y), col_dirt)
+			draw_rect(Rect2(mid_start_x, g.position.y, mid_width, 8.0), col_grass)
 		
-		# 1. Abyss darkness void
-		# Upper chasm depth shadow
-		draw_rect(Rect2(pit_left, 440.0, pit_w, 200.0), Color(0.04, 0.04, 0.06, 0.95))
-		# Mid-depth darkness
-		draw_rect(Rect2(pit_left, 475.0, pit_w, 165.0), Color(0.015, 0.015, 0.02, 0.98))
-		# Pitch-black bottomless abyss
-		draw_rect(Rect2(pit_left, 510.0, pit_w, 130.0), Color(0.0, 0.0, 0.0, 1.0))
+		# Draw Left Cliff Edge Tile (facing left into pit chasm)
+		if has_left_edge and ground_edge_left_texture != null:
+			var left_rect := Rect2(g.position.x, g.position.y - 16.0, actual_left_edge_w, g.size.y + 16.0)
+			draw_texture_rect(ground_edge_left_texture, left_rect, false, g_tint)
 		
-		# 2. Cliff drop-off rock walls and fissures
-		var col_cliff := col_dirt * 0.4
-		var col_cliff_hi := col_dirt * 0.65
-		# Left cliff wall
-		draw_line(Vector2(pit_left, 440.0), Vector2(pit_left, 560.0), col_cliff, 3.5)
-		draw_line(Vector2(pit_left - 3.0, 440.0), Vector2(pit_left - 3.0, 520.0), col_cliff_hi, 2.0)
-		draw_line(Vector2(pit_left - 8.0, 470.0), Vector2(pit_left, 476.0), col_cliff, 2.0)
-		draw_line(Vector2(pit_left - 6.0, 505.0), Vector2(pit_left, 512.0), col_cliff, 2.0)
-		draw_line(Vector2(pit_left - 2.0, 440.0), Vector2(pit_left - 1.0, 448.0), col_grass, 2.0)
-		
-		# Right cliff wall
-		draw_line(Vector2(pit_right, 440.0), Vector2(pit_right, 560.0), col_cliff, 3.5)
-		draw_line(Vector2(pit_right + 3.0, 440.0), Vector2(pit_right + 3.0, 520.0), col_cliff_hi, 2.0)
-		draw_line(Vector2(pit_right + 8.0, 470.0), Vector2(pit_right, 476.0), col_cliff, 2.0)
-		draw_line(Vector2(pit_right + 6.0, 505.0), Vector2(pit_right, 512.0), col_cliff, 2.0)
-		draw_line(Vector2(pit_right + 2.0, 440.0), Vector2(pit_right + 1.0, 448.0), col_grass, 2.0)
+		# Draw Right Cliff Edge Tile (facing right into pit chasm)
+		if has_right_edge and ground_edge_right_texture != null:
+			var right_rect := Rect2(g.end.x - actual_right_edge_w, g.position.y - 16.0, actual_right_edge_w, g.size.y + 16.0)
+			draw_texture_rect(ground_edge_right_texture, right_rect, false, g_tint)
 	
 	# Elevated Tactical Platforms with Frustum Culling & Archetype Variety
 	var p_tint := Color.WHITE
