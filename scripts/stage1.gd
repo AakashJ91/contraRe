@@ -91,10 +91,10 @@ var platforms: Array[Dictionary] = [
 
 func _ready() -> void:
 	Global.screen_shake_requested.connect(_on_screen_shake)
-	if ResourceLoader.exists("res://assets/tiles/genrate_ground_tiles.png"):
-		ground_tile_texture = load("res://assets/tiles/genrate_ground_tiles.png")
-	elif ResourceLoader.exists("res://assets/tiles/ground_tile.png"):
+	if ResourceLoader.exists("res://assets/tiles/ground_tile.png"):
 		ground_tile_texture = load("res://assets/tiles/ground_tile.png")
+	elif ResourceLoader.exists("res://assets/tiles/genrate_ground_tiles.png"):
+		ground_tile_texture = load("res://assets/tiles/genrate_ground_tiles.png")
 	elif ResourceLoader.exists("res://assets/tiles/ground_tile.jpg"):
 		ground_tile_texture = load("res://assets/tiles/ground_tile.jpg")
 	if ResourceLoader.exists("res://assets/tiles/water_tile.jpg"):
@@ -391,7 +391,7 @@ func _draw_platforms(view_left: float, view_right: float) -> void:
 		if ground_tile_texture != null:
 			var gw: float = float(ground_tile_texture.get_width())
 			var gh: float = float(ground_tile_texture.get_height())
-			var tile_w: float = gw
+			var tile_w: float = 128.0 if gh > 100.0 else gw
 			var num_tiles: int = int(ceil(g.size.x / tile_w))
 			
 			for j in range(num_tiles):
@@ -399,22 +399,24 @@ func _draw_platforms(view_left: float, view_right: float) -> void:
 				var tw: float = minf(tile_w, g.end.x - tx)
 				var ratio_w: float = tw / tile_w
 				
-				# 1. Base solid soil backing to guarantee zero gaps
-				draw_rect(Rect2(tx, g.position.y + 24.0, tw, g.size.y - 24.0), Color(66.0/255.0, 38.0/255.0, 25.0/255.0) * g_tint)
-				
-				# 2. Subterranean repeating dirt texture down to screen end (y=640)
-				var cur_y: float = g.position.y - 16.0 + gh
-				while cur_y < g.end.y:
-					var step_h: float = minf(22.0, g.end.y - cur_y)
-					var sub_trect := Rect2(tx, cur_y, tw, step_h)
-					var sub_src := Rect2(0.0, 25.0, gw * ratio_w, step_h)
-					draw_texture_rect_region(ground_tile_texture, sub_trect, sub_src, g_tint)
-					cur_y += 22.0
-				
-				# 3. Surface grass & topsoil tile block
-				var trect := Rect2(tx, g.position.y - 16.0, tw, gh)
-				var src_partial := Rect2(0.0, 0.0, gw * ratio_w, gh)
-				draw_texture_rect_region(ground_tile_texture, trect, src_partial, g_tint)
+				if gh > 100.0:
+					# High-res seamless ground tile (1024x729): covers top grass down through bedrock
+					var trect := Rect2(tx, g.position.y - 16.0, tw, g.size.y + 16.0)
+					var src_partial := Rect2(0.0, 0.0, gw * ratio_w, gh)
+					draw_texture_rect_region(ground_tile_texture, trect, src_partial, g_tint)
+				else:
+					# Low-res sprite backing & slice repetition
+					draw_rect(Rect2(tx, g.position.y + 24.0, tw, g.size.y - 24.0), Color(66.0/255.0, 38.0/255.0, 25.0/255.0) * g_tint)
+					var cur_y: float = g.position.y - 16.0 + gh
+					while cur_y < g.end.y:
+						var step_h: float = minf(22.0, g.end.y - cur_y)
+						var sub_trect := Rect2(tx, cur_y, tw, step_h)
+						var sub_src := Rect2(0.0, 25.0, gw * ratio_w, step_h)
+						draw_texture_rect_region(ground_tile_texture, sub_trect, sub_src, g_tint)
+						cur_y += 22.0
+					var trect := Rect2(tx, g.position.y - 16.0, tw, gh)
+					var src_partial := Rect2(0.0, 0.0, gw * ratio_w, gh)
+					draw_texture_rect_region(ground_tile_texture, trect, src_partial, g_tint)
 		else:
 			draw_rect(g, col_dirt)
 			draw_rect(Rect2(g.position.x, g.position.y, g.size.x, 8.0), col_grass)
@@ -435,12 +437,14 @@ func _draw_platforms(view_left: float, view_right: float) -> void:
 				if ground_tile_texture != null:
 					var gw: float = float(ground_tile_texture.get_width())
 					var gh: float = float(ground_tile_texture.get_height())
-					var num_p_tiles: int = int(ceil(b.size.x / gw))
+					var p_tile_w: float = 128.0 if gh > 100.0 else gw
+					var num_p_tiles: int = int(ceil(b.size.x / p_tile_w))
 					for k in range(num_p_tiles):
-						var ptx: float = b.position.x + float(k) * gw
-						var ptw: float = minf(gw, b.end.x - ptx)
-						var prect := Rect2(ptx, b.position.y - 10.0, ptw, minf(gh, b.size.y + 10.0))
-						var psrc := Rect2(0.0, 0.0, gw * (ptw / gw), prect.size.y)
+						var ptx: float = b.position.x + float(k) * p_tile_w
+						var ptw: float = minf(p_tile_w, b.end.x - ptx)
+						var prect := Rect2(ptx, b.position.y - 10.0, ptw, b.size.y + 10.0)
+						var psrc_h: float = minf(gh, (b.size.y + 10.0) * (gh / 216.0) if gh > 100.0 else (b.size.y + 10.0))
+						var psrc := Rect2(0.0, 0.0, gw * (ptw / p_tile_w), psrc_h)
 						draw_texture_rect_region(ground_tile_texture, prect, psrc, Color.WHITE)
 				else:
 					draw_rect(b, col_dirt)
