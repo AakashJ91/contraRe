@@ -23,8 +23,6 @@ const BOSS_TRIGGER_X: float = 5800.0
 
 var bg_texture: Texture2D = null
 var ground_tile_texture: Texture2D = null
-var ground_top_texture: Texture2D = null
-var ground_bottom_texture: Texture2D = null
 var water_tile_texture: Texture2D = null
 
 enum PlatformType {
@@ -93,10 +91,6 @@ func _ready() -> void:
 	Global.screen_shake_requested.connect(_on_screen_shake)
 	if ResourceLoader.exists("res://assets/tiles/ground_tile.png"):
 		ground_tile_texture = load("res://assets/tiles/ground_tile.png")
-	elif ResourceLoader.exists("res://assets/tiles/genrate_ground_tiles.png"):
-		ground_tile_texture = load("res://assets/tiles/genrate_ground_tiles.png")
-	elif ResourceLoader.exists("res://assets/tiles/ground_tile.jpg"):
-		ground_tile_texture = load("res://assets/tiles/ground_tile.jpg")
 	if ResourceLoader.exists("res://assets/tiles/water_tile.jpg"):
 		water_tile_texture = load("res://assets/tiles/water_tile.jpg")
 	_setup_background()
