@@ -343,7 +343,7 @@ func _draw_platforms(view_left: float, view_right: float) -> void:
 			continue
 		
 		if ground_tile_texture != null:
-			var tile_w: float = 120.0
+			var tile_w: float = 128.0
 			var num_tiles: int = int(ceil(g.size.x / tile_w))
 			var g_src := Rect2(0.0, 0.0, float(ground_tile_texture.get_width()), float(ground_tile_texture.get_height()))
 			var g_tint := Color.WHITE
@@ -355,7 +355,7 @@ func _draw_platforms(view_left: float, view_right: float) -> void:
 			for j in range(num_tiles):
 				var tx: float = g.position.x + float(j) * tile_w
 				var tw: float = minf(tile_w, g.end.x - tx)
-				var trect := Rect2(tx, g.position.y - 14.0, tw, g.size.y + 14.0)
+				var trect := Rect2(tx, g.position.y - 16.0, tw, g.size.y + 16.0)
 				var src_partial := Rect2(0.0, 0.0, g_src.size.x * (tw / tile_w), g_src.size.y)
 				draw_texture_rect_region(ground_tile_texture, trect, src_partial, g_tint)
 		else:
