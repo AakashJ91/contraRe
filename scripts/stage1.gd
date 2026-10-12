@@ -23,6 +23,8 @@ const BOSS_TRIGGER_X: float = 5800.0
 
 var bg_texture: Texture2D = null
 var ground_tile_texture: Texture2D = null
+var ground_top_texture: Texture2D = null
+var ground_bottom_texture: Texture2D = null
 var water_tile_texture: Texture2D = null
 
 enum PlatformType {
@@ -89,6 +91,10 @@ var platforms: Array[Dictionary] = [
 
 func _ready() -> void:
 	Global.screen_shake_requested.connect(_on_screen_shake)
+	if ResourceLoader.exists("res://assets/tiles/ground_top.png"):
+		ground_top_texture = load("res://assets/tiles/ground_top.png")
+	if ResourceLoader.exists("res://assets/tiles/ground_bottom.png"):
+		ground_bottom_texture = load("res://assets/tiles/ground_bottom.png")
 	if ResourceLoader.exists("res://assets/tiles/ground_tile.png"):
 		ground_tile_texture = load("res://assets/tiles/ground_tile.png")
 	elif ResourceLoader.exists("res://assets/tiles/ground_tile.jpg"):
@@ -378,15 +384,46 @@ func _draw_platforms(view_left: float, view_right: float) -> void:
 		if g.end.x < view_left - 50.0 or g.position.x > view_right + 50.0:
 			continue
 		
-		if ground_tile_texture != null:
+		var g_tint := Color.WHITE
+		if Global.current_stage == 2:
+			g_tint = Color(0.8, 0.9, 1.05)
+		elif Global.current_stage == 3:
+			g_tint = Color(1.15, 0.65, 0.65)
+		
+		if ground_top_texture != null and ground_bottom_texture != null:
+			var tile_w: float = 128.0
+			var num_tiles: int = int(ceil(g.size.x / tile_w))
+			var top_src_w: float = float(ground_top_texture.get_width())
+			var top_src_h: float = float(ground_top_texture.get_height())
+			var bot_src_w: float = float(ground_bottom_texture.get_width())
+			var bot_src_h: float = float(ground_bottom_texture.get_height())
+			
+			var top_layer_h: float = 64.0
+			var bot_start_y: float = g.position.y + 40.0
+			
+			for j in range(num_tiles):
+				var tx: float = g.position.x + float(j) * tile_w
+				var tw: float = minf(tile_w, g.end.x - tx)
+				var ratio_w: float = tw / tile_w
+				
+				# 1. Lower Layer: Repeating subterranean bedrock strata down to screen end
+				var bot_step_h: float = 128.0
+				var cur_y: float = bot_start_y
+				while cur_y < g.end.y:
+					var step_h: float = minf(bot_step_h, g.end.y - cur_y)
+					var b_rect := Rect2(tx, cur_y, tw, step_h)
+					var b_src := Rect2(0.0, 0.0, bot_src_w * ratio_w, bot_src_h * (step_h / bot_step_h))
+					draw_texture_rect_region(ground_bottom_texture, b_rect, b_src, g_tint)
+					cur_y += bot_step_h
+				
+				# 2. Upper Layer: Surface grass turf & root crust
+				var t_rect := Rect2(tx, g.position.y - 16.0, tw, top_layer_h)
+				var t_src := Rect2(0.0, 0.0, top_src_w * ratio_w, top_src_h)
+				draw_texture_rect_region(ground_top_texture, t_rect, t_src, g_tint)
+		elif ground_tile_texture != null:
 			var tile_w: float = 128.0
 			var num_tiles: int = int(ceil(g.size.x / tile_w))
 			var g_src := Rect2(0.0, 0.0, float(ground_tile_texture.get_width()), float(ground_tile_texture.get_height()))
-			var g_tint := Color.WHITE
-			if Global.current_stage == 2:
-				g_tint = Color(0.8, 0.9, 1.05)
-			elif Global.current_stage == 3:
-				g_tint = Color(1.15, 0.65, 0.65)
 			
 			for j in range(num_tiles):
 				var tx: float = g.position.x + float(j) * tile_w
@@ -411,11 +448,13 @@ func _draw_platforms(view_left: float, view_right: float) -> void:
 		match ptype:
 			PlatformType.TURF:
 				# 1. Lush Jungle Turf Ledge with hanging vines
-				draw_rect(b, col_dirt)
-				draw_rect(Rect2(b.position.x, b.position.y - 3.0, b.size.x, 7.0), col_grass)
-				for j in range(int(b.size.x / 14.0)):
-					var gx := b.position.x + float(j) * 14.0 + 4.0
-					draw_line(Vector2(gx, b.position.y), Vector2(gx, b.position.y - 6.0), Color(0.35, 0.85, 0.35), 2.0)
+				if ground_top_texture != null:
+					var trect := Rect2(b.position.x, b.position.y - 10.0, b.size.x, b.size.y + 10.0)
+					var tsrc := Rect2(0.0, 0.0, float(ground_top_texture.get_width()), float(ground_top_texture.get_height()) * 0.45)
+					draw_texture_rect_region(ground_top_texture, trect, tsrc, Color.WHITE)
+				else:
+					draw_rect(b, col_dirt)
+					draw_rect(Rect2(b.position.x, b.position.y - 3.0, b.size.x, 7.0), col_grass)
 				for v in range(int(b.size.x / 36.0)):
 					var vx := b.position.x + float(v) * 36.0 + 12.0
 					var v_len: float = 12.0 + sin(anim_timer * 2.0 + vx * 0.05) * 3.0
