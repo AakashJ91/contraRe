@@ -1,0 +1,15 @@
+[gd_scene load_steps=3 format=3 uid="uid://csensorscene001"]
+
+[ext_resource type="Script" path="res://scripts/powerup_sensor.gd" id="1_sensor"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_1"]
+size = Vector2(26, 32)
+
+[node name="PowerupSensor" type="Area2D"]
+collision_layer = 4
+collision_mask = 8
+script = ExtResource("1_sensor")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+position = Vector2(0, -14)
+shape = SubResource("RectangleShape2D_1")

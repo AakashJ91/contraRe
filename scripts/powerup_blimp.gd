@@ -7,11 +7,14 @@ extends Area2D
 
 var base_y: float = 0.0
 var elapsed: float = 0.0
+var blimp_texture: Texture2D = null
 
 func _ready() -> void:
 	collision_layer = 1 << 2 # Layer 3: Enemies
 	collision_mask = (1 << 3) # Layer 4: PlayerBullets
 	base_y = global_position.y
+	if ResourceLoader.exists("res://assets/powerups/powerup_blimp.png"):
+		blimp_texture = load("res://assets/powerups/powerup_blimp.png")
 	queue_redraw()
 
 func _physics_process(delta: float) -> void:
@@ -39,7 +42,21 @@ func _pop() -> void:
 	queue_free()
 
 func _draw() -> void:
-	var flash := fmod(elapsed * 6.0, 1.0) > 0.4
+	var flash := fmod(elapsed * 8.0, 1.0) > 0.5
+	
+	if blimp_texture != null:
+		var spr_w := 46.0
+		var spr_h := 24.0
+		var col: Color = Color(1.2, 1.15, 1.0) if flash else Color.WHITE
+		draw_texture_rect(blimp_texture, Rect2(-spr_w * 0.5, -spr_h * 0.5, spr_w, spr_h), false, col)
+		
+		# Glowing propulsion engine light at the tail
+		var thruster_pos := Vector2(-spr_w * 0.5 + 4.0, 0.0)
+		var flicker_r := 3.0 + randf() * 2.0
+		draw_circle(thruster_pos, flicker_r, Color(1.0, 0.6, 0.2, 0.8))
+		return
+	
+	# Procedural fallback
 	var col_capsule := Color(0.9, 0.2, 0.2) if flash else Color(0.9, 0.9, 0.9)
 	var col_falcon := Color(0.95, 0.8, 0.2)
 	

@@ -5,11 +5,24 @@ var velocity_y: float = -120.0
 var bounce_count: int = 0
 var anim_timer: float = 0.0
 
+var tex_spread: Texture2D = null
+var tex_machine: Texture2D = null
+var tex_laser: Texture2D = null
+var tex_fire: Texture2D = null
+
 func _ready() -> void:
 	collision_layer = 1 << 5 # Layer 6: Items
 	collision_mask = (1 << 0) | (1 << 1) # Layer 1: Player, Layer 2: World
 	body_entered.connect(_on_body_entered)
 	area_entered.connect(_on_area_entered)
+	if ResourceLoader.exists("res://assets/powerups/powerup_spread.png"):
+		tex_spread = load("res://assets/powerups/powerup_spread.png")
+	if ResourceLoader.exists("res://assets/powerups/powerup_machine.png"):
+		tex_machine = load("res://assets/powerups/powerup_machine.png")
+	if ResourceLoader.exists("res://assets/powerups/powerup_laser.png"):
+		tex_laser = load("res://assets/powerups/powerup_laser.png")
+	if ResourceLoader.exists("res://assets/powerups/powerup_fire.png"):
+		tex_fire = load("res://assets/powerups/powerup_fire.png")
 	queue_redraw()
 
 func _physics_process(delta: float) -> void:
@@ -54,7 +67,25 @@ func _collect() -> void:
 	queue_free()
 
 func _draw() -> void:
-	var flash := fmod(anim_timer * 8.0, 1.0) > 0.3
+	var flash := fmod(anim_timer * 8.0, 1.0) > 0.4
+	var badge_tex: Texture2D = null
+	match weapon_type:
+		Global.WeaponType.SPREAD:
+			badge_tex = tex_spread
+		Global.WeaponType.MACHINE:
+			badge_tex = tex_machine
+		Global.WeaponType.LASER:
+			badge_tex = tex_laser
+		_:
+			badge_tex = tex_spread
+	
+	if badge_tex != null:
+		var bw: float = 32.0
+		var bh: float = 20.0
+		var tint: Color = Color(1.3, 1.25, 1.1) if flash else Color.WHITE
+		draw_texture_rect(badge_tex, Rect2(-bw * 0.5, -bh * 0.5, bw, bh), false, tint)
+		return
+	
 	var col_badge := Color(0.95, 0.85, 0.2) if flash else Color(0.9, 0.2, 0.2)
 	var letter := "S"
 	match weapon_type:

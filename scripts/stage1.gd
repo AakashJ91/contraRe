@@ -4,6 +4,7 @@ extends Node2D
 @export var turret_scene: PackedScene = preload("res://scenes/enemy_turret.tscn")
 @export var sniper_scene: PackedScene = preload("res://scenes/enemy_sniper.tscn")
 @export var blimp_scene: PackedScene = preload("res://scenes/powerup_blimp.tscn")
+@export var sensor_scene: PackedScene = preload("res://scenes/powerup_sensor.tscn")
 
 @onready var camera: Camera2D = $Camera2D
 @onready var player: CharacterBody2D = $Player
@@ -242,6 +243,20 @@ func _setup_static_enemies() -> void:
 			var s = sniper_scene.instantiate()
 			s.global_position = pos
 			add_child(s)
+	
+	# 4 Stationary Defense Sensor Pods (classic Contra wall/deck pillboxes)
+	var sensor_pods: Array[Dictionary] = [
+		{"pos": Vector2(350.0, 370.0), "weapon": Global.WeaponType.SPREAD},    # Sector 1
+		{"pos": Vector2(1160.0, 370.0), "weapon": Global.WeaponType.MACHINE},  # Sector 2
+		{"pos": Vector2(3000.0, 370.0), "weapon": Global.WeaponType.LASER},    # Sector 4
+		{"pos": Vector2(4000.0, 370.0), "weapon": Global.WeaponType.SPREAD}    # Sector 5
+	]
+	for sp in sensor_pods:
+		if sensor_scene != null:
+			var pod = sensor_scene.instantiate()
+			pod.global_position = sp["pos"]
+			pod.weapon_type = sp["weapon"]
+			add_child(pod)
 
 func get_safe_respawn_position(target_x: float) -> Vector2:
 	# If target_x is safely over any solid ground segment (with 40px margin from cliff edges)
