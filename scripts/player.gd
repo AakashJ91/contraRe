@@ -134,10 +134,11 @@ func _physics_process(delta: float) -> void:
 		elif abs(input_x) > 0.1:
 			state = PlayerState.RUN
 			velocity.x = facing_dir * SPEED
-			run_frame += delta * 10.0
+			run_frame += delta * 9.0
 		else:
 			state = PlayerState.IDLE
 			velocity.x = 0.0
+			run_frame = 0.0
 	else:
 		# Air control
 		if abs(input_x) > 0.1:
@@ -307,55 +308,48 @@ func _draw() -> void:
 		draw_rect(Rect2(dir * 2.0, 5.0, dir * 18.0, 3.0), Color(0.65, 0.65, 0.70))
 		return
 	
+	# Standardized canvas dimensions (240x230, anchor x=100, feet y=220)
+	var std_w: float = 36.0
+	var std_h: float = 34.5
+	var std_rect := Rect2(-15.0, -21.0, std_w, std_h)
+	
 	# 3. RUNNING / WALKING STATE
 	if state == PlayerState.RUN:
 		if tex_run.size() > 0:
 			var scale_x: float = 1.0 if facing_dir >= 0 else -1.0
 			var idx: int = int(fmod(run_frame, float(tex_run.size())))
 			var cur_tex: Texture2D = tex_run[idx]
-			var run_w: float = 28.0
-			var run_h: float = 32.0
 			
 			if muzzle_flash_timer > 0.0 and aim_dir.y < -0.3 and tex_aim_up != null:
 				cur_tex = tex_aim_up
-				run_w = 26.0
 			elif muzzle_flash_timer > 0.0 and tex_fire != null:
 				cur_tex = tex_fire
-				run_w = 38.0
 			
-			draw_set_transform(Vector2.ZERO, 0.0, Vector2(scale_x, 1.0))
-			draw_texture_rect(cur_tex, Rect2(-run_w * 0.5, -19.0, run_w, run_h), false)
+			# Subtle 1px vertical stride bobbing on passing frames
+			var bob_y: float = -1.0 if (idx == 1 or idx == 3) else 0.0
+			draw_set_transform(Vector2(0.0, bob_y), 0.0, Vector2(scale_x, 1.0))
+			draw_texture_rect(cur_tex, std_rect, false)
 			draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
 			return
 	
 	# 4. IDLE / AIMING / FIRING STATE
 	var cur_tex: Texture2D = tex_idle
-	var spr_w: float = 20.0
-	var spr_h: float = 32.0
-	var breath := sin(idle_timer * 2.5) * 0.5
+	var breath: float = sin(idle_timer * 2.5) * 0.5
 	
 	if muzzle_flash_timer > 0.0:
 		if aim_dir.y < -0.3 and tex_aim_up != null:
 			cur_tex = tex_aim_up
-			spr_w = 26.0
-			spr_h = 32.0
 		elif tex_fire != null:
 			cur_tex = tex_fire
-			spr_w = 38.0
-			spr_h = 32.0
 	elif aim_dir.y < -0.3 and tex_aim_up != null:
 		cur_tex = tex_aim_up
-		spr_w = 26.0
-		spr_h = 32.0
 	elif abs(aim_dir.x) > 0.1 and tex_aim != null:
 		cur_tex = tex_aim
-		spr_w = 28.0
-		spr_h = 32.0
 	
 	if cur_tex != null:
 		var scale_x: float = 1.0 if facing_dir >= 0 else -1.0
 		draw_set_transform(Vector2(0.0, breath), 0.0, Vector2(scale_x, 1.0))
-		draw_texture_rect(cur_tex, Rect2(-spr_w * 0.5, -19.0, spr_w, spr_h), false)
+		draw_texture_rect(cur_tex, std_rect, false)
 		draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
 		return
 	
