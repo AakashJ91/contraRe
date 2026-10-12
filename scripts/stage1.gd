@@ -25,31 +25,66 @@ var bg_texture: Texture2D = null
 var ground_tile_texture: Texture2D = null
 var water_tile_texture: Texture2D = null
 
-# 7 major ground sectors across the 6700px expanded mission
+enum PlatformType {
+	TURF,
+	GIRDER,
+	ROPE_BRIDGE,
+	HIGH_PERCH
+}
+
+# 7 major ground sectors across the 6700px expanded mission (extended to 200px depth to reach screen end)
 var ground_segments: Array[Rect2] = [
-	Rect2(0.0, 440.0, 800.0, 80.0),       # Sector 1: Jungle Landing Beach
-	Rect2(900.0, 440.0, 800.0, 80.0),     # Sector 2: Outer Fortress Perimeter
-	Rect2(1800.0, 440.0, 800.0, 80.0),    # Sector 3: Jungle Ravine Catwalks
-	Rect2(2720.0, 440.0, 880.0, 80.0),    # Sector 4: Mid-Stage Heavy Battery
-	Rect2(3720.0, 440.0, 880.0, 80.0),    # Sector 5: Waterfall Cliffside
-	Rect2(4720.0, 440.0, 880.0, 80.0),    # Sector 6: Alien Hive Perimeter
-	Rect2(5720.0, 440.0, 980.0, 80.0)     # Sector 7: Wall Defense Boss Arena
+	Rect2(0.0, 440.0, 800.0, 200.0),       # Sector 1: Jungle Landing Beach
+	Rect2(900.0, 440.0, 800.0, 200.0),     # Sector 2: Outer Fortress Perimeter
+	Rect2(1800.0, 440.0, 800.0, 200.0),    # Sector 3: Jungle Ravine Catwalks
+	Rect2(2720.0, 440.0, 880.0, 200.0),    # Sector 4: Mid-Stage Heavy Battery
+	Rect2(3720.0, 440.0, 880.0, 200.0),    # Sector 5: Waterfall Cliffside
+	Rect2(4720.0, 440.0, 880.0, 200.0),    # Sector 6: Alien Hive Perimeter
+	Rect2(5720.0, 440.0, 980.0, 200.0)     # Sector 7: Wall Defense Boss Arena
 ]
 
-# 12 distinct, non-overlapping bridges & tactical catwalks
-var bridge_platforms: Array[Rect2] = [
-	Rect2(350.0, 360.0, 300.0, 16.0),     # 1: Intro elevated ledge
-	Rect2(750.0, 360.0, 270.0, 16.0),     # 2: Spans Water Gap 1 (800-900)
-	Rect2(1200.0, 360.0, 350.0, 16.0),    # 3: Sector 2 elevated catwalk
-	Rect2(1650.0, 360.0, 270.0, 16.0),    # 4: Spans Water Gap 2 (1700-1800)
-	Rect2(2100.0, 360.0, 350.0, 16.0),    # 5: Sector 3 elevated platform
-	Rect2(2550.0, 360.0, 270.0, 16.0),    # 6: Spans Water Gap 3 (2600-2720)
-	Rect2(3000.0, 360.0, 450.0, 16.0),    # 7: Sector 4 fortress battery
-	Rect2(3550.0, 360.0, 270.0, 16.0),    # 8: Spans Water Gap 4 (3600-3720)
-	Rect2(4000.0, 360.0, 450.0, 16.0),    # 9: Sector 5 waterfall ridge
-	Rect2(4550.0, 360.0, 270.0, 16.0),    # 10: Spans Water Gap 5 (4600-4720)
-	Rect2(5000.0, 360.0, 450.0, 16.0),    # 11: Sector 6 alien rampart
-	Rect2(5550.0, 360.0, 270.0, 16.0)     # 12: Spans Water Gap 6 (5600-5720) into Boss Arena
+# Rich multi-tiered tactical platforms with 4 distinct archetypes
+var platforms: Array[Dictionary] = [
+	# Sector 1: Jungle Landing Beach (0 - 800)
+	{"rect": Rect2(250.0, 370.0, 200.0, 16.0), "type": PlatformType.TURF},
+	{"rect": Rect2(420.0, 290.0, 180.0, 16.0), "type": PlatformType.HIGH_PERCH},
+	# Water Gap 1 (800 - 900)
+	{"rect": Rect2(760.0, 340.0, 240.0, 16.0), "type": PlatformType.ROPE_BRIDGE},
+
+	# Sector 2: Outer Fortress Perimeter (900 - 1700)
+	{"rect": Rect2(1050.0, 370.0, 220.0, 16.0), "type": PlatformType.GIRDER},
+	{"rect": Rect2(1250.0, 300.0, 260.0, 16.0), "type": PlatformType.GIRDER},
+	{"rect": Rect2(1480.0, 230.0, 180.0, 16.0), "type": PlatformType.HIGH_PERCH},
+	# Water Gap 2 (1700 - 1800)
+	{"rect": Rect2(1660.0, 330.0, 240.0, 16.0), "type": PlatformType.ROPE_BRIDGE},
+
+	# Sector 3: Jungle Ravine Catwalks (1800 - 2600)
+	{"rect": Rect2(1920.0, 370.0, 200.0, 16.0), "type": PlatformType.TURF},
+	{"rect": Rect2(2100.0, 300.0, 240.0, 16.0), "type": PlatformType.TURF},
+	{"rect": Rect2(2320.0, 230.0, 180.0, 16.0), "type": PlatformType.HIGH_PERCH},
+	# Water Gap 3 (2600 - 2720)
+	{"rect": Rect2(2560.0, 340.0, 240.0, 16.0), "type": PlatformType.ROPE_BRIDGE},
+
+	# Sector 4: Mid-Stage Heavy Battery (2720 - 3600)
+	{"rect": Rect2(2880.0, 370.0, 240.0, 16.0), "type": PlatformType.GIRDER},
+	{"rect": Rect2(3100.0, 290.0, 320.0, 16.0), "type": PlatformType.GIRDER},
+	{"rect": Rect2(3400.0, 220.0, 160.0, 16.0), "type": PlatformType.HIGH_PERCH},
+	# Water Gap 4 (3600 - 3720)
+	{"rect": Rect2(3560.0, 330.0, 240.0, 16.0), "type": PlatformType.ROPE_BRIDGE},
+
+	# Sector 5: Waterfall Cliffside (3720 - 4600)
+	{"rect": Rect2(3860.0, 370.0, 220.0, 16.0), "type": PlatformType.TURF},
+	{"rect": Rect2(4060.0, 300.0, 260.0, 16.0), "type": PlatformType.TURF},
+	{"rect": Rect2(4300.0, 230.0, 200.0, 16.0), "type": PlatformType.HIGH_PERCH},
+	# Water Gap 5 (4600 - 4720)
+	{"rect": Rect2(4560.0, 340.0, 240.0, 16.0), "type": PlatformType.ROPE_BRIDGE},
+
+	# Sector 6: Alien Hive Perimeter (4720 - 5600)
+	{"rect": Rect2(4860.0, 370.0, 220.0, 16.0), "type": PlatformType.GIRDER},
+	{"rect": Rect2(5060.0, 300.0, 280.0, 16.0), "type": PlatformType.GIRDER},
+	{"rect": Rect2(5320.0, 230.0, 180.0, 16.0), "type": PlatformType.HIGH_PERCH},
+	# Water Gap 6 (5600 - 5720) into Boss Arena
+	{"rect": Rect2(5560.0, 340.0, 240.0, 16.0), "type": PlatformType.ROPE_BRIDGE}
 ]
 
 func _ready() -> void:
@@ -103,7 +138,8 @@ func _setup_colliders() -> void:
 		c.position = g.position + g.size * 0.5
 		world_colliders.add_child(c)
 	
-	for b in bridge_platforms:
+	for p in platforms:
+		var b: Rect2 = p["rect"]
 		var c := CollisionShape2D.new()
 		var s := RectangleShape2D.new()
 		s.size = b.size
@@ -160,16 +196,16 @@ func _on_screen_shake(intensity: float, duration: float) -> void:
 	shake_duration = duration
 
 func _setup_static_enemies() -> void:
-	# 8 Turrets placed along ground & fortress platforms
+	# 8 Turrets placed along ground & elevated decks
 	var turret_positions: Array[Vector2] = [
-		Vector2(700.0, 435.0),
-		Vector2(1375.0, 345.0),
-		Vector2(2020.0, 435.0),
-		Vector2(2275.0, 345.0),
-		Vector2(3225.0, 345.0),
-		Vector2(3920.0, 435.0),
-		Vector2(4225.0, 345.0),
-		Vector2(5225.0, 345.0)
+		Vector2(700.0, 435.0),    # Sector 1: Ground beach
+		Vector2(1380.0, 295.0),   # Sector 2: Fortress Mid Deck (platform at y=300)
+		Vector2(2020.0, 435.0),   # Sector 3: Ground ravine
+		Vector2(2220.0, 295.0),   # Sector 3: Stepped Turf Mound (platform at y=300)
+		Vector2(3260.0, 285.0),   # Sector 4: Heavy Battery Deck (platform at y=290)
+		Vector2(3920.0, 435.0),   # Sector 5: Waterfall ground
+		Vector2(4190.0, 295.0),   # Sector 5: Waterfall Mid Ridge (platform at y=300)
+		Vector2(5200.0, 295.0)    # Sector 6: Alien Hive Mid Deck (platform at y=300)
 	]
 	for pos in turret_positions:
 		if turret_scene != null:
@@ -177,16 +213,16 @@ func _setup_static_enemies() -> void:
 			t.global_position = pos
 			add_child(t)
 	
-	# 8 Snipers placed on elevated bridges
+	# 8 Snipers placed strategically on high lookout perches and rope bridges
 	var sniper_positions: Array[Vector2] = [
-		Vector2(500.0, 345.0),
-		Vector2(885.0, 345.0),
-		Vector2(1785.0, 345.0),
-		Vector2(2685.0, 345.0),
-		Vector2(3500.0, 435.0),
-		Vector2(3685.0, 345.0),
-		Vector2(4685.0, 345.0),
-		Vector2(5685.0, 345.0)
+		Vector2(510.0, 285.0),    # Sector 1: High Perch (platform at y=290)
+		Vector2(880.0, 335.0),    # Water Gap 1: Rope Bridge (platform at y=340)
+		Vector2(1570.0, 225.0),   # Sector 2: High Observation Perch (platform at y=230)
+		Vector2(2410.0, 225.0),   # Sector 3: Ravine High Perch (platform at y=230)
+		Vector2(2680.0, 335.0),   # Water Gap 3: Rope Bridge (platform at y=340)
+		Vector2(3480.0, 215.0),   # Sector 4: Watchtower Perch (platform at y=220)
+		Vector2(4400.0, 225.0),   # Sector 5: Waterfall High Lookout (platform at y=230)
+		Vector2(5410.0, 225.0)    # Sector 6: Alien Hive High Spire (platform at y=230)
 	]
 	for pos in sniper_positions:
 		if sniper_scene != null:
@@ -246,7 +282,7 @@ func _draw_backdrop(view_left: float, view_right: float) -> void:
 		for k in range(start_k, end_k):
 			var wx: float = float(k) * water_w + flow_offset
 			var wave_bob: float = sin(anim_timer * 3.6 + float(k) * 0.9) * 2.8
-			var w_rect := Rect2(wx, 442.0 + wave_bob, water_w, 100.0 - wave_bob)
+			var w_rect := Rect2(wx, 442.0 + wave_bob, water_w, 200.0 - wave_bob)
 			draw_texture_rect_region(water_tile_texture, w_rect, tex_src, w_tint)
 		
 		# Animated dynamic surface foam ripples
@@ -257,20 +293,20 @@ func _draw_backdrop(view_left: float, view_right: float) -> void:
 		return
 
 	if bg_texture != null:
-		# Fallback parallax background with water plane
+		# Fallback parallax background with water plane extended to screen end
 		if Global.current_stage == 2:
-			draw_rect(Rect2(view_left, 450.0, view_right - view_left, 150.0), Color(0.1, 0.35, 0.6, 0.88))
+			draw_rect(Rect2(view_left, 442.0, view_right - view_left, 200.0), Color(0.1, 0.35, 0.6, 0.88))
 			for fl in range(12):
 				var wfx := view_left + float(fl) * 110.0 + fmod(anim_timer * 60.0, 110.0)
 				draw_line(Vector2(wfx, 465.0), Vector2(wfx + 70.0, 465.0), Color.WHITE, 2.0)
 		elif Global.current_stage == 3:
-			draw_rect(Rect2(view_left, 450.0, view_right - view_left, 150.0), Color(0.35, 0.08, 0.05, 0.88))
+			draw_rect(Rect2(view_left, 442.0, view_right - view_left, 200.0), Color(0.35, 0.08, 0.05, 0.88))
 			for w in range(16):
 				var wx := view_left + float(w) * 80.0
 				var wy := 470.0 + sin(anim_timer * 4.0 + float(w)) * 3.0
 				draw_line(Vector2(wx, wy), Vector2(wx + 40.0, wy), Color(1.0, 0.3, 0.1), 2.5)
 		else:
-			draw_rect(Rect2(view_left, 450.0, view_right - view_left, 150.0), Color(0.05, 0.20, 0.35, 0.88))
+			draw_rect(Rect2(view_left, 442.0, view_right - view_left, 200.0), Color(0.05, 0.20, 0.35, 0.88))
 			for w in range(16):
 				var wx := view_left + float(w) * 80.0 + fmod(anim_timer * 30.0, 80.0)
 				draw_line(Vector2(wx, 470.0), Vector2(wx + 40.0, 470.0), Color(0.1, 0.35, 0.55), 2.0)
@@ -365,14 +401,62 @@ func _draw_platforms(view_left: float, view_right: float) -> void:
 				var fx: float = g.position.x + float(j) * 40.0 + 10.0
 				draw_circle(Vector2(fx, g.position.y - 2.0), 4.0, col_grass)
 	
-	# Elevated Girder & Rock Bridges with frustum culling
-	for b in bridge_platforms:
+	# Elevated Tactical Platforms with Frustum Culling & Archetype Variety
+	for p in platforms:
+		var b: Rect2 = p["rect"]
+		var ptype: int = p["type"]
 		if b.end.x < view_left - 50.0 or b.position.x > view_right + 50.0:
 			continue
 		
-		draw_rect(b, col_girder)
-		draw_line(Vector2(b.position.x, b.position.y), Vector2(b.position.x + b.size.x, b.position.y), Color(0.6, 0.65, 0.7), 2.0)
-		for k in range(int(b.size.x / 24.0)):
-			var kx: float = b.position.x + float(k) * 24.0
-			draw_line(Vector2(kx, b.position.y), Vector2(kx + 24.0, b.position.y + 16.0), col_rivet, 2.0)
-			draw_line(Vector2(kx + 24.0, b.position.y), Vector2(kx, b.position.y + 16.0), col_rivet, 2.0)
+		match ptype:
+			PlatformType.TURF:
+				# 1. Lush Jungle Turf Ledge with hanging vines
+				draw_rect(b, col_dirt)
+				draw_rect(Rect2(b.position.x, b.position.y - 3.0, b.size.x, 7.0), col_grass)
+				for j in range(int(b.size.x / 14.0)):
+					var gx := b.position.x + float(j) * 14.0 + 4.0
+					draw_line(Vector2(gx, b.position.y), Vector2(gx, b.position.y - 6.0), Color(0.35, 0.85, 0.35), 2.0)
+				for v in range(int(b.size.x / 36.0)):
+					var vx := b.position.x + float(v) * 36.0 + 12.0
+					var v_len: float = 12.0 + sin(anim_timer * 2.0 + vx * 0.05) * 3.0
+					draw_line(Vector2(vx, b.end.y), Vector2(vx + sin(anim_timer * 1.5 + float(v)) * 3.0, b.end.y + v_len), Color(0.18, 0.45, 0.2), 1.8)
+			
+			PlatformType.GIRDER:
+				# 2. Industrial Steel Girder with Caution Hazard Warning Edge
+				draw_rect(b, col_girder)
+				draw_rect(Rect2(b.position.x, b.position.y, b.size.x, 4.0), Color(0.92, 0.80, 0.15))
+				for s in range(int(b.size.x / 16.0)):
+					var sx := b.position.x + float(s) * 16.0
+					draw_line(Vector2(sx, b.position.y), Vector2(sx + 8.0, b.position.y + 4.0), Color(0.15, 0.15, 0.15), 2.0)
+				for k in range(int(b.size.x / 24.0)):
+					var kx: float = b.position.x + float(k) * 24.0
+					draw_line(Vector2(kx, b.position.y + 4.0), Vector2(kx + 24.0, b.position.y + 16.0), col_rivet, 2.0)
+					draw_line(Vector2(kx + 24.0, b.position.y + 4.0), Vector2(kx, b.position.y + 16.0), col_rivet, 2.0)
+			
+			PlatformType.ROPE_BRIDGE:
+				# 3. Jungle Chasm Rope Suspension Bridge
+				var plank_w := 14.0
+				for pl in range(int(b.size.x / plank_w)):
+					var px := b.position.x + float(pl) * plank_w
+					var col_plank := Color(0.55, 0.38, 0.22) if (pl % 2 == 0) else Color(0.46, 0.30, 0.16)
+					draw_rect(Rect2(px + 1.0, b.position.y + 3.0, plank_w - 2.0, 11.0), col_plank)
+				draw_line(Vector2(b.position.x, b.position.y - 6.0), Vector2(b.end.x, b.position.y - 6.0), Color(0.75, 0.60, 0.35), 2.5)
+				draw_line(Vector2(b.position.x + 2.0, b.position.y - 8.0), Vector2(b.position.x + 2.0, b.position.y + 14.0), Color(0.38, 0.25, 0.14), 3.0)
+				draw_line(Vector2(b.end.x - 2.0, b.position.y - 8.0), Vector2(b.end.x - 2.0, b.position.y + 14.0), Color(0.38, 0.25, 0.14), 3.0)
+				draw_line(Vector2(b.position.x + b.size.x * 0.5, b.position.y - 8.0), Vector2(b.position.x + b.size.x * 0.5, b.position.y + 14.0), Color(0.38, 0.25, 0.14), 2.5)
+			
+			PlatformType.HIGH_PERCH:
+				# 4. High-Tech Vantage Lookout / Sniper Tower with aviation warning beacon
+				draw_rect(b, Color(0.20, 0.24, 0.30))
+				draw_line(Vector2(b.position.x, b.position.y), Vector2(b.end.x, b.position.y), Color(0.55, 0.70, 0.85), 2.0)
+				for m in range(int(b.size.x / 10.0)):
+					var mx := b.position.x + float(m) * 10.0 + 3.0
+					draw_rect(Rect2(mx, b.position.y + 4.0, 4.0, 8.0), Color(0.12, 0.14, 0.18))
+				# Structural suspension cables going upwards
+				draw_line(Vector2(b.position.x + 8.0, b.position.y), Vector2(b.position.x + 8.0, b.position.y - 140.0), Color(0.45, 0.50, 0.55, 0.7), 1.5)
+				draw_line(Vector2(b.end.x - 8.0, b.position.y), Vector2(b.end.x - 8.0, b.position.y - 140.0), Color(0.45, 0.50, 0.55, 0.7), 1.5)
+				# Blinking aviation LED beacon
+				var beacon_alpha: float = 0.5 + 0.5 * sin(anim_timer * 6.0)
+				var beacon_col := Color(1.0, 0.25, 0.2, beacon_alpha) if Global.current_stage != 2 else Color(0.2, 0.9, 1.0, beacon_alpha)
+				draw_circle(Vector2(b.position.x + 4.0, b.position.y - 4.0), 3.0, beacon_col)
+				draw_circle(Vector2(b.end.x - 4.0, b.position.y - 4.0), 3.0, beacon_col)
