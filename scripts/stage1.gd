@@ -370,6 +370,9 @@ func _draw_platforms(view_left: float, view_right: float) -> void:
 		var mid_end_x: float = g.end.x - actual_right_edge_w
 		var mid_width: float = maxf(0.0, mid_end_x - mid_start_x)
 		
+		var ground_draw_y: float = g.position.y - 30.0
+		var ground_draw_h: float = g.size.y + 30.0
+		
 		# Draw middle repeating ground tile
 		if ground_tile_texture != null:
 			var gw: float = float(ground_tile_texture.get_width())
@@ -384,7 +387,7 @@ func _draw_platforms(view_left: float, view_right: float) -> void:
 				
 				if gh > 100.0:
 					# High-res seamless ground tile: covers top grass down through bedrock
-					var trect := Rect2(tx, g.position.y - 16.0, tw, g.size.y + 16.0)
+					var trect := Rect2(tx, ground_draw_y, tw, ground_draw_h)
 					var src_partial := Rect2(0.0, 0.0, gw * ratio_w, gh)
 					draw_texture_rect_region(ground_tile_texture, trect, src_partial, g_tint)
 				else:
@@ -406,12 +409,12 @@ func _draw_platforms(view_left: float, view_right: float) -> void:
 		
 		# Draw Left Cliff Edge Tile (facing left into pit chasm)
 		if has_left_edge and ground_edge_left_texture != null:
-			var left_rect := Rect2(g.position.x, g.position.y - 16.0, actual_left_edge_w, g.size.y + 16.0)
+			var left_rect := Rect2(g.position.x, ground_draw_y, actual_left_edge_w, ground_draw_h)
 			draw_texture_rect(ground_edge_left_texture, left_rect, false, g_tint)
 		
 		# Draw Right Cliff Edge Tile (facing right into pit chasm)
 		if has_right_edge and ground_edge_right_texture != null:
-			var right_rect := Rect2(g.end.x - actual_right_edge_w, g.position.y - 16.0, actual_right_edge_w, g.size.y + 16.0)
+			var right_rect := Rect2(g.end.x - actual_right_edge_w, ground_draw_y, actual_right_edge_w, ground_draw_h)
 			draw_texture_rect(ground_edge_right_texture, right_rect, false, g_tint)
 	
 	# Elevated Tactical Platforms with Frustum Culling & Archetype Variety

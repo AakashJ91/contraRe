@@ -319,7 +319,7 @@ func _draw() -> void:
 	# Standardized canvas dimensions (240x230, anchor x=100, feet y=220)
 	var std_w: float = 36.0
 	var std_h: float = 34.5
-	var std_rect := Rect2(-15.0, -21.0, std_w, std_h)
+	var std_rect := Rect2(-15.0, -19.5, std_w, std_h)
 	
 	# 3. RUNNING / WALKING STATE
 	if state == PlayerState.RUN:
