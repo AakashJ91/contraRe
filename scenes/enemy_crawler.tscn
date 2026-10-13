@@ -1,0 +1,15 @@
+[gd_scene format=3 uid="uid://cskf8kmpvjxdg"]
+
+[ext_resource type="Script" path="res://scripts/enemy_crawler.gd" id="1_crawler"]
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_1"]
+radius = 9.0
+
+[node name="EnemyCrawler" type="CharacterBody2D"]
+collision_layer = 4
+collision_mask = 2
+script = ExtResource("1_crawler")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+position = Vector2(0, -2)
+shape = SubResource("CircleShape2D_1")

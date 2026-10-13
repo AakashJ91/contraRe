@@ -146,12 +146,23 @@ func _physics_process(delta: float) -> void:
 		else:
 			velocity.x = move_toward(velocity.x, 0.0, 400.0 * delta)
 	
+	var was_in_air: bool = not is_on_floor()
 	move_and_slide()
+	if was_in_air and is_on_floor():
+		VFX.spawn_dust_puff(global_position + Vector2(0.0, 18.0), 6)
 	
 	# Bottomless pit hazard death
 	if global_position.y > 545.0:
-		take_damage(999.0)
-		return
+		if Global.is_maker_mode:
+			velocity = Vector2.ZERO
+			var current_scene = get_tree().current_scene
+			if current_scene != null and current_scene.has_method("get_safe_respawn_position"):
+				global_position = current_scene.get_safe_respawn_position(global_position.x)
+			else:
+				global_position.y = 120.0
+		else:
+			take_damage(999.0)
+			return
 	
 	# Continuous shooting for Machine Gun, single tap or cooldown for others
 	if is_shooting and shoot_cooldown <= 0.0:
@@ -193,6 +204,7 @@ func _calculate_aim_direction(input_x: float, input_y: float) -> void:
 func _shoot() -> void:
 	var spawn_pos: Vector2 = global_position + _get_gun_barrel_offset()
 	muzzle_flash_timer = 0.06
+	VFX.spawn_muzzle_flash(spawn_pos, aim_dir, Global.current_weapon)
 	
 	match Global.current_weapon:
 		Global.WeaponType.RIFLE:
@@ -243,6 +255,8 @@ func _get_gun_barrel_offset() -> Vector2:
 		return Vector2(facing_dir * 24.0, -6.0)
 
 func take_damage(_amount: float = 1.0) -> void:
+	if Global.is_maker_mode:
+		return
 	if is_invulnerable or state == PlayerState.DEAD or state == PlayerState.RESPAWNING:
 		return
 	
@@ -250,10 +264,8 @@ func take_damage(_amount: float = 1.0) -> void:
 	velocity = Vector2.ZERO
 	Global.play_sfx("player_death")
 	
-	if explosion_scene != null:
-		var exp_node = explosion_scene.instantiate()
-		exp_node.global_position = global_position
-		get_parent().add_child(exp_node)
+	VFX.spawn_blood_splatter(global_position, Vector2.UP, false)
+	VFX.spawn_explosion(global_position, 1.2)
 	
 	Global.lose_life()
 	if Global.lives >= 0:
@@ -270,10 +282,35 @@ func _respawn() -> void:
 	velocity = Vector2.ZERO
 	Global.set_weapon(Global.WeaponType.RIFLE) # Reset to default rifle on death
 
+func _draw_maker_invincible_aura() -> void:
+	if not Global.is_maker_mode:
+		return
+	var t: float = Time.get_ticks_msec() / 1000.0
+	var pulse: float = 0.5 + 0.5 * sin(t * 7.0)
+	var center := Vector2.ZERO
+	if state == PlayerState.PRONE:
+		center = Vector2(0.0, 5.0)
+	elif state != PlayerState.JUMP:
+		center = Vector2(0.0, -8.0)
+	
+	var shield_color := Color(0.15, 0.85, 1.0, 0.45 + 0.35 * pulse)
+	
+	# Concentric glowing energy arcs
+	draw_arc(center, 18.0 + 1.5 * pulse, 0.0, TAU, 28, shield_color, 2.0)
+	draw_arc(center, 21.0 + 2.5 * pulse, 0.0, TAU, 20, Color(1.0, 0.85, 0.2, 0.35 * pulse), 1.2)
+	
+	# 3 orbiting energetic spark nodes
+	for i in range(3):
+		var angle: float = t * 4.5 + float(i) * (TAU / 3.0)
+		var orb_pos := center + Vector2(cos(angle), sin(angle)) * (19.0 + 2.0 * pulse)
+		draw_circle(orb_pos, 2.5, Color(1.0, 0.95, 0.45, 0.9))
+
 # Custom retro commando graphics rendering with 16-bit arcade sprites
 func _draw() -> void:
 	if state == PlayerState.DEAD:
 		return
+	
+	_draw_maker_invincible_aura()
 	
 	# Flicker when invulnerable
 	if is_invulnerable and fmod(invulnerable_timer * 12.0, 1.0) > 0.5:

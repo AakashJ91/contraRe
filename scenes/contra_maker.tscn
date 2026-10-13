@@ -1,0 +1,7 @@
+[gd_scene format=3 uid="uid://cab14obmsl8xo"]
+
+[ext_resource type="Script" path="res://scripts/contra_maker.gd" id="1_maker"]
+
+[node name="ContraMaker" type="CanvasLayer"]
+layer = 20
+script = ExtResource("1_maker")

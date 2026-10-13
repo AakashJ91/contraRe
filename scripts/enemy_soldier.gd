@@ -67,6 +67,12 @@ func _physics_process(delta: float) -> void:
 	
 	move_and_slide()
 	
+	# Touch damage to player
+	if player_node != null and is_instance_valid(player_node):
+		if global_position.distance_to(player_node.global_position) < 20.0:
+			if player_node.has_method("take_damage"):
+				player_node.take_damage(1.0)
+	
 	# Despawn if fallen into bottomless pit
 	if global_position.y > 550.0:
 		queue_free()

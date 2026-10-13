@@ -1,0 +1,7 @@
+[gd_scene format=3 uid="uid://d1m4xxu17q3ea"]
+
+[ext_resource type="Script" path="res://scripts/background_sky_fleet.gd" id="1_sky"]
+
+[node name="BackgroundSkyFleet" type="Node2D" groups=["sky_fleet"]]
+z_index = -3
+script = ExtResource("1_sky")

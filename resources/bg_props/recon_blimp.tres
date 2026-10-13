@@ -1,0 +1,32 @@
+[gd_resource type="Resource" script_class="BgItemData" format=3]
+
+[ext_resource type="Script" path="res://scripts/bg_item_data.gd" id="1_script"]
+[ext_resource type="Texture2D" path="res://assets/bg_sky/recon_blimp_0.png" id="2_tex0"]
+[ext_resource type="Texture2D" path="res://assets/bg_sky/recon_blimp_1.png" id="3_tex1"]
+[ext_resource type="Texture2D" path="res://assets/bg_sky/recon_blimp_2.png" id="4_tex2"]
+[ext_resource type="Texture2D" path="res://assets/bg_sky/recon_blimp_3.png" id="5_tex3"]
+[ext_resource type="Texture2D" path="res://assets/bg_sky/recon_blimp_strip.png" id="6_strip"]
+
+[resource]
+script = ExtResource("1_script")
+item_id = "recon_blimp"
+display_name = "Tactical Recon Blimp"
+category = "Military"
+frame_count = 4
+fps = 4.0
+loop = true
+size = Vector2(44, 22)
+offset = Vector2(0, 0)
+color_tint = Color(1, 1, 1, 1)
+has_light_glow = true
+light_color = Color(1.0, 0.9, 0.5, 0.3)
+light_radius = 28.0
+vfx_type = "none"
+vfx_interval = 0.0
+spritesheet = ExtResource("6_strip")
+frames = [
+	ExtResource("2_tex0"),
+	ExtResource("3_tex1"),
+	ExtResource("4_tex2"),
+	ExtResource("5_tex3")
+]

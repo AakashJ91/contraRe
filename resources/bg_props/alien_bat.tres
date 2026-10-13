@@ -1,0 +1,32 @@
+[gd_resource type="Resource" script_class="BgItemData" format=3]
+
+[ext_resource type="Script" path="res://scripts/bg_item_data.gd" id="1_script"]
+[ext_resource type="Texture2D" path="res://assets/bg_sky/alien_bat_0.png" id="2_tex0"]
+[ext_resource type="Texture2D" path="res://assets/bg_sky/alien_bat_1.png" id="3_tex1"]
+[ext_resource type="Texture2D" path="res://assets/bg_sky/alien_bat_2.png" id="4_tex2"]
+[ext_resource type="Texture2D" path="res://assets/bg_sky/alien_bat_3.png" id="5_tex3"]
+[ext_resource type="Texture2D" path="res://assets/bg_sky/alien_bat_strip.png" id="6_strip"]
+
+[resource]
+script = ExtResource("1_script")
+item_id = "alien_bat"
+display_name = "Alien Bio-Bat"
+category = "Alien"
+frame_count = 4
+fps = 8.0
+loop = true
+size = Vector2(20, 20)
+offset = Vector2(0, 0)
+color_tint = Color(1, 1, 1, 1)
+has_light_glow = true
+light_color = Color(0.8, 0.2, 0.9, 0.25)
+light_radius = 18.0
+vfx_type = "spores"
+vfx_interval = 2.5
+spritesheet = ExtResource("6_strip")
+frames = [
+	ExtResource("2_tex0"),
+	ExtResource("3_tex1"),
+	ExtResource("4_tex2"),
+	ExtResource("5_tex3")
+]

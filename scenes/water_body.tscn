@@ -1,0 +1,6 @@
+[gd_scene format=3 uid="uid://cwaterbody001"]
+
+[ext_resource type="Script" path="res://scripts/water_body.gd" id="1_water"]
+
+[node name="WaterBody" type="Node2D"]
+script = ExtResource("1_water")

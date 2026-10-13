@@ -19,6 +19,7 @@ boot_splash/bg_color=Color(0.05, 0.05, 0.08, 1)
 [autoload]
 
 Global="*res://scripts/global.gd"
+VFX="*res://scripts/vfx_manager.gd"
 
 [display]
 
@@ -27,7 +28,6 @@ window/size/viewport_height=540
 window/size/window_width_override=1280
 window/size/window_height_override=720
 window/stretch/mode="canvas_items"
-window/stretch/aspect="keep"
 window/handheld/orientation=1
 
 [dotnet]

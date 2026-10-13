@@ -4,6 +4,7 @@ var selected_index: int = 0
 var menu_items: Array[String] = [
 	"START MISSION",
 	"SELECT LEVEL",
+	"CONTRA MAKER",
 	"HOW TO PLAY",
 	"SOUND: ON"
 ]
@@ -58,11 +59,11 @@ func _handle_touch(pos: Vector2) -> void:
 		return
 	
 	# Check menu item clicks (between y = 300 and y = 470)
-	var start_y := 310.0
-	var item_height := 42.0
+	var start_y := 296.0
+	var item_height := 38.0
 	for i in range(menu_items.size()):
 		var item_y := start_y + float(i) * item_height
-		var item_rect := Rect2(300.0, item_y - 12.0, 360.0, 34.0)
+		var item_rect := Rect2(300.0, item_y - 12.0, 360.0, 32.0)
 		if item_rect.has_point(pos):
 			selected_index = i
 			_activate_menu_item(i)
@@ -72,6 +73,7 @@ func _activate_menu_item(index: int) -> void:
 	match index:
 		0:
 			# START MISSION
+			Global.is_maker_mode = false
 			Global.play_sfx("menu_start")
 			get_tree().create_timer(0.4).timeout.connect(func(): Global.start_game(1))
 		1:
@@ -79,16 +81,21 @@ func _activate_menu_item(index: int) -> void:
 			Global.play_sfx("menu_start")
 			get_tree().create_timer(0.2).timeout.connect(func(): Global.go_to_level_select())
 		2:
+			# CONTRA MAKER
+			Global.is_maker_mode = true
+			Global.play_sfx("menu_start")
+			get_tree().create_timer(0.2).timeout.connect(func(): Global.start_game(1))
+		3:
 			# HOW TO PLAY
 			Global.play_sfx("menu_cursor")
 			show_instructions = true
 			queue_redraw()
-		3:
+		4:
 			# TOGGLE SOUND
 			sound_enabled = not sound_enabled
 			var bus_idx := AudioServer.get_bus_index("Master")
 			AudioServer.set_bus_mute(bus_idx, not sound_enabled)
-			menu_items[3] = "SOUND: " + ("ON" if sound_enabled else "OFF")
+			menu_items[4] = "SOUND: " + ("ON" if sound_enabled else "OFF")
 			Global.play_sfx("menu_cursor")
 			queue_redraw()
 
@@ -156,8 +163,8 @@ func _draw_title_logo() -> void:
 
 func _draw_menu() -> void:
 	var font := ThemeDB.fallback_font
-	var start_y := 310.0
-	var item_height := 42.0
+	var start_y := 296.0
+	var item_height := 38.0
 	
 	for i in range(menu_items.size()):
 		var item_y := start_y + float(i) * item_height

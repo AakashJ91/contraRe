@@ -10,9 +10,14 @@ var elapsed: float = 0.0
 var sparks: Array[Dictionary] = []
 
 func _ready() -> void:
+	if has_node("/root/VFX"):
+		VFX.spawn_explosion(global_position, 1.0)
+		queue_free()
+		return
+	
 	Global.play_sfx("explosion")
 	Global.shake_screen(5.0, 0.2)
-	# Generate random spark particles
+	# Fallback procedural particles if VFX not present
 	for i in range(12):
 		var angle := randf_range(0.0, TAU)
 		var spd := randf_range(40.0, 160.0)

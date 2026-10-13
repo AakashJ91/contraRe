@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="EnemyData" load_steps=3 format=3 uid="uid://csniperdata001"]
+
+[ext_resource type="Script" path="res://scripts/enemy_data.gd" id="1_data"]
+[ext_resource type="Texture2D" path="res://assets/enemies/enemy_sniper.png" id="2_tex"]
+
+[resource]
+script = ExtResource("1_data")
+enemy_name = "Platform Camo Sniper"
+max_health = 2.0
+move_speed = 0.0
+score_reward = 300
+contact_damage = 1.0
+sprite_texture = ExtResource("2_tex")
+sprite_size = Vector2(34, 28)
+attack_interval_min = 2.0
+attack_interval_max = 3.2

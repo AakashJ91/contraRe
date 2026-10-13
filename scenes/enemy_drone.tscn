@@ -1,0 +1,14 @@
+[gd_scene format=3 uid="uid://b7cyrrruhraea"]
+
+[ext_resource type="Script" path="res://scripts/enemy_drone.gd" id="1_drone"]
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_1"]
+radius = 14.0
+
+[node name="EnemyDrone" type="CharacterBody2D"]
+collision_layer = 4
+collision_mask = 0
+script = ExtResource("1_drone")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+shape = SubResource("CircleShape2D_1")

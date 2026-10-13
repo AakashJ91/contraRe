@@ -73,8 +73,29 @@ func _on_body_entered(body: Node2D) -> void:
 func _handle_hit(target: Node2D) -> void:
 	if target.has_method("take_damage"):
 		target.take_damage(damage)
+		
+		if bullet_owner == BulletOwner.PLAYER:
+			var hit_norm := -direction
+			if weapon_type == Global.WeaponType.LASER:
+				VFX.spawn_laser_hit(global_position, hit_norm)
+			else:
+				var spk_col := Color(1.0, 0.9, 0.35)
+				if weapon_type == Global.WeaponType.SPREAD:
+					spk_col = Color(1.0, 0.5, 0.2)
+				VFX.spawn_hit_sparks(global_position, hit_norm, spk_col)
+			
+			var is_alien := true
+			var t_name := target.name.to_lower()
+			if t_name.contains("soldier") or t_name.contains("sniper"):
+				is_alien = false
+			VFX.spawn_blood_splatter(global_position, direction, is_alien)
+		else:
+			VFX.spawn_blood_splatter(global_position, direction, false)
+			VFX.spawn_hit_sparks(global_position, -direction, Color(1.0, 0.3, 0.2))
+		
 		pierce_count -= 1
 		if pierce_count <= 0:
 			queue_free()
 	elif target.is_in_group("world_solid"):
+		VFX.spawn_hit_sparks(global_position, -direction, Color(0.9, 0.85, 0.5))
 		queue_free()

@@ -1,0 +1,14 @@
+[gd_scene format=3 uid="uid://cir5xgxbbfjc"]
+
+[ext_resource type="Script" path="res://scripts/grenade.gd" id="1_grenade"]
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_1"]
+radius = 6.0
+
+[node name="Grenade" type="Area2D"]
+collision_layer = 16
+collision_mask = 3
+script = ExtResource("1_grenade")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+shape = SubResource("CircleShape2D_1")

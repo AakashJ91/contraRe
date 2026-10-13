@@ -5,3 +5,7 @@
 # Build binaries (>100MB exceeds GitHub push limit)
 *.exe
 builds/*.exe
+*.apk
+builds/*.apk
+*.idsig
+builds/*.idsig

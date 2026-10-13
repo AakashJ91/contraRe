@@ -20,11 +20,20 @@ var btn_jump_radius: float = 45.0
 var btn_jump_touch_id: int = -1
 var jump_active: bool = false
 
-var btn_restart_pos: Vector2 = Vector2(880.0, 40.0)
-var btn_restart_radius: float = 24.0
+var btn_map_pos: Vector2 = Vector2(848.0, 14.0)
+var btn_map_size: Vector2 = Vector2(34.0, 22.0)
 
-var btn_menu_pos: Vector2 = Vector2(810.0, 40.0)
-var btn_menu_radius: float = 24.0
+var btn_menu_pos: Vector2 = Vector2(890.0, 14.0)
+var btn_menu_size: Vector2 = Vector2(34.0, 22.0)
+var btn_menu_radius: float = 18.0
+
+var btn_restart_pos: Vector2 = Vector2(932.0, 14.0)
+var btn_restart_size: Vector2 = Vector2(34.0, 22.0)
+var btn_restart_radius: float = 18.0
+
+var style_map_btn: StyleBoxFlat
+var style_menu_btn: StyleBoxFlat
+var style_restart_btn: StyleBoxFlat
 
 var last_actions: Dictionary = {
 	"move_left": false,
@@ -38,9 +47,61 @@ var pulse_time: float = 0.0
 func _ready() -> void:
 	mouse_filter = Control.MOUSE_FILTER_PASS
 	set_process_input(true)
+	
+	style_map_btn = StyleBoxFlat.new()
+	style_map_btn.bg_color = Color(0.04, 0.08, 0.14, 0.60)
+	style_map_btn.border_color = Color(0.25, 0.85, 0.55, 0.40)
+	style_map_btn.set_border_width_all(1)
+	style_map_btn.set_corner_radius_all(6)
+	style_map_btn.anti_aliasing = true
+	
+	style_menu_btn = StyleBoxFlat.new()
+	style_menu_btn.bg_color = Color(0.06, 0.09, 0.14, 0.60)
+	style_menu_btn.border_color = Color(0.35, 0.65, 0.95, 0.35)
+	style_menu_btn.set_border_width_all(1)
+	style_menu_btn.set_corner_radius_all(6)
+	style_menu_btn.anti_aliasing = true
+
+	style_restart_btn = StyleBoxFlat.new()
+	style_restart_btn.bg_color = Color(0.08, 0.07, 0.06, 0.60)
+	style_restart_btn.border_color = Color(0.95, 0.70, 0.25, 0.35)
+	style_restart_btn.set_border_width_all(1)
+	style_restart_btn.set_corner_radius_all(6)
+	style_restart_btn.anti_aliasing = true
+
+	queue_redraw()
+	if Global.has_signal("maker_mode_toggled"):
+		Global.maker_mode_toggled.connect(_on_maker_mode_toggled)
+
+func _on_maker_mode_toggled(maker_active: bool) -> void:
+	if maker_active:
+		visible = false
+		_reset_all_inputs()
+	else:
+		visible = true
 	queue_redraw()
 
+func _reset_all_inputs() -> void:
+	dpad_active = false
+	dpad_touch_id = -1
+	dpad_vector = Vector2.ZERO
+	shoot_active = false
+	btn_shoot_touch_id = -1
+	jump_active = false
+	btn_jump_touch_id = -1
+	_release_all_dpad_actions()
+	Input.action_release("shoot")
+	Input.action_release("jump")
+
 func _process(delta: float) -> void:
+	if Global.is_maker_mode:
+		if visible:
+			visible = false
+			_reset_all_inputs()
+		return
+	elif not visible:
+		visible = true
+	
 	pulse_time += delta * 5.0
 	# Smoothly return dpad to resting position when released
 	if not dpad_active:
@@ -49,6 +110,9 @@ func _process(delta: float) -> void:
 	queue_redraw()
 
 func _input(event: InputEvent) -> void:
+	if Global.is_maker_mode:
+		return
+	
 	if event is InputEventScreenTouch:
 		if event.pressed:
 			_handle_touch_down(event.index, event.position)
@@ -66,17 +130,20 @@ func _input(event: InputEvent) -> void:
 		_handle_touch_drag(99, event.position)
 
 func _handle_touch_down(idx: int, pos: Vector2) -> void:
-	# Menu / Title Button
-	if pos.distance_to(btn_menu_pos) <= btn_menu_radius * 1.3:
-		Global.play_sfx("menu_cursor")
-		Global.go_to_level_select()
-		return
-	
-	# Restart Button
-	if pos.distance_to(btn_restart_pos) <= btn_restart_radius * 1.3:
-		Global.reset_game()
-		get_tree().reload_current_scene()
-		return
+	# Tactical Map, Level Selector & Restart on top-right (aligned with scoreboard)
+	if pos.y <= 32.0:
+		if pos.x >= 828.0 and pos.x < 868.0:
+			Global.play_sfx("menu_cursor")
+			Global.toggle_map()
+			return
+		elif pos.x >= 868.0 and pos.x < 911.0:
+			Global.play_sfx("menu_cursor")
+			Global.go_to_level_select()
+			return
+		elif pos.x >= 911.0 and pos.x <= 958.0:
+			Global.reset_game()
+			get_tree().reload_current_scene()
+			return
 	
 	# Jump Button
 	if pos.distance_to(btn_jump_pos) <= btn_jump_radius * 1.3:
@@ -196,6 +263,9 @@ func _release_all_dpad_actions() -> void:
 			Input.action_release(action)
 
 func _draw() -> void:
+	if Global.is_maker_mode:
+		return
+	
 	var bg_alpha := 0.28
 	var fg_alpha := 0.65
 	
@@ -269,14 +339,57 @@ func _draw() -> void:
 	draw_arc(btn_shoot_pos + Vector2(-5.0, -4.5), 5.5, -PI*0.5, PI*0.5, 12, Color.WHITE, 2.5)
 	draw_arc(btn_shoot_pos + Vector2(-5.0, 4.5), 5.5, -PI*0.5, PI*0.5, 12, Color.WHITE, 2.5)
 	
-	# Restart Button
-	draw_circle(btn_restart_pos, btn_restart_radius, Color(0.25, 0.2, 0.15, 0.7))
-	draw_arc(btn_restart_pos, btn_restart_radius, 0.0, TAU, 18, Color(0.9, 0.7, 0.3, 0.6), 1.5)
-	draw_arc(btn_restart_pos, 8.0, 0.5, 5.5, 16, Color.WHITE, 2.0)
+	# --- SLEEK FLAT TACTICAL MAP BUTTON ---
+	var map_rect := Rect2(btn_map_pos.x - btn_map_size.x * 0.5, btn_map_pos.y - btn_map_size.y * 0.5, btn_map_size.x, btn_map_size.y)
+	draw_style_box(style_map_btn, map_rect)
 	
-	# Menu Button
-	draw_circle(btn_menu_pos, btn_menu_radius, Color(0.15, 0.2, 0.3, 0.7))
-	draw_arc(btn_menu_pos, btn_menu_radius, 0.0, TAU, 18, Color(0.3, 0.7, 1.0, 0.6), 1.5)
-	draw_line(btn_menu_pos + Vector2(-7.0, -5.0), btn_menu_pos + Vector2(7.0, -5.0), Color.WHITE, 2.0)
-	draw_line(btn_menu_pos + Vector2(-7.0, 0.0), btn_menu_pos + Vector2(7.0, 0.0), Color.WHITE, 2.0)
-	draw_line(btn_menu_pos + Vector2(-7.0, 5.0), btn_menu_pos + Vector2(7.0, 5.0), Color.WHITE, 2.0)
+	# Flat tactical map fold / radar icon
+	var map_col := Color(0.40, 0.95, 0.70, 0.95)
+	var mx := btn_map_pos.x - 7.0
+	var my := btn_map_pos.y - 5.5
+	draw_line(Vector2(mx, my), Vector2(mx, my + 11.0), map_col, 1.6)
+	draw_line(Vector2(mx, my), Vector2(mx + 4.5, my + 2.0), map_col, 1.4)
+	draw_line(Vector2(mx + 4.5, my + 2.0), Vector2(mx + 4.5, my + 13.0), map_col, 1.6)
+	draw_line(Vector2(mx + 4.5, my + 2.0), Vector2(mx + 9.5, my), map_col, 1.4)
+	draw_line(Vector2(mx + 9.5, my), Vector2(mx + 9.5, my + 11.0), map_col, 1.6)
+	draw_line(Vector2(mx + 9.5, my), Vector2(mx + 14.0, my + 2.0), map_col, 1.4)
+	draw_line(Vector2(mx + 14.0, my + 2.0), Vector2(mx + 14.0, my + 13.0), map_col, 1.6)
+	draw_line(Vector2(mx, my + 11.0), Vector2(mx + 4.5, my + 13.0), map_col, 1.4)
+	draw_line(Vector2(mx + 4.5, my + 13.0), Vector2(mx + 9.5, my + 11.0), map_col, 1.4)
+	draw_line(Vector2(mx + 9.5, my + 11.0), Vector2(mx + 14.0, my + 13.0), map_col, 1.4)
+	
+	# --- SLEEK FLAT LEVEL SELECTOR (MENU) BUTTON ---
+	var menu_rect := Rect2(btn_menu_pos.x - btn_menu_size.x * 0.5, btn_menu_pos.y - btn_menu_size.y * 0.5, btn_menu_size.x, btn_menu_size.y)
+	draw_style_box(style_menu_btn, menu_rect)
+	
+	# Flat 4-tile stage select icon [::]
+	var grid_col := Color(0.92, 0.95, 1.0, 0.90)
+	var tile_sz: float = 3.5
+	var tile_gap: float = 2.5
+	var hg: float = tile_sz + tile_gap * 0.5
+	draw_rect(Rect2(btn_menu_pos.x - hg, btn_menu_pos.y - hg, tile_sz, tile_sz), grid_col)
+	draw_rect(Rect2(btn_menu_pos.x + tile_gap * 0.5, btn_menu_pos.y - hg, tile_sz, tile_sz), grid_col)
+	draw_rect(Rect2(btn_menu_pos.x - hg, btn_menu_pos.y + tile_gap * 0.5, tile_sz, tile_sz), grid_col)
+	draw_rect(Rect2(btn_menu_pos.x + tile_gap * 0.5, btn_menu_pos.y + tile_gap * 0.5, tile_sz, tile_sz), grid_col)
+	
+	# --- SLEEK FLAT RESTART BUTTON ---
+	var restart_rect := Rect2(btn_restart_pos.x - btn_restart_size.x * 0.5, btn_restart_pos.y - btn_restart_size.y * 0.5, btn_restart_size.x, btn_restart_size.y)
+	draw_style_box(style_restart_btn, restart_rect)
+	
+	# Flat reload circular arrow
+	var restart_col := Color(1.0, 0.92, 0.75, 0.90)
+	var r_rad: float = 5.5
+	draw_arc(btn_restart_pos, r_rad, 0.5, 5.5, 20, restart_col, 1.8)
+	var tip := btn_restart_pos + Vector2(cos(5.5), sin(5.5)) * r_rad
+	var dir := Vector2(0.706, 0.708)
+	var arrow_pts := PackedVector2Array([
+		tip + dir * 3.2,
+		tip - dir * 1.5 + Vector2(-dir.y, dir.x) * 2.8,
+		tip - dir * 1.5 - Vector2(-dir.y, dir.x) * 2.8
+	])
+	draw_colored_polygon(arrow_pts, restart_col)
+
+func _is_point_in_btn(point: Vector2, btn_center: Vector2, btn_size: Vector2) -> bool:
+	var pad: float = 6.0
+	var r := Rect2(btn_center.x - btn_size.x * 0.5 - pad, btn_center.y - btn_size.y * 0.5 - pad, btn_size.x + pad * 2.0, btn_size.y + pad * 2.0)
+	return r.has_point(point)
