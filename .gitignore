@@ -2,6 +2,7 @@
 .godot/editor/
 .godot/exported/
 .godot/mono/
+.godot/imported/
 
 # Build binaries (>100MB exceeds GitHub push limit)
 *.exe

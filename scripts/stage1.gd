@@ -31,6 +31,7 @@ const BOSS_TRIGGER_X: float = 5800.0
 
 var bg_texture: Texture2D = null
 var ground_tile_texture: Texture2D = null
+var ground_textures_by_stage: Dictionary = {}
 var platform_girder_texture: Texture2D = null
 var platform_bridge_texture: Texture2D = null
 var platform_turf_texture: Texture2D = null
@@ -79,6 +80,22 @@ func _ready() -> void:
 func _load_textures() -> void:
 	if ResourceLoader.exists("res://assets/tiles/ground_tile.png"):
 		ground_tile_texture = load("res://assets/tiles/ground_tile.png")
+	
+	ground_textures_by_stage.clear()
+	ground_textures_by_stage[1] = ground_tile_texture
+	if ResourceLoader.exists("res://assets/tiles/ground_waterfall.png"):
+		ground_textures_by_stage[2] = load("res://assets/tiles/ground_waterfall.png")
+	if ResourceLoader.exists("res://assets/tiles/ground_hive.png"):
+		ground_textures_by_stage[3] = load("res://assets/tiles/ground_hive.png")
+		ground_textures_by_stage[8] = ground_textures_by_stage[3]
+	if ResourceLoader.exists("res://assets/tiles/ground_tundra.png"):
+		ground_textures_by_stage[4] = load("res://assets/tiles/ground_tundra.png")
+	if ResourceLoader.exists("res://assets/tiles/ground_refinery.png"):
+		ground_textures_by_stage[5] = load("res://assets/tiles/ground_refinery.png")
+	if ResourceLoader.exists("res://assets/tiles/ground_dynamo.png"):
+		ground_textures_by_stage[6] = load("res://assets/tiles/ground_dynamo.png")
+	if ResourceLoader.exists("res://assets/tiles/ground_hangar.png"):
+		ground_textures_by_stage[7] = load("res://assets/tiles/ground_hangar.png")
 	if ResourceLoader.exists("res://assets/tiles/platform_girder.png"):
 		platform_girder_texture = load("res://assets/tiles/platform_girder.png")
 	if ResourceLoader.exists("res://assets/tiles/platform_bridge.png"):
@@ -670,9 +687,13 @@ func _draw_platforms(view_left: float, view_right: float) -> void:
 		var ground_draw_y: float = g.position.y - 30.0
 		var ground_draw_h: float = g.size.y + 30.0
 		
-		if ground_tile_texture != null:
-			var gw: float = float(ground_tile_texture.get_width())
-			var gh: float = float(ground_tile_texture.get_height())
+		var active_ground_tex: Texture2D = ground_textures_by_stage.get(Global.current_stage, ground_tile_texture)
+		if active_ground_tex == null:
+			active_ground_tex = ground_tile_texture
+
+		if active_ground_tex != null:
+			var gw: float = float(active_ground_tex.get_width())
+			var gh: float = float(active_ground_tex.get_height())
 			var tile_w: float = 128.0 if gh > 100.0 else gw
 			var num_tiles: int = int(ceil(mid_width / tile_w))
 			
@@ -682,7 +703,8 @@ func _draw_platforms(view_left: float, view_right: float) -> void:
 				var ratio_w: float = tw / tile_w
 				var trect := Rect2(tx, ground_draw_y, tw, ground_draw_h)
 				var src_partial := Rect2(0.0, 0.0, gw * ratio_w, gh)
-				draw_texture_rect_region(ground_tile_texture, trect, src_partial, g_tint)
+				var draw_tint := Color.WHITE if active_ground_tex != ground_tile_texture else g_tint
+				draw_texture_rect_region(active_ground_tex, trect, src_partial, draw_tint)
 		else:
 			draw_rect(Rect2(mid_start_x, g.position.y, mid_width, g.size.y), col_dirt)
 			draw_rect(Rect2(mid_start_x, g.position.y, mid_width, 8.0), col_top)
