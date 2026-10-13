@@ -50,38 +50,53 @@ static func get_map_data(stage_id: int) -> Dictionary:
 			data["primary_color"] = Color(0.25, 0.75, 0.35)
 			data["accent_color"] = Color(0.95, 0.85, 0.20)
 			data["ground_segments"] = [
-				Rect2(0.0, 440.0, 800.0, 200.0),
-				Rect2(920.0, 440.0, 780.0, 200.0),
-				Rect2(1820.0, 440.0, 780.0, 200.0),
-				Rect2(2740.0, 440.0, 860.0, 200.0),
-				Rect2(3740.0, 440.0, 860.0, 200.0),
-				Rect2(4740.0, 440.0, 860.0, 200.0),
-				Rect2(5740.0, 440.0, 960.0, 200.0)
+				Rect2(0.0, 440.0, 820.0, 200.0),       # Sector 1: Landing Beach (0 - 820)
+				Rect2(960.0, 440.0, 860.0, 200.0),     # Sector 2: Outer Fortress Perimeter (960 - 1820)
+				Rect2(1960.0, 440.0, 900.0, 200.0),    # Sector 3: Jungle Ravine & Catwalks (1960 - 2860)
+				Rect2(3000.0, 440.0, 920.0, 200.0),    # Sector 4: Heavy Fortress Battery (3000 - 3920)
+				Rect2(4060.0, 440.0, 920.0, 200.0),    # Sector 5: Waterfall Ambush Ridge (4060 - 4980)
+				Rect2(5120.0, 440.0, 1580.0, 200.0)    # Sector 6 & 7: Fortress Approach & Boss Arena (5120 - 6700)
 			]
 			data["platforms"] = [
-				{"rect": Rect2(250.0, 370.0, 200.0, 16.0), "type": PlatformType.TURF},
-				{"rect": Rect2(420.0, 290.0, 180.0, 16.0), "type": PlatformType.HIGH_PERCH},
-				{"rect": Rect2(760.0, 340.0, 240.0, 16.0), "type": PlatformType.ROPE_BRIDGE},
-				{"rect": Rect2(1050.0, 370.0, 220.0, 16.0), "type": PlatformType.GIRDER},
-				{"rect": Rect2(1250.0, 300.0, 260.0, 16.0), "type": PlatformType.GIRDER},
-				{"rect": Rect2(1480.0, 230.0, 180.0, 16.0), "type": PlatformType.HIGH_PERCH},
-				{"rect": Rect2(1660.0, 330.0, 240.0, 16.0), "type": PlatformType.ROPE_BRIDGE},
-				{"rect": Rect2(1920.0, 370.0, 200.0, 16.0), "type": PlatformType.TURF},
-				{"rect": Rect2(2100.0, 300.0, 240.0, 16.0), "type": PlatformType.TURF},
-				{"rect": Rect2(2320.0, 230.0, 180.0, 16.0), "type": PlatformType.HIGH_PERCH},
-				{"rect": Rect2(2560.0, 340.0, 240.0, 16.0), "type": PlatformType.ROPE_BRIDGE},
-				{"rect": Rect2(2880.0, 370.0, 240.0, 16.0), "type": PlatformType.GIRDER},
-				{"rect": Rect2(3100.0, 290.0, 320.0, 16.0), "type": PlatformType.GIRDER},
-				{"rect": Rect2(3400.0, 220.0, 160.0, 16.0), "type": PlatformType.HIGH_PERCH},
-				{"rect": Rect2(3560.0, 330.0, 240.0, 16.0), "type": PlatformType.ROPE_BRIDGE},
-				{"rect": Rect2(3860.0, 370.0, 220.0, 16.0), "type": PlatformType.TURF},
-				{"rect": Rect2(4060.0, 300.0, 260.0, 16.0), "type": PlatformType.TURF},
-				{"rect": Rect2(4300.0, 230.0, 200.0, 16.0), "type": PlatformType.HIGH_PERCH},
-				{"rect": Rect2(4560.0, 340.0, 240.0, 16.0), "type": PlatformType.ROPE_BRIDGE},
-				{"rect": Rect2(4860.0, 370.0, 220.0, 16.0), "type": PlatformType.GIRDER},
-				{"rect": Rect2(5060.0, 300.0, 280.0, 16.0), "type": PlatformType.GIRDER},
-				{"rect": Rect2(5320.0, 230.0, 180.0, 16.0), "type": PlatformType.HIGH_PERCH},
-				{"rect": Rect2(5560.0, 340.0, 240.0, 16.0), "type": PlatformType.ROPE_BRIDGE}
+				# Sector 1: Landing Beach (0 - 820)
+				{"rect": Rect2(240.0, 370.0, 200.0, 16.0), "type": PlatformType.TURF},
+				{"rect": Rect2(460.0, 280.0, 180.0, 16.0), "type": PlatformType.HIGH_PERCH},
+				# Chasm 1 (820 - 960): River Gorge Bridge
+				{"rect": Rect2(800.0, 340.0, 200.0, 16.0), "type": PlatformType.ROPE_BRIDGE},
+				
+				# Sector 2: Outer Fortress Perimeter (960 - 1820)
+				{"rect": Rect2(1060.0, 370.0, 240.0, 16.0), "type": PlatformType.GIRDER},
+				{"rect": Rect2(1240.0, 295.0, 260.0, 16.0), "type": PlatformType.GIRDER},
+				{"rect": Rect2(1460.0, 225.0, 180.0, 16.0), "type": PlatformType.HIGH_PERCH},
+				# Chasm 2 (1820 - 1960): Deep River Canyon
+				{"rect": Rect2(1800.0, 330.0, 200.0, 16.0), "type": PlatformType.ROPE_BRIDGE},
+				
+				# Sector 3: Jungle Ravine & Catwalks (1960 - 2860)
+				{"rect": Rect2(2060.0, 350.0, 240.0, 16.0), "type": PlatformType.TURF},
+				{"rect": Rect2(2300.0, 275.0, 240.0, 16.0), "type": PlatformType.TURF},
+				{"rect": Rect2(2520.0, 210.0, 200.0, 16.0), "type": PlatformType.HIGH_PERCH},
+				# Chasm 3 (2860 - 3000): River Crossing
+				{"rect": Rect2(2840.0, 340.0, 200.0, 16.0), "type": PlatformType.ROPE_BRIDGE},
+				
+				# Sector 4: Heavy Fortress Battery (3000 - 3920)
+				{"rect": Rect2(3100.0, 360.0, 260.0, 16.0), "type": PlatformType.GIRDER},
+				{"rect": Rect2(3340.0, 285.0, 300.0, 16.0), "type": PlatformType.GIRDER},
+				{"rect": Rect2(3660.0, 210.0, 180.0, 16.0), "type": PlatformType.HIGH_PERCH},
+				# Chasm 4 (3920 - 4060): River Ravine
+				{"rect": Rect2(3900.0, 330.0, 200.0, 16.0), "type": PlatformType.ROPE_BRIDGE},
+				
+				# Sector 5: Waterfall Ambush Ridge (4060 - 4980)
+				{"rect": Rect2(4160.0, 360.0, 240.0, 16.0), "type": PlatformType.TURF},
+				{"rect": Rect2(4380.0, 285.0, 260.0, 16.0), "type": PlatformType.TURF},
+				{"rect": Rect2(4620.0, 215.0, 200.0, 16.0), "type": PlatformType.HIGH_PERCH},
+				# Chasm 5 (4980 - 5120): Fortress Moat
+				{"rect": Rect2(4960.0, 340.0, 200.0, 16.0), "type": PlatformType.ROPE_BRIDGE},
+				
+				# Sector 6 & 7: Fortress Approach & Boss Arena (5120 - 6700)
+				{"rect": Rect2(5220.0, 340.0, 260.0, 16.0), "type": PlatformType.GIRDER},
+				{"rect": Rect2(5460.0, 260.0, 240.0, 16.0), "type": PlatformType.HIGH_PERCH},
+				{"rect": Rect2(5900.0, 340.0, 280.0, 16.0), "type": PlatformType.GIRDER},
+				{"rect": Rect2(6200.0, 270.0, 240.0, 16.0), "type": PlatformType.HIGH_PERCH}
 			]
 		2:
 			data["name"] = "WATERFALL FORTRESS"

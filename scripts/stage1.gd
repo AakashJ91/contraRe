@@ -243,9 +243,6 @@ func _physics_process(delta: float) -> void:
 			player.velocity = Vector2.ZERO
 		return
 	
-	anim_timer += delta
-	queue_redraw()
-	
 	if shake_duration > 0.0:
 		shake_duration -= delta
 		var offset := Vector2(randf_range(-shake_intensity, shake_intensity), randf_range(-shake_intensity, shake_intensity))
@@ -263,22 +260,20 @@ func _physics_process(delta: float) -> void:
 	if camera.global_position.x < BOSS_TRIGGER_X:
 		soldier_spawn_timer -= delta
 		if soldier_spawn_timer <= 0.0:
-			var min_interval := maxf(1.0, 2.6 - float(Global.current_stage) * 0.2)
-			var max_interval := maxf(1.8, 4.8 - float(Global.current_stage) * 0.3)
+			var min_interval := maxf(2.6, 4.2 - float(Global.current_stage) * 0.2)
+			var max_interval := maxf(4.2, 6.4 - float(Global.current_stage) * 0.3)
 			soldier_spawn_timer = randf_range(min_interval, max_interval)
 			_spawn_soldier_wave()
 		
-		# Aerial drone hunter swarms
+		# Rare ambient aerial drone scouts (measured pacing, not constant swarm)
 		drone_spawn_timer -= delta
 		if drone_spawn_timer <= 0.0:
-			var drone_min := maxf(4.5, 9.0 - float(Global.current_stage) * 0.5)
-			var drone_max := maxf(7.5, 14.0 - float(Global.current_stage) * 0.7)
-			drone_spawn_timer = randf_range(drone_min, drone_max)
+			drone_spawn_timer = randf_range(30.0, 52.0)
 			_spawn_drone_wave()
 		
 		blimp_spawn_timer -= delta
 		if blimp_spawn_timer <= 0.0:
-			blimp_spawn_timer = 9.0
+			blimp_spawn_timer = 14.0
 			_spawn_flying_blimp()
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -302,52 +297,75 @@ func _on_maker_mode_toggled(is_maker: bool) -> void:
 			contra_maker.close_editor()
 
 func _setup_static_enemies() -> void:
-	# Place turrets, snipers, heavy grenadiers, and crawlers strategically along the stage
-	for i in range(8):
-		var seg_idx := mini(i, ground_segments.size() - 1)
-		var g: Rect2 = ground_segments[seg_idx]
-		
-		# Ground Turret fortification
-		var tx := g.position.x + g.size.x * 0.65
-		if turret_scene != null and tx < BOSS_TRIGGER_X - 100.0:
-			var t = turret_scene.instantiate()
-			t.global_position = Vector2(tx, 435.0)
-			add_child(t)
-		
-		# Sniper on elevated platforms
-		if i < platforms.size() and sniper_scene != null:
-			var p_sniper: Rect2 = platforms[i * 2 % platforms.size()]["rect"]
-			if p_sniper.position.x < BOSS_TRIGGER_X - 100.0:
-				var s = sniper_scene.instantiate()
-				s.global_position = Vector2(p_sniper.position.x + p_sniper.size.x * 0.5, p_sniper.position.y - 10.0)
-				add_child(s)
-		
-		# Heavy Grenadier Mortar Trooper on strategic platforms
-		if platforms.size() > 1 and grenadier_scene != null and i < 6:
-			var gren_idx := (i * 2 + 1) % platforms.size()
-			var p_gren: Rect2 = platforms[gren_idx]["rect"]
-			if p_gren.position.x < BOSS_TRIGGER_X - 120.0 and p_gren.position.x > 320.0:
-				var gr = grenadier_scene.instantiate()
-				gr.global_position = Vector2(p_gren.position.x + p_gren.size.x * 0.5, p_gren.position.y - 12.0)
-				add_child(gr)
-		
-		# Ambushing Crawlers in cavern / bridge crossings
-		if crawler_scene != null and i % 2 == 1:
-			var cx := g.position.x + g.size.x * 0.30
-			if cx > 380.0 and cx < BOSS_TRIGGER_X - 200.0:
-				var cr = crawler_scene.instantiate()
-				cr.global_position = Vector2(cx, 420.0)
-				add_child(cr)
+	# Handcrafted tactical placements matching classic Contra pacing
 	
-	# Powerup sensor pods distributed along stage
-	var weapons = [Global.WeaponType.SPREAD, Global.WeaponType.MACHINE, Global.WeaponType.LASER, Global.WeaponType.SPREAD]
-	for k in range(4):
-		var p_idx := (k * 4 + 1) % platforms.size()
-		var p: Rect2 = platforms[p_idx]["rect"]
-		if sensor_scene != null and p.position.x < BOSS_TRIGGER_X - 150.0:
+	# 1. Fortified Ground & Deck Turrets
+	var turret_positions: Array[Vector2] = [
+		Vector2(720.0, 435.0),    # Sector 1: Landing Beach defense bunker
+		Vector2(1380.0, 435.0),   # Sector 2: Fortress Perimeter ground pillbox
+		Vector2(2650.0, 435.0),   # Sector 3: Ravine choke point
+		Vector2(3480.0, 280.0),   # Sector 4: Heavy battery elevated deck
+		Vector2(4750.0, 435.0),   # Sector 5: Waterfall ridge approach
+		Vector2(5420.0, 435.0)    # Sector 6: Outer fortress gateway bunker
+	]
+	for pos in turret_positions:
+		if turret_scene != null and pos.x < BOSS_TRIGGER_X - 100.0:
+			var t = turret_scene.instantiate()
+			t.global_position = pos
+			add_child(t)
+	
+	# 2. Elevated Snipers on Lookout Perches and Rope Bridges
+	var sniper_positions: Array[Vector2] = [
+		Vector2(530.0, 270.0),    # Sector 1: High observation perch
+		Vector2(890.0, 330.0),    # Chasm 1: Guarding Rope Bridge 1
+		Vector2(1550.0, 215.0),   # Sector 2: High fortress observation spire
+		Vector2(1890.0, 320.0),   # Chasm 2: Overlooking Waterfall Gorge
+		Vector2(2930.0, 330.0),   # Chasm 3: Guarding River Bridge 3
+		Vector2(3750.0, 200.0),   # Sector 4: Watchtower spire
+		Vector2(4710.0, 205.0)    # Sector 5: High cliff lookout
+	]
+	for pos in sniper_positions:
+		if sniper_scene != null and pos.x < BOSS_TRIGGER_X - 100.0:
+			var s = sniper_scene.instantiate()
+			s.global_position = pos
+			add_child(s)
+	
+	# 3. Heavy Grenadiers - Tactical Mini-Guardians at key strongpoints
+	var grenadier_positions: Array[Vector2] = [
+		Vector2(3620.0, 275.0),   # Sector 4: Heavy Battery mortar post
+		Vector2(5640.0, 250.0)    # Sector 6: Fortress Gatekeeper
+	]
+	for pos in grenadier_positions:
+		if grenadier_scene != null and pos.x < BOSS_TRIGGER_X - 120.0:
+			var gr = grenadier_scene.instantiate()
+			gr.global_position = pos
+			add_child(gr)
+	
+	# 4. Ambush Crawlers - Surprise ambushes in the jungle ravine
+	var crawler_positions: Array[Vector2] = [
+		Vector2(2220.0, 420.0),   # Sector 3: Ambush in the ravine undergrowth
+		Vector2(2440.0, 420.0),   # Sector 3: Second crawler pack
+		Vector2(4380.0, 420.0),   # Sector 5: Ambush along waterfall cliff
+		Vector2(4580.0, 420.0)    # Sector 5: Ambush before fortress moat
+	]
+	for pos in crawler_positions:
+		if crawler_scene != null and pos.x < BOSS_TRIGGER_X - 150.0:
+			var cr = crawler_scene.instantiate()
+			cr.global_position = pos
+			add_child(cr)
+	
+	# 5. Handcrafted Powerup Sensor Pods (Classic rewarding weapon progression)
+	var sensor_pods: Array[Dictionary] = [
+		{"pos": Vector2(330.0, 370.0), "weapon": Global.WeaponType.SPREAD},    # Sector 1: Spread gun
+		{"pos": Vector2(1280.0, 295.0), "weapon": Global.WeaponType.MACHINE},  # Sector 2: Machine gun
+		{"pos": Vector2(2380.0, 275.0), "weapon": Global.WeaponType.LASER},    # Sector 3: Laser gun
+		{"pos": Vector2(4480.0, 285.0), "weapon": Global.WeaponType.SPREAD}   # Sector 5: Spread gun
+	]
+	for pod_info in sensor_pods:
+		if sensor_scene != null and pod_info["pos"].x < BOSS_TRIGGER_X - 150.0:
 			var pod = sensor_scene.instantiate()
-			pod.global_position = Vector2(p.position.x + p.size.x * 0.5, p.position.y)
-			pod.weapon_type = weapons[k % weapons.size()]
+			pod.global_position = pod_info["pos"]
+			pod.weapon_type = pod_info["weapon"]
 			add_child(pod)
 
 func _setup_animated_bg_props() -> void:
@@ -366,29 +384,31 @@ func _setup_animated_bg_props() -> void:
 	var res_term: BgItemData = load("res://resources/bg_props/flickering_terminal.tres") if ResourceLoader.exists("res://resources/bg_props/flickering_terminal.tres") else null
 	var res_core: BgItemData = load("res://resources/bg_props/alien_core.tres") if ResourceLoader.exists("res://resources/bg_props/alien_core.tres") else null
 	var res_arc: BgItemData = load("res://resources/bg_props/electric_arc.tres") if ResourceLoader.exists("res://resources/bg_props/electric_arc.tres") else null
-	var res_water_surf: BgItemData = load("res://resources/bg_props/water_surface.tres") if ResourceLoader.exists("res://resources/bg_props/water_surface.tres") else null
-	var res_waterfall: BgItemData = load("res://resources/bg_props/waterfall_cascade.tres") if ResourceLoader.exists("res://resources/bg_props/waterfall_cascade.tres") else null
-	var res_ripple: BgItemData = load("res://resources/bg_props/water_ripple.tres") if ResourceLoader.exists("res://resources/bg_props/water_ripple.tres") else null
 
 	var stage_num := Global.current_stage
 	
 	for i in range(platforms.size()):
 		var p_rect: Rect2 = platforms[i]["rect"]
+		var p_type: int = platforms[i]["type"]
 		if p_rect.position.x > BOSS_TRIGGER_X - 150.0:
 			continue
 		
 		var chosen_data: BgItemData = null
 		var prop_pos := Vector2(p_rect.position.x + p_rect.size.x * 0.5, p_rect.position.y)
 		
+		# Only place props on suitable platform types (high perches and tech decks, never bridges!)
+		if p_type == PlatformType.ROPE_BRIDGE:
+			continue
+		
 		match stage_num:
 			1: # Jungle Military Outpost
-				if i % 3 == 0 and res_radar != null: chosen_data = res_radar
-				elif i % 3 == 1 and res_water_surf != null: chosen_data = res_water_surf
-				elif res_steam != null: chosen_data = res_steam
+				if p_type == PlatformType.HIGH_PERCH and res_radar != null and i % 2 == 0:
+					chosen_data = res_radar
+				elif res_beacon != null and i % 3 == 1:
+					chosen_data = res_beacon
 			2: # Waterfall & River Basin
-				if i % 3 == 0 and res_waterfall != null: chosen_data = res_waterfall
-				elif i % 3 == 1 and res_water_surf != null: chosen_data = res_water_surf
-				elif res_ripple != null: chosen_data = res_ripple
+				if p_type == PlatformType.HIGH_PERCH and res_beacon != null:
+					chosen_data = res_beacon
 			3, 8: # Alien Bio-Hive / Sanctum
 				if i % 2 == 0 and res_core != null: chosen_data = res_core
 				elif res_arc != null: chosen_data = res_arc
@@ -411,7 +431,7 @@ func _setup_animated_bg_props() -> void:
 			_:
 				chosen_data = res_radar
 		
-		if chosen_data != null and (i % 2 == 0 or i == platforms.size() - 1):
+		if chosen_data != null:
 			var prop: AnimatedBgProp = prop_scene.instantiate() as AnimatedBgProp
 			prop.prop_data = chosen_data
 			prop.global_position = prop_pos
@@ -456,7 +476,8 @@ func _spawn_soldier_wave() -> void:
 			cur_seg = g
 			break
 	
-	var spawn_from_right: bool = randf() > 0.4
+	# 85% spawn ahead running left, 15% spawn behind running right
+	var spawn_from_right: bool = randf() > 0.15
 	var spawn_x: float
 	var initial_facing: int
 	
@@ -480,17 +501,10 @@ func _spawn_soldier_wave() -> void:
 			spawn_x = pit_end + 40.0 if initial_facing == -1 else pit_start - 40.0
 			break
 	
-	var spawn_crawler := (crawler_scene != null and (randf() < 0.38 or Global.current_stage == 2 or Global.current_stage == 8))
-	if spawn_crawler:
-		var c = crawler_scene.instantiate()
-		c.facing_dir = initial_facing
-		c.global_position = Vector2(spawn_x, 420.0)
-		add_child(c)
-	else:
-		var s = soldier_scene.instantiate()
-		s.facing_dir = initial_facing
-		s.global_position = Vector2(spawn_x, 420.0)
-		add_child(s)
+	var s = soldier_scene.instantiate()
+	s.facing_dir = initial_facing
+	s.global_position = Vector2(spawn_x, 420.0)
+	add_child(s)
 
 func _spawn_drone_wave() -> void:
 	if drone_scene == null or camera == null or player == null or not is_instance_valid(player):
@@ -584,38 +598,48 @@ func _draw_platforms(view_left: float, view_right: float) -> void:
 		if pit_right < view_left - 80.0 or pit_left > view_right + 80.0:
 			continue
 		
+		# Gorge canyon rock shadow behind cliff overhangs
+		draw_rect(Rect2(pit_left - 36.0, 440.0, pit_w + 72.0, 200.0), Color(0.03, 0.04, 0.06, 0.96))
+		draw_rect(Rect2(pit_left - 24.0, 475.0, pit_w + 48.0, 165.0), Color(0.015, 0.02, 0.03, 1.0))
+
 		if Global.current_stage == 1 or Global.current_stage == 2:
-			# Animated water basin in jungle & waterfall chasms (clean scenic backdrop, no black box!)
-			var water_y: float = 480.0
-			var water_h: float = 75.0
-			if water_deep_texture != null:
-				var t_w: float = float(water_deep_texture.get_width())
-				var t_h: float = float(water_deep_texture.get_height())
-				var xc: float = pit_left
-				while xc < pit_right:
-					var sw: float = minf(t_w, pit_right - xc)
-					draw_texture_rect_region(water_deep_texture, Rect2(xc, water_y + 12.0, sw, water_h - 12.0), Rect2(0.0, 0.0, sw, minf(t_h, water_h - 12.0)))
-					xc += sw
-			else:
-				draw_rect(Rect2(pit_left, water_y + 12.0, pit_w, water_h - 12.0), Color(0.06, 0.22, 0.45, 0.92))
+			# Natural organic tropical river basin
+			var water_base_y: float = 484.0
+			var water_bottom_y: float = 560.0
+			var num_pts := int(ceil(pit_w / 6.0)) + 1
+			var surface_pts := PackedVector2Array()
 			
-			# Deep underwater riverbed fade only at the very bottom
-			draw_rect(Rect2(pit_left, water_y + water_h - 15.0, pit_w, 25.0), Color(0.02, 0.08, 0.18, 0.85))
+			for p in range(num_pts):
+				var px := minf(pit_left + float(p) * 6.0, pit_right)
+				# Gentle natural river swell (smooth calm wave oscillation)
+				var wave := sin(px * 0.016 + anim_timer * 1.3) * 2.2 + sin(px * 0.042 - anim_timer * 0.8) * 1.1
+				surface_pts.append(Vector2(px, water_base_y + wave))
 			
-			var cur_surf_frame: int = int(anim_timer * 6.0) % 4
-			var surf_tex: Texture2D = water_surface_frames[cur_surf_frame] if water_surface_frames.size() > cur_surf_frame else null
-			if surf_tex != null:
-				var st_w: float = float(surf_tex.get_width())
-				var st_h: float = float(surf_tex.get_height())
-				var xc: float = pit_left
-				while xc < pit_right:
-					var sw: float = minf(st_w, pit_right - xc)
-					draw_texture_rect_region(surf_tex, Rect2(xc, water_y, sw, st_h), Rect2(0.0, 0.0, sw, st_h))
-					xc += sw
-			else:
-				draw_rect(Rect2(pit_left, water_y, pit_w, 16.0), Color(0.2, 0.65, 0.95, 0.9))
+			# Water body fill polygon
+			var poly_pts := PackedVector2Array()
+			poly_pts.append_array(surface_pts)
+			poly_pts.append(Vector2(pit_right, water_bottom_y))
+			poly_pts.append(Vector2(pit_left, water_bottom_y))
 			
-			draw_line(Vector2(pit_left, water_y + 1.0), Vector2(pit_right, water_y + 1.0), Color(0.85, 0.98, 1.0, 0.6), 1.2)
+			var c_river_surf := Color(0.06, 0.26, 0.38, 0.94) if Global.current_stage == 1 else Color(0.08, 0.32, 0.52, 0.94)
+			draw_colored_polygon(poly_pts, c_river_surf)
+			
+			# Deep riverbed shadow
+			draw_rect(Rect2(pit_left, water_base_y + 14.0, pit_w, water_bottom_y - water_base_y - 14.0), Color(0.01, 0.04, 0.12, 0.65))
+			
+			# Subtle sub-surface caustics drifting calmly
+			for b in range(3):
+				var band_y := water_base_y + 8.0 + float(b) * 11.0
+				var band_drift := sin(anim_timer * 1.1 + float(b) * 1.4) * 8.0
+				var c_caustic := Color(0.30, 0.70, 0.85, 0.18)
+				draw_line(Vector2(pit_left + 12.0 + band_drift, band_y), Vector2(pit_right - 12.0 + band_drift, band_y), c_caustic, 1.5)
+			
+			# Soft translucent surface foam crest highlight
+			for p in range(surface_pts.size() - 1):
+				var pt1 := surface_pts[p]
+				var pt2 := surface_pts[p + 1]
+				draw_line(pt1, pt2, Color(0.68, 0.94, 0.98, 0.65), 1.8)
+				draw_line(Vector2(pt1.x, pt1.y + 2.0), Vector2(pt2.x, pt2.y + 2.0), Color(0.22, 0.60, 0.78, 0.35), 1.0)
 		elif Global.current_stage == 5:
 			# Molten lava pool at bottom of refinery pits
 			draw_rect(Rect2(pit_left - 20.0, 460.0, pit_w + 40.0, 180.0), Color(0.08, 0.03, 0.02, 0.95))

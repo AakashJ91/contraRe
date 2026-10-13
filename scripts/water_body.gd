@@ -10,7 +10,7 @@ extends Node2D
 @export var is_hazard: bool = false
 @export var surface_color: Color = Color(1.0, 1.0, 1.0, 0.95)
 @export var deep_color: Color = Color(0.9, 0.95, 1.0, 0.9)
-@export var anim_fps: float = 6.0
+@export var anim_fps: float = 1.0
 @export var ambient_splashes: bool = true
 
 var surface_frames: Array[Texture2D] = []
@@ -71,20 +71,14 @@ func _update_collision() -> void:
 
 func _process(delta: float) -> void:
 	anim_timer += delta * anim_fps
-	var old_frame := current_frame
-	if surface_frames.size() > 0:
-		current_frame = int(anim_timer) % surface_frames.size()
-	
-	if current_frame != old_frame:
-		queue_redraw()
+	queue_redraw()
 	
 	if ambient_splashes and is_inside_tree() and has_node("/root/VFX"):
 		ambient_timer += delta
-		if ambient_timer >= 2.0:
-			ambient_timer = randf_range(0.0, 0.8)
+		if ambient_timer >= 3.0:
+			ambient_timer = randf_range(0.0, 1.0)
 			var rx := randf_range(16.0, maxf(16.0, water_size.x - 16.0))
 			var splash_pos := global_position + Vector2(rx, 2.0)
-			# Only trigger if near camera
 			var cam := get_viewport().get_camera_2d()
 			if cam == null or absf(cam.global_position.x - splash_pos.x) < 520.0:
 				VFX.spawn_water_splash(splash_pos)
@@ -111,43 +105,34 @@ func _draw() -> void:
 	if w <= 0.0 or h <= 0.0:
 		return
 	
-	# 1. Under-layer deep water body
-	var body_top: float = 12.0
-	var body_h: float = maxf(0.0, h - body_top)
-	if deep_texture != null and body_h > 0.0:
-		var tex_w: float = float(deep_texture.get_width())
-		var tex_h: float = float(deep_texture.get_height())
-		var x_cursor: float = 0.0
-		while x_cursor < w:
-			var step_w: float = minf(tex_w, w - x_cursor)
-			var y_cursor: float = body_top
-			while y_cursor < h:
-				var step_h: float = minf(tex_h, h - y_cursor)
-				var src_rect := Rect2(0.0, 0.0, step_w, step_h)
-				var dst_rect := Rect2(x_cursor, y_cursor, step_w, step_h)
-				draw_texture_rect_region(deep_texture, dst_rect, src_rect, deep_color)
-				y_cursor += step_h
-			x_cursor += step_w
-	else:
-		draw_rect(Rect2(0.0, body_top, w, body_h), Color(0.05, 0.2, 0.45, 0.9))
+	var num_pts := int(ceil(w / 6.0)) + 1
+	var surface_pts := PackedVector2Array()
+	for p in range(num_pts):
+		var px := minf(float(p) * 6.0, w)
+		var wave := sin(px * 0.018 + anim_timer * 1.3) * 2.2 + sin(px * 0.045 - anim_timer * 0.8) * 1.1
+		surface_pts.append(Vector2(px, wave))
 	
-	# 2. Surface animated waves
-	var cur_surface_tex: Texture2D = null
-	if surface_frames.size() > current_frame:
-		cur_surface_tex = surface_frames[current_frame]
+	var poly_pts := PackedVector2Array()
+	poly_pts.append_array(surface_pts)
+	poly_pts.append(Vector2(w, h))
+	poly_pts.append(Vector2(0.0, h))
 	
-	if cur_surface_tex != null:
-		var tile_w: float = float(cur_surface_tex.get_width())
-		var tile_h: float = float(cur_surface_tex.get_height())
-		var x_cursor: float = 0.0
-		while x_cursor < w:
-			var step_w: float = minf(tile_w, w - x_cursor)
-			var src_rect := Rect2(0.0, 0.0, step_w, tile_h)
-			var dst_rect := Rect2(x_cursor, 0.0, step_w, tile_h)
-			draw_texture_rect_region(cur_surface_tex, dst_rect, src_rect, surface_color)
-			x_cursor += step_w
-	else:
-		draw_rect(Rect2(0.0, 0.0, w, 16.0), Color(0.2, 0.6, 0.9, 0.85))
+	var c_surf := Color(0.06, 0.28, 0.40, 0.94) * surface_color
+	draw_colored_polygon(poly_pts, c_surf)
 	
-	# 3. Translucent water shimmer crest highlight
-	draw_line(Vector2(0.0, 1.0), Vector2(w, 1.0), Color(0.8, 0.95, 1.0, 0.4), 1.0)
+	# Deep waterbed shadow
+	if h > 18.0:
+		draw_rect(Rect2(0.0, 14.0, w, h - 14.0), Color(0.01, 0.05, 0.14, 0.65) * deep_color)
+	
+	# Sub-surface caustics drifting gently
+	for b in range(min(3, int(h / 20.0))):
+		var band_y := 8.0 + float(b) * 12.0
+		var band_drift := sin(anim_timer * 1.1 + float(b) * 1.4) * 6.0
+		draw_line(Vector2(10.0 + band_drift, band_y), Vector2(w - 10.0 + band_drift, band_y), Color(0.30, 0.75, 0.90, 0.18), 1.5)
+	
+	# Soft translucent wave crest foam highlight
+	for p in range(surface_pts.size() - 1):
+		var pt1 := surface_pts[p]
+		var pt2 := surface_pts[p + 1]
+		draw_line(pt1, pt2, Color(0.70, 0.95, 1.0, 0.65), 1.8)
+		draw_line(Vector2(pt1.x, pt1.y + 2.0), Vector2(pt2.x, pt2.y + 2.0), Color(0.25, 0.65, 0.82, 0.35), 1.0)

@@ -7,7 +7,7 @@ const RUN_TEXTURES: Array[Texture2D] = [
 	preload("res://assets/enemies/enemy_soldier_run_3.png")
 ]
 
-const SPEED: float = 130.0
+const SPEED: float = 110.0
 const GRAVITY: float = 950.0
 
 @export var bullet_scene: PackedScene = preload("res://scenes/bullet.tscn")
@@ -35,7 +35,7 @@ func _physics_process(delta: float) -> void:
 		velocity.y += GRAVITY * delta
 	
 	# Continuously cycle run frames while moving
-	run_frame += delta * 8.5
+	run_frame += delta * 7.0
 	
 	shoot_timer -= delta
 	jump_cooldown -= delta

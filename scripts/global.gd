@@ -62,9 +62,23 @@ const BOSS_NAMES: Array[String] = [
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
+	if OS.has_feature("mobile") or OS.has_feature("android"):
+		DisplayServer.screen_set_orientation(DisplayServer.SCREEN_LANDSCAPE)
+		DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_EXCLUSIVE_FULLSCREEN)
+	else:
+		DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_EXCLUSIVE_FULLSCREEN)
 	var sfx_script = load("res://scripts/sound_fx.gd")
 	sfx = sfx_script.new()
 	add_child(sfx)
+
+func _unhandled_input(event: InputEvent) -> void:
+	if event is InputEventKey and event.pressed and not event.echo:
+		if event.keycode == KEY_F11 or (event.keycode == KEY_ENTER and event.alt_pressed):
+			var cur := DisplayServer.window_get_mode()
+			if cur == DisplayServer.WINDOW_MODE_EXCLUSIVE_FULLSCREEN or cur == DisplayServer.WINDOW_MODE_FULLSCREEN:
+				DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_WINDOWED)
+			else:
+				DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_EXCLUSIVE_FULLSCREEN)
 
 func get_stage_name(stage_idx: int = -1) -> String:
 	var idx := (current_stage if stage_idx <= 0 else stage_idx) - 1

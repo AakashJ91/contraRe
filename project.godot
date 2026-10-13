@@ -25,10 +25,13 @@ VFX="*res://scripts/vfx_manager.gd"
 
 window/size/viewport_width=960
 window/size/viewport_height=540
+window/size/mode="exclusive_fullscreen"
+window/size/borderless=true
 window/size/window_width_override=1280
 window/size/window_height_override=720
 window/stretch/mode="canvas_items"
-window/handheld/orientation=1
+window/stretch/aspect="keep"
+window/handheld/orientation=0
 
 [dotnet]
 

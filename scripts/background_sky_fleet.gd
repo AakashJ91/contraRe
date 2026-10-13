@@ -70,16 +70,16 @@ func _process(delta: float) -> void:
 			cam_dx = cam.global_position.x - last_cam_x
 		last_cam_x = cam.global_position.x
 	
-	# Periodic flock spawning
+	# Periodic flock spawning (calm ambient interval)
 	spawn_timer_flock -= delta
 	if spawn_timer_flock <= 0.0:
-		spawn_timer_flock = randf_range(7.0, 14.0)
+		spawn_timer_flock = randf_range(25.0, 48.0)
 		_spawn_flock(-60.0 if randf() > 0.3 else 1020.0)
 	
 	# Periodic vehicle / high-altitude craft spawning
 	spawn_timer_vehicle -= delta
 	if spawn_timer_vehicle <= 0.0:
-		spawn_timer_vehicle = randf_range(11.0, 20.0)
+		spawn_timer_vehicle = randf_range(35.0, 65.0)
 		_spawn_vehicle(-80.0 if randf() > 0.4 else 1040.0)
 	
 	# Update active flyers
@@ -93,10 +93,10 @@ func _process(delta: float) -> void:
 			f["glide_timer"] -= delta
 			if f["glide_timer"] <= 0.0:
 				f["is_gliding"] = not f["is_gliding"]
-				f["glide_timer"] = randf_range(0.8, 2.2) if f["is_gliding"] else randf_range(1.5, 3.5)
+				f["glide_timer"] = randf_range(1.5, 3.5) if f["is_gliding"] else randf_range(1.2, 2.5)
 		
-		# Update horizontal position (speed + camera parallax)
-		f["x"] += f["speed"] * f["direction"] * delta - cam_dx * 0.18
+		# Update horizontal position (gentle ambient cruise + subtle camera parallax)
+		f["x"] += f["speed"] * f["direction"] * delta - cam_dx * 0.06
 		
 		# Sinusoidal vertical undulating flight
 		var bob: float = sin(t * float(f["bob_freq"]) + float(f["bob_phase"])) * float(f["bob_amp"])
@@ -124,9 +124,9 @@ func _spawn_flock(start_x: float) -> void:
 	var cur_stage := Global.current_stage
 	var is_alien := (cur_stage == 3 or cur_stage == 8)
 	var dir := 1.0 if start_x < 500.0 else -1.0
-	var flock_size := randi_range(3, 5)
-	var base_speed := randf_range(85.0, 130.0)
-	var base_alt := randf_range(60.0, 240.0)
+	var flock_size := randi_range(2, 4)
+	var base_speed := randf_range(38.0, 58.0)
+	var base_alt := randf_range(60.0, 220.0)
 	
 	# Determine species plumage color
 	var tint := Color.WHITE
@@ -153,14 +153,14 @@ func _spawn_flock(start_x: float) -> void:
 			"x": start_x + lead_offset_x,
 			"y": base_alt + lead_offset_y,
 			"base_y": base_alt + lead_offset_y,
-			"speed": base_speed + randf_range(-8.0, 8.0),
+			"speed": base_speed + randf_range(-4.0, 4.0),
 			"direction": dir,
 			"anim_timer": randf_range(0.0, 4.0),
-			"anim_fps": randf_range(6.0, 9.0),
+			"anim_fps": randf_range(3.2, 4.5),
 			"is_gliding": false,
-			"glide_timer": randf_range(1.0, 3.0),
-			"bob_freq": randf_range(2.0, 3.5),
-			"bob_amp": randf_range(4.0, 9.0),
+			"glide_timer": randf_range(1.5, 3.5),
+			"bob_freq": randf_range(1.2, 1.8),
+			"bob_amp": randf_range(2.5, 5.0),
 			"bob_phase": float(j) * 0.8 + randf_range(0.0, 1.0),
 			"scale": Vector2.ONE * randf_range(0.85, 1.15),
 			"tint": tint,
@@ -175,49 +175,49 @@ func _spawn_vehicle(start_x: float) -> void:
 	
 	# Pick vehicle type according to stage theme
 	var v_type := "jet"
-	var alt := randf_range(45.0, 140.0)
-	var spd := 220.0
+	var alt := randf_range(50.0, 130.0)
+	var spd := 120.0
 	var scale_val := randf_range(0.9, 1.1)
 	
 	match cur_stage:
-		1: # Jungle: Occasional stealth fighter or VTOL helicopter
+		1: # Jungle: Occasional distant stealth fighter or VTOL helicopter
 			if randf() > 0.5:
 				v_type = "jet"
-				spd = randf_range(200.0, 270.0)
-				alt = randf_range(50.0, 110.0)
+				spd = randf_range(110.0, 140.0)
+				alt = randf_range(50.0, 100.0)
 			else:
 				v_type = "vtol"
-				spd = randf_range(70.0, 100.0)
-				alt = randf_range(80.0, 180.0)
+				spd = randf_range(35.0, 55.0)
+				alt = randf_range(80.0, 160.0)
 		2: # Waterfall: Military VTOL or Recon Blimp over the river
 			if randf() > 0.5:
 				v_type = "vtol"
-				spd = randf_range(65.0, 95.0)
-				alt = randf_range(90.0, 190.0)
+				spd = randf_range(35.0, 50.0)
+				alt = randf_range(90.0, 170.0)
 			else:
 				v_type = "blimp"
-				spd = randf_range(28.0, 45.0)
-				alt = randf_range(55.0, 120.0)
+				spd = randf_range(14.0, 24.0)
+				alt = randf_range(55.0, 110.0)
 		3, 8: # Alien Hive / Sanctum: Heavy Alien Bat Matriarch or bio-flyer
 			_spawn_flock(start_x)
 			return
 		4: # Arctic Tundra: Supersonic Stealth Interceptor
 			v_type = "jet"
-			spd = randf_range(240.0, 320.0)
-			alt = randf_range(45.0, 95.0)
+			spd = randf_range(120.0, 160.0)
+			alt = randf_range(45.0, 85.0)
 		5, 6: # Refinery / Dynamo: Heavy Recon Surveillance Airship
 			if randf() > 0.4:
 				v_type = "blimp"
-				spd = randf_range(24.0, 40.0)
-				alt = randf_range(60.0, 130.0)
+				spd = randf_range(14.0, 22.0)
+				alt = randf_range(60.0, 120.0)
 			else:
 				v_type = "jet"
-				spd = randf_range(210.0, 280.0)
-				alt = randf_range(50.0, 100.0)
+				spd = randf_range(110.0, 140.0)
+				alt = randf_range(50.0, 90.0)
 		7: # Starport / Hangar: Twin supersonic stealth fighters
 			v_type = "jet"
-			spd = randf_range(260.0, 340.0)
-			alt = randf_range(40.0, 100.0)
+			spd = randf_range(130.0, 170.0)
+			alt = randf_range(40.0, 85.0)
 	
 	flyers.append({
 		"type": v_type,

@@ -1,6 +1,7 @@
 # Godot 4+ specific ignores
 .godot/editor/
 .godot/exported/
+.godot/mono/
 
 # Build binaries (>100MB exceeds GitHub push limit)
 *.exe
