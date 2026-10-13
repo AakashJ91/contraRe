@@ -40,6 +40,8 @@ var platform_chain_texture: Texture2D = null
 var platform_chain_hook_texture: Texture2D = null
 var ground_edge_right_texture: Texture2D = null
 var ground_edge_left_texture: Texture2D = null
+var ground_edge_left_textures_by_stage: Dictionary = {}
+var ground_edge_right_textures_by_stage: Dictionary = {}
 var water_surface_frames: Array[Texture2D] = []
 var water_deep_texture: Texture2D = null
 
@@ -108,10 +110,36 @@ func _load_textures() -> void:
 		platform_chain_texture = load("res://assets/tiles/platform_chain.png")
 	if ResourceLoader.exists("res://assets/tiles/platform_chain_hook.png"):
 		platform_chain_hook_texture = load("res://assets/tiles/platform_chain_hook.png")
-	if ResourceLoader.exists("res://assets/tiles/ground_edge_right.png"):
-		ground_edge_right_texture = load("res://assets/tiles/ground_edge_right.png")
+	ground_edge_left_textures_by_stage.clear()
+	ground_edge_right_textures_by_stage.clear()
 	if ResourceLoader.exists("res://assets/tiles/ground_edge_left.png"):
 		ground_edge_left_texture = load("res://assets/tiles/ground_edge_left.png")
+		ground_edge_left_textures_by_stage[1] = ground_edge_left_texture
+	if ResourceLoader.exists("res://assets/tiles/ground_edge_right.png"):
+		ground_edge_right_texture = load("res://assets/tiles/ground_edge_right.png")
+		ground_edge_right_textures_by_stage[1] = ground_edge_right_texture
+
+	var edge_stage_names: Dictionary = {
+		2: "waterfall",
+		3: "hive",
+		4: "tundra",
+		5: "refinery",
+		6: "dynamo",
+		7: "hangar",
+	}
+	for st_id in edge_stage_names:
+		var sname: String = edge_stage_names[st_id]
+		var l_path := "res://assets/tiles/ground_%s_edge_left.png" % sname
+		var r_path := "res://assets/tiles/ground_%s_edge_right.png" % sname
+		if ResourceLoader.exists(l_path):
+			ground_edge_left_textures_by_stage[st_id] = load(l_path)
+		if ResourceLoader.exists(r_path):
+			ground_edge_right_textures_by_stage[st_id] = load(r_path)
+	
+	if ground_edge_left_textures_by_stage.has(3):
+		ground_edge_left_textures_by_stage[8] = ground_edge_left_textures_by_stage[3]
+	if ground_edge_right_textures_by_stage.has(3):
+		ground_edge_right_textures_by_stage[8] = ground_edge_right_textures_by_stage[3]
 	
 	water_surface_frames.clear()
 	for i in range(4):
@@ -678,8 +706,10 @@ func _draw_platforms(view_left: float, view_right: float) -> void:
 		
 		var has_left_edge: bool = (g.position.x > 0.0)
 		var has_right_edge: bool = (g.end.x < LEVEL_MAX_X)
-		var actual_left_w: float = edge_w if (has_left_edge and ground_edge_left_texture != null) else 0.0
-		var actual_right_w: float = edge_w if (has_right_edge and ground_edge_right_texture != null) else 0.0
+		var active_edge_left_tex: Texture2D = ground_edge_left_textures_by_stage.get(Global.current_stage, ground_edge_left_texture)
+		var active_edge_right_tex: Texture2D = ground_edge_right_textures_by_stage.get(Global.current_stage, ground_edge_right_texture)
+		var actual_left_w: float = edge_w if (has_left_edge and active_edge_left_tex != null) else 0.0
+		var actual_right_w: float = edge_w if (has_right_edge and active_edge_right_tex != null) else 0.0
 		
 		var mid_start_x: float = g.position.x + actual_left_w
 		var mid_end_x: float = g.end.x - actual_right_w
@@ -709,13 +739,15 @@ func _draw_platforms(view_left: float, view_right: float) -> void:
 			draw_rect(Rect2(mid_start_x, g.position.y, mid_width, g.size.y), col_dirt)
 			draw_rect(Rect2(mid_start_x, g.position.y, mid_width, 8.0), col_top)
 		
-		if has_left_edge and ground_edge_left_texture != null:
+		if has_left_edge and active_edge_left_tex != null:
 			var left_rect := Rect2(g.position.x, ground_draw_y, actual_left_w, ground_draw_h)
-			draw_texture_rect(ground_edge_left_texture, left_rect, false, g_tint)
+			var left_tint := Color.WHITE if active_edge_left_tex != ground_edge_left_texture else g_tint
+			draw_texture_rect(active_edge_left_tex, left_rect, false, left_tint)
 		
-		if has_right_edge and ground_edge_right_texture != null:
+		if has_right_edge and active_edge_right_tex != null:
 			var right_rect := Rect2(g.end.x - actual_right_w, ground_draw_y, actual_right_w, ground_draw_h)
-			draw_texture_rect(ground_edge_right_texture, right_rect, false, g_tint)
+			var right_tint := Color.WHITE if active_edge_right_tex != ground_edge_right_texture else g_tint
+			draw_texture_rect(active_edge_right_tex, right_rect, false, right_tint)
 
 	# Elevated Platforms
 	for p in platforms:
