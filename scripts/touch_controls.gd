@@ -10,15 +10,19 @@ var dpad_touch_id: int = -1
 var dpad_vector: Vector2 = Vector2.ZERO
 var dpad_active: bool = false
 
-var btn_shoot_pos: Vector2 = Vector2(850.0, 430.0)
-var btn_shoot_radius: float = 48.0
+# Large, highly responsive Shoot Button (Fire / B)
+var btn_shoot_pos: Vector2 = Vector2(844.0, 418.0)
+var btn_shoot_radius: float = 72.0
 var btn_shoot_touch_id: int = -1
 var shoot_active: bool = false
 
-var btn_jump_pos: Vector2 = Vector2(740.0, 450.0)
-var btn_jump_radius: float = 45.0
-var btn_jump_touch_id: int = -1
+# Jump Button & Universal Right-Side Jump Zone
+var btn_jump_pos: Vector2 = Vector2(685.0, 430.0)
+var btn_jump_radius: float = 48.0
+var jump_touch_ids: Array[int] = []
 var jump_active: bool = false
+var last_jump_tap_pos: Vector2 = Vector2.ZERO
+var jump_tap_anim: float = 0.0
 
 var btn_map_pos: Vector2 = Vector2(848.0, 14.0)
 var btn_map_size: Vector2 = Vector2(34.0, 22.0)
@@ -88,7 +92,7 @@ func _reset_all_inputs() -> void:
 	shoot_active = false
 	btn_shoot_touch_id = -1
 	jump_active = false
-	btn_jump_touch_id = -1
+	jump_touch_ids.clear()
 	_release_all_dpad_actions()
 	Input.action_release("shoot")
 	Input.action_release("jump")
@@ -103,6 +107,9 @@ func _process(delta: float) -> void:
 		visible = true
 	
 	pulse_time += delta * 5.0
+	if jump_tap_anim > 0.0:
+		jump_tap_anim = maxf(0.0, jump_tap_anim - delta)
+
 	# Smoothly return dpad to resting position when released
 	if not dpad_active:
 		dpad_center = dpad_center.lerp(default_dpad_center, 12.0 * delta)
@@ -131,7 +138,7 @@ func _input(event: InputEvent) -> void:
 
 func _handle_touch_down(idx: int, pos: Vector2) -> void:
 	# Tactical Map, Level Selector & Restart on top-right (aligned with scoreboard)
-	if pos.y <= 32.0:
+	if pos.y <= 36.0:
 		if pos.x >= 828.0 and pos.x < 868.0:
 			Global.play_sfx("menu_cursor")
 			Global.toggle_map()
@@ -145,24 +152,27 @@ func _handle_touch_down(idx: int, pos: Vector2) -> void:
 			get_tree().reload_current_scene()
 			return
 	
-	# Jump Button
-	if pos.distance_to(btn_jump_pos) <= btn_jump_radius * 1.3:
-		btn_jump_touch_id = idx
-		jump_active = true
-		Input.action_press("jump")
-		queue_redraw()
-		return
-	
-	# Shoot Button
-	if pos.distance_to(btn_shoot_pos) <= btn_shoot_radius * 1.3:
+	# Shoot Button: Large primary action button
+	if pos.distance_to(btn_shoot_pos) <= btn_shoot_radius * 1.15:
 		btn_shoot_touch_id = idx
 		shoot_active = true
 		Input.action_press("shoot")
 		queue_redraw()
 		return
 	
+	# Jump: Touching anywhere on the right half of the screen (pos.x >= 480)
+	if pos.x >= 480.0 and pos.y > 36.0:
+		if not jump_touch_ids.has(idx):
+			jump_touch_ids.append(idx)
+		jump_active = true
+		Input.action_press("jump")
+		last_jump_tap_pos = pos
+		jump_tap_anim = 0.35
+		queue_redraw()
+		return
+	
 	# DYNAMIC MOVEMENT CONTROLLER: Left half of screen (below top status bar)
-	if pos.x < 480.0 and pos.y > 80.0:
+	if pos.x < 480.0 and pos.y > 60.0:
 		dpad_touch_id = idx
 		dpad_active = true
 		# Anchor the dynamic joystick origin right under the user's thumb!
@@ -176,6 +186,17 @@ func _handle_touch_drag(idx: int, pos: Vector2) -> void:
 	if idx == dpad_touch_id:
 		_update_dpad(pos)
 		queue_redraw()
+	elif jump_touch_ids.has(idx):
+		# If sliding into the large shoot button from jump area
+		if btn_shoot_touch_id == -1 and pos.distance_to(btn_shoot_pos) <= btn_shoot_radius * 1.15:
+			jump_touch_ids.erase(idx)
+			if jump_touch_ids.is_empty():
+				jump_active = false
+				Input.action_release("jump")
+			btn_shoot_touch_id = idx
+			shoot_active = true
+			Input.action_press("shoot")
+			queue_redraw()
 
 func _handle_touch_up(idx: int) -> void:
 	if idx == dpad_touch_id:
@@ -185,16 +206,17 @@ func _handle_touch_up(idx: int) -> void:
 		_release_all_dpad_actions()
 		queue_redraw()
 	
-	if idx == btn_jump_touch_id:
-		btn_jump_touch_id = -1
-		jump_active = false
-		Input.action_release("jump")
-		queue_redraw()
-	
 	if idx == btn_shoot_touch_id:
 		btn_shoot_touch_id = -1
 		shoot_active = false
 		Input.action_release("shoot")
+		queue_redraw()
+	
+	if jump_touch_ids.has(idx):
+		jump_touch_ids.erase(idx)
+		if jump_touch_ids.is_empty():
+			jump_active = false
+			Input.action_release("jump")
 		queue_redraw()
 
 func _update_dpad(pos: Vector2) -> void:
@@ -269,7 +291,7 @@ func _draw() -> void:
 	var bg_alpha := 0.28
 	var fg_alpha := 0.65
 	
-	# --- DYNAMIC JOYSTICK BASE ---
+	# --- DYNAMIC JOYSTICK BASE (LEFT SIDE) ---
 	var base_ring_col := Color(0.2, 0.7, 1.0, 0.85) if dpad_active else Color(0.8, 0.85, 0.95, 0.35)
 	var base_bg_col := Color(0.04, 0.1, 0.2, 0.5) if dpad_active else Color(0.06, 0.08, 0.12, bg_alpha)
 	
@@ -304,11 +326,10 @@ func _draw() -> void:
 		var notch_col := Color(1.0, 0.85, 0.2, 0.95) if is_highlighted else Color(0.7, 0.8, 0.9, 0.3)
 		draw_line(notch_start, notch_end, notch_col, 3.5 if is_highlighted else 2.0)
 		if is_highlighted:
-			# Directional arrowhead
 			var arrow_pt := dpad_center + dir * (dpad_radius + 8.0)
 			draw_circle(arrow_pt, 4.0, Color(1.0, 0.85, 0.2))
 	
-	# --- THUMB KNOB ---
+	# Thumb Knob
 	var knob_radius := 26.0
 	var knob_bg := Color(0.1, 0.45, 0.9, 0.9) if dpad_active else Color(0.45, 0.5, 0.6, 0.5)
 	draw_circle(current_thumb_pos, knob_radius, Color(0.02, 0.05, 0.1, 0.6))
@@ -316,34 +337,65 @@ func _draw() -> void:
 	draw_arc(current_thumb_pos, knob_radius * 0.85, 0.0, TAU, 24, Color(0.8, 0.95, 1.0, 0.8), 2.0)
 	draw_circle(current_thumb_pos, 8.0, Color.WHITE)
 	
-	# --- ACTION BUTTONS (RIGHT SIDE) ---
-	# Jump Button (A)
-	var jump_col := Color(0.1, 0.55, 0.9, 0.9) if jump_active else Color(0.1, 0.4, 0.8, fg_alpha)
-	draw_circle(btn_jump_pos, btn_jump_radius, Color(0.05, 0.1, 0.2, bg_alpha))
-	draw_circle(btn_jump_pos, btn_jump_radius * 0.85, jump_col)
-	draw_arc(btn_jump_pos, btn_jump_radius, 0.0, TAU, 28, Color(0.4, 0.8, 1.0, 0.6), 2.5)
+	# --- JUMP TAP SHOCKWAVE / RIPPLE FEEDBACK (ANYWHERE ON RIGHT SIDE) ---
+	if jump_tap_anim > 0.0 and last_jump_tap_pos != Vector2.ZERO:
+		var prog: float = 1.0 - (jump_tap_anim / 0.35)
+		var rip_r: float = 14.0 + prog * 44.0
+		var rip_a: float = (1.0 - prog) * 0.85
+		draw_arc(last_jump_tap_pos, rip_r, 0.0, TAU, 28, Color(0.25, 0.85, 1.0, rip_a), 2.5)
+		draw_circle(last_jump_tap_pos, 7.0 * (1.0 - prog), Color(0.50, 0.95, 1.0, rip_a * 0.7))
+
+	# --- JUMP BUTTON (A / JUMP) ---
+	var jump_col := Color(0.12, 0.62, 1.0, 0.95) if jump_active else Color(0.12, 0.42, 0.85, fg_alpha)
+	var jump_border_col := Color(0.40, 0.92, 1.0, 0.95) if jump_active else Color(0.35, 0.75, 1.0, 0.60)
+	draw_circle(btn_jump_pos, btn_jump_radius + 3.0, Color(0.0, 0.0, 0.0, 0.35))
+	draw_circle(btn_jump_pos, btn_jump_radius, Color(0.04, 0.10, 0.20, bg_alpha * 1.3))
+	draw_circle(btn_jump_pos, btn_jump_radius * 0.86, jump_col)
+	draw_arc(btn_jump_pos, btn_jump_radius, 0.0, TAU, 32, jump_border_col, 3.2 if jump_active else 2.4)
+	if jump_active:
+		var jpulse := btn_jump_radius + 5.0 + sin(pulse_time * 2.0) * 3.0
+		draw_arc(btn_jump_pos, jpulse, 0.0, TAU, 30, Color(0.2, 0.8, 1.0, 0.45), 2.0)
 	
-	# Jump Label 'A'
-	draw_line(btn_jump_pos + Vector2(-8.0, 8.0), btn_jump_pos + Vector2(0.0, -9.0), Color.WHITE, 3.0)
-	draw_line(btn_jump_pos + Vector2(8.0, 8.0), btn_jump_pos + Vector2(0.0, -9.0), Color.WHITE, 3.0)
-	draw_line(btn_jump_pos + Vector2(-5.0, 0.0), btn_jump_pos + Vector2(5.0, 0.0), Color.WHITE, 3.0)
+	# Jump Letter 'A'
+	var a_offset := Vector2(0.0, -6.0)
+	draw_line(btn_jump_pos + a_offset + Vector2(-11.0, 13.0), btn_jump_pos + a_offset + Vector2(0.0, -14.0), Color.WHITE, 3.8)
+	draw_line(btn_jump_pos + a_offset + Vector2(11.0, 13.0), btn_jump_pos + a_offset + Vector2(0.0, -14.0), Color.WHITE, 3.8)
+	draw_line(btn_jump_pos + a_offset + Vector2(-7.0, 2.0), btn_jump_pos + a_offset + Vector2(7.0, 2.0), Color.WHITE, 3.2)
+	_draw_btn_text("JUMP", btn_jump_pos + Vector2(0.0, 21.0), Color(0.88, 0.96, 1.0, 0.95), 11)
+
+	# Subtle arcade hint below jump area
+	_draw_btn_text("TAP RIGHT HALF TO JUMP", Vector2(685.0, 498.0), Color(0.40, 0.80, 1.0, 0.45), 10)
 	
-	# Shoot Button (B)
-	var shoot_col := Color(0.95, 0.2, 0.15, 0.95) if shoot_active else Color(0.8, 0.2, 0.2, fg_alpha)
-	draw_circle(btn_shoot_pos, btn_shoot_radius, Color(0.2, 0.05, 0.05, bg_alpha))
-	draw_circle(btn_shoot_pos, btn_shoot_radius * 0.85, shoot_col)
-	draw_arc(btn_shoot_pos, btn_shoot_radius, 0.0, TAU, 28, Color(1.0, 0.5, 0.4, 0.6), 2.5)
+	# --- BIG SHOOT BUTTON (B / FIRE) ---
+	var shoot_col := Color(1.0, 0.22, 0.15, 0.96) if shoot_active else Color(0.85, 0.18, 0.16, fg_alpha * 1.15)
+	var shoot_border_col := Color(1.0, 0.65, 0.45, 0.95) if shoot_active else Color(1.0, 0.45, 0.35, 0.70)
+	draw_circle(btn_shoot_pos, btn_shoot_radius + 4.0, Color(0.0, 0.0, 0.0, 0.40))
+	draw_circle(btn_shoot_pos, btn_shoot_radius, Color(0.30, 0.05, 0.05, bg_alpha * 1.3))
+	draw_circle(btn_shoot_pos, btn_shoot_radius * 0.88, shoot_col)
+	if shoot_active:
+		draw_circle(btn_shoot_pos, btn_shoot_radius * 0.50, Color(1.0, 0.70, 0.30, 0.35))
+		var spulse := btn_shoot_radius + 6.0 + sin(pulse_time * 2.0) * 3.5
+		draw_arc(btn_shoot_pos, spulse, 0.0, TAU, 36, Color(1.0, 0.40, 0.20, 0.50), 2.2)
+	draw_arc(btn_shoot_pos, btn_shoot_radius, 0.0, TAU, 36, shoot_border_col, 3.6 if shoot_active else 2.6)
 	
-	# Shoot Label 'B'
-	draw_line(btn_shoot_pos + Vector2(-7.0, -9.0), btn_shoot_pos + Vector2(-7.0, 9.0), Color.WHITE, 3.0)
-	draw_arc(btn_shoot_pos + Vector2(-5.0, -4.5), 5.5, -PI*0.5, PI*0.5, 12, Color.WHITE, 2.5)
-	draw_arc(btn_shoot_pos + Vector2(-5.0, 4.5), 5.5, -PI*0.5, PI*0.5, 12, Color.WHITE, 2.5)
+	# Cardinal reticle notches around the big Shoot button
+	for rdir in [Vector2.UP, Vector2.DOWN, Vector2.LEFT, Vector2.RIGHT]:
+		draw_line(btn_shoot_pos + rdir * (btn_shoot_radius - 9.0), btn_shoot_pos + rdir * (btn_shoot_radius + 5.0), shoot_border_col, 2.2)
+
+	# Bold scaled Letter 'B'
+	var b_offset := Vector2(0.0, -8.0)
+	draw_line(btn_shoot_pos + b_offset + Vector2(-13.0, -16.0), btn_shoot_pos + b_offset + Vector2(-13.0, 16.0), Color.WHITE, 4.4)
+	draw_line(btn_shoot_pos + b_offset + Vector2(-13.0, -16.0), btn_shoot_pos + b_offset + Vector2(-2.0, -16.0), Color.WHITE, 4.4)
+	draw_line(btn_shoot_pos + b_offset + Vector2(-13.0, 0.0), btn_shoot_pos + b_offset + Vector2(-2.0, 0.0), Color.WHITE, 3.8)
+	draw_line(btn_shoot_pos + b_offset + Vector2(-13.0, 16.0), btn_shoot_pos + b_offset + Vector2(-2.0, 16.0), Color.WHITE, 4.4)
+	draw_arc(btn_shoot_pos + b_offset + Vector2(-2.0, -8.0), 8.0, -PI*0.5, PI*0.5, 14, Color.WHITE, 3.8)
+	draw_arc(btn_shoot_pos + b_offset + Vector2(-2.0, 8.0), 8.0, -PI*0.5, PI*0.5, 14, Color.WHITE, 3.8)
+	_draw_btn_text("FIRE", btn_shoot_pos + Vector2(0.0, 26.0), Color(1.0, 0.90, 0.90, 0.95), 13)
 	
-	# --- SLEEK FLAT TACTICAL MAP BUTTON ---
+	# --- SLEEK FLAT TACTICAL MAP BUTTON (HEADER) ---
 	var map_rect := Rect2(btn_map_pos.x - btn_map_size.x * 0.5, btn_map_pos.y - btn_map_size.y * 0.5, btn_map_size.x, btn_map_size.y)
 	draw_style_box(style_map_btn, map_rect)
 	
-	# Flat tactical map fold / radar icon
 	var map_col := Color(0.40, 0.95, 0.70, 0.95)
 	var mx := btn_map_pos.x - 7.0
 	var my := btn_map_pos.y - 5.5
@@ -358,11 +410,10 @@ func _draw() -> void:
 	draw_line(Vector2(mx + 4.5, my + 13.0), Vector2(mx + 9.5, my + 11.0), map_col, 1.4)
 	draw_line(Vector2(mx + 9.5, my + 11.0), Vector2(mx + 14.0, my + 13.0), map_col, 1.4)
 	
-	# --- SLEEK FLAT LEVEL SELECTOR (MENU) BUTTON ---
+	# --- SLEEK FLAT LEVEL SELECTOR (MENU) BUTTON (HEADER) ---
 	var menu_rect := Rect2(btn_menu_pos.x - btn_menu_size.x * 0.5, btn_menu_pos.y - btn_menu_size.y * 0.5, btn_menu_size.x, btn_menu_size.y)
 	draw_style_box(style_menu_btn, menu_rect)
 	
-	# Flat 4-tile stage select icon [::]
 	var grid_col := Color(0.92, 0.95, 1.0, 0.90)
 	var tile_sz: float = 3.5
 	var tile_gap: float = 2.5
@@ -372,11 +423,10 @@ func _draw() -> void:
 	draw_rect(Rect2(btn_menu_pos.x - hg, btn_menu_pos.y + tile_gap * 0.5, tile_sz, tile_sz), grid_col)
 	draw_rect(Rect2(btn_menu_pos.x + tile_gap * 0.5, btn_menu_pos.y + tile_gap * 0.5, tile_sz, tile_sz), grid_col)
 	
-	# --- SLEEK FLAT RESTART BUTTON ---
+	# --- SLEEK FLAT RESTART BUTTON (HEADER) ---
 	var restart_rect := Rect2(btn_restart_pos.x - btn_restart_size.x * 0.5, btn_restart_pos.y - btn_restart_size.y * 0.5, btn_restart_size.x, btn_restart_size.y)
 	draw_style_box(style_restart_btn, restart_rect)
 	
-	# Flat reload circular arrow
 	var restart_col := Color(1.0, 0.92, 0.75, 0.90)
 	var r_rad: float = 5.5
 	draw_arc(btn_restart_pos, r_rad, 0.5, 5.5, 20, restart_col, 1.8)
@@ -389,7 +439,10 @@ func _draw() -> void:
 	])
 	draw_colored_polygon(arrow_pts, restart_col)
 
-func _is_point_in_btn(point: Vector2, btn_center: Vector2, btn_size: Vector2) -> bool:
-	var pad: float = 6.0
-	var r := Rect2(btn_center.x - btn_size.x * 0.5 - pad, btn_center.y - btn_size.y * 0.5 - pad, btn_size.x + pad * 2.0, btn_size.y + pad * 2.0)
-	return r.has_point(point)
+func _draw_btn_text(text: String, pos: Vector2, col: Color, font_size: int = 11) -> void:
+	var font := ThemeDB.fallback_font
+	var string_size := font.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size)
+	var text_pos := Vector2(pos.x - string_size.x * 0.5, pos.y + string_size.y * 0.35)
+	# Drop shadow
+	draw_string(font, text_pos + Vector2(1.0, 1.0), text, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size, Color(0.0, 0.0, 0.0, 0.85))
+	draw_string(font, text_pos, text, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size, col)
