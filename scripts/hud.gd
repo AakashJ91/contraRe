@@ -153,7 +153,7 @@ func _draw() -> void:
 	var player_node: Node2D = get_tree().get_first_node_in_group("player") as Node2D
 	var player_x: float = player_node.global_position.x if (player_node != null and is_instance_valid(player_node)) else 0.0
 	
-	var minimap_x: float = 600.0
+	var minimap_x: float = maxf(600.0, screen_w - 360.0)
 	var minimap_y: float = 7.0
 	var minimap_w: float = 230.0
 	var minimap_h: float = 16.0
@@ -169,10 +169,10 @@ func _draw() -> void:
 	# -------------------------------------------------------------------------
 	# MODULE 7: CONTRA MAKER LEVEL EDITOR BUTTON
 	# -------------------------------------------------------------------------
-	var maker_btn_rect := Rect2(848.0, 7.0, 100.0, 26.0)
+	var maker_btn_rect := Rect2(screen_w - 112.0, 7.0, 100.0, 26.0)
 	draw_rect(maker_btn_rect, Color(0.10, 0.16, 0.25, 0.90))
 	draw_rect(maker_btn_rect, Color(0.25, 0.75, 1.0, 0.85), false, 1.2)
-	_draw_pixel_text("★ MAKER", Vector2(856.0, 24.0), Color(0.35, 0.95, 1.0), 10)
+	_draw_pixel_text("★ MAKER", Vector2(screen_w - 104.0, 24.0), Color(0.35, 0.95, 1.0), 10)
 	_draw_pixel_text("[F1]", Vector2(922.0, 24.0), Color(1.0, 0.85, 0.3), 8)
 	
 	# =========================================================================
@@ -299,7 +299,8 @@ func _handle_touch(pos: Vector2) -> void:
 		return
 	
 	# Tap on top-right minimap bar to open full tactical map
-	var minimap_tap_rect := Rect2(600.0, 4.0, 235.0, 32.0)
+	var screen_w: float = maxf(960.0, get_viewport_rect().size.x)
+	var minimap_tap_rect := Rect2(maxf(600.0, screen_w - 360.0), 4.0, 235.0, 32.0)
 	if minimap_tap_rect.has_point(pos):
 		Global.toggle_map()
 		Global.play_sfx("menu_cursor")
@@ -307,7 +308,7 @@ func _handle_touch(pos: Vector2) -> void:
 		return
 	
 	# Tap on MAKER button
-	var maker_tap_rect := Rect2(846.0, 4.0, 106.0, 32.0)
+	var maker_tap_rect := Rect2(screen_w - 114.0, 4.0, 106.0, 32.0)
 	if maker_tap_rect.has_point(pos):
 		Global.toggle_maker_mode()
 		Global.play_sfx("menu_cursor")

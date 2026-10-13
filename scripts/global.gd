@@ -62,14 +62,31 @@ const BOSS_NAMES: Array[String] = [
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
-	if OS.has_feature("mobile") or OS.has_feature("android"):
-		DisplayServer.screen_set_orientation(DisplayServer.SCREEN_LANDSCAPE)
-		DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_EXCLUSIVE_FULLSCREEN)
-	else:
-		DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_EXCLUSIVE_FULLSCREEN)
+	_enforce_fullscreen()
 	var sfx_script = load("res://scripts/sound_fx.gd")
 	sfx = sfx_script.new()
 	add_child(sfx)
+
+func _notification(what: int) -> void:
+	if what == NOTIFICATION_APPLICATION_RESUMED or what == NOTIFICATION_WM_WINDOW_FOCUS_IN:
+		_enforce_fullscreen()
+
+func _enforce_fullscreen() -> void:
+	if OS.has_feature("mobile") or OS.has_feature("android") or OS.get_name() == "Android":
+		DisplayServer.screen_set_orientation(DisplayServer.SCREEN_LANDSCAPE)
+		DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_EXCLUSIVE_FULLSCREEN)
+		# Defer across initial frames to guarantee Android SurfaceView / WindowManager binds sticky immersive mode
+		_deferred_enforce_fullscreen.call_deferred()
+	else:
+		DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_EXCLUSIVE_FULLSCREEN)
+
+func _deferred_enforce_fullscreen() -> void:
+	for i in range(3):
+		if not is_inside_tree():
+			return
+		await get_tree().process_frame
+		DisplayServer.screen_set_orientation(DisplayServer.SCREEN_LANDSCAPE)
+		DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_EXCLUSIVE_FULLSCREEN)
 
 func _unhandled_input(event: InputEvent) -> void:
 	if event is InputEventKey and event.pressed and not event.echo:

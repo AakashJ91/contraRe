@@ -73,9 +73,21 @@ func _ready() -> void:
 	style_restart_btn.set_corner_radius_all(6)
 	style_restart_btn.anti_aliasing = true
 
+	_update_layout_positions()
 	queue_redraw()
 	if Global.has_signal("maker_mode_toggled"):
 		Global.maker_mode_toggled.connect(_on_maker_mode_toggled)
+
+func _get_screen_w() -> float:
+	return maxf(960.0, get_viewport_rect().size.x)
+
+func _update_layout_positions() -> void:
+	var w := _get_screen_w()
+	btn_shoot_pos = Vector2(w - 116.0, 418.0)
+	btn_jump_pos = Vector2(w - 275.0, 430.0)
+	btn_map_pos = Vector2(w - 112.0, 14.0)
+	btn_menu_pos = Vector2(w - 70.0, 14.0)
+	btn_restart_pos = Vector2(w - 28.0, 14.0)
 
 func _on_maker_mode_toggled(maker_active: bool) -> void:
 	if maker_active:
@@ -137,17 +149,21 @@ func _input(event: InputEvent) -> void:
 		_handle_touch_drag(99, event.position)
 
 func _handle_touch_down(idx: int, pos: Vector2) -> void:
+	_update_layout_positions()
+	var w := _get_screen_w()
+	var half_w := w * 0.5
+
 	# Tactical Map, Level Selector & Restart on top-right (aligned with scoreboard)
 	if pos.y <= 36.0:
-		if pos.x >= 828.0 and pos.x < 868.0:
+		if pos.x >= w - 132.0 and pos.x < w - 92.0:
 			Global.play_sfx("menu_cursor")
 			Global.toggle_map()
 			return
-		elif pos.x >= 868.0 and pos.x < 911.0:
+		elif pos.x >= w - 92.0 and pos.x < w - 49.0:
 			Global.play_sfx("menu_cursor")
 			Global.go_to_level_select()
 			return
-		elif pos.x >= 911.0 and pos.x <= 958.0:
+		elif pos.x >= w - 49.0:
 			Global.reset_game()
 			get_tree().reload_current_scene()
 			return
@@ -160,8 +176,8 @@ func _handle_touch_down(idx: int, pos: Vector2) -> void:
 		queue_redraw()
 		return
 	
-	# Jump: Touching anywhere on the right half of the screen (pos.x >= 480)
-	if pos.x >= 480.0 and pos.y > 36.0:
+	# Jump: Touching anywhere on the right half of the screen
+	if pos.x >= half_w and pos.y > 36.0:
 		if not jump_touch_ids.has(idx):
 			jump_touch_ids.append(idx)
 		jump_active = true
@@ -172,7 +188,7 @@ func _handle_touch_down(idx: int, pos: Vector2) -> void:
 		return
 	
 	# DYNAMIC MOVEMENT CONTROLLER: Left half of screen (below top status bar)
-	if pos.x < 480.0 and pos.y > 60.0:
+	if pos.x < half_w and pos.y > 60.0:
 		dpad_touch_id = idx
 		dpad_active = true
 		# Anchor the dynamic joystick origin right under the user's thumb!
@@ -288,6 +304,7 @@ func _draw() -> void:
 	if Global.is_maker_mode:
 		return
 	
+	_update_layout_positions()
 	var bg_alpha := 0.28
 	var fg_alpha := 0.65
 	
@@ -364,7 +381,7 @@ func _draw() -> void:
 	_draw_btn_text("JUMP", btn_jump_pos + Vector2(0.0, 21.0), Color(0.88, 0.96, 1.0, 0.95), 11)
 
 	# Subtle arcade hint below jump area
-	_draw_btn_text("TAP RIGHT HALF TO JUMP", Vector2(685.0, 498.0), Color(0.40, 0.80, 1.0, 0.45), 10)
+	_draw_btn_text("TAP RIGHT HALF TO JUMP", Vector2(btn_jump_pos.x, 498.0), Color(0.40, 0.80, 1.0, 0.45), 10)
 	
 	# --- BIG SHOOT BUTTON (B / FIRE) ---
 	var shoot_col := Color(1.0, 0.22, 0.15, 0.96) if shoot_active else Color(0.85, 0.18, 0.16, fg_alpha * 1.15)
