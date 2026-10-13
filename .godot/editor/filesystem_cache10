@@ -157,7 +157,7 @@ shockwave_ring.png::CompressedTexture2D::488716449064587893::1791862028::1791862
 smoke_puff.png::CompressedTexture2D::2830445709862007781::1791862028::1791862637::1::::<><><>0<>0<>f54e2b30667fa2d7612203845c39494e<>res://.godot/imported/smoke_puff.png-b9a58e00d75b594ba3bb907a999627b2.ctex::
 spark_flare.png::CompressedTexture2D::5386668941003788212::1791862028::1791862637::1::::<><><>0<>0<>e385a83035990be2b67e11c717c6d24c<>res://.godot/imported/spark_flare.png-df2e41185ef44611ef38e37b3ca18f67.ctex::
 star_sparkle.png::CompressedTexture2D::237479227777542135::1791862028::1791862637::1::::<><><>0<>0<>95c923811325c8c9821f37b42128fd7d<>res://.godot/imported/star_sparkle.png-b7fc8e83ba95be29b02c5975918e5d41.ctex::
-::res://builds/::1791879159
+::res://builds/::1791879921
 ::res://resources/::1791864152
 ::res://resources/bg_props/::1791866557
 alien_bat.tres::Resource/BgItemData::-1::1791865339::0::1::::<><><>0<>0<><>::
@@ -235,7 +235,7 @@ powerup_sensor.gd::GDScript::9172321274810397623::1791799419::0::1::::<>Area2D<>
 sound_fx.gd::GDScript::4764667412688016143::1791735176::0::1::::<>Node<><>0<>0<><>::
 stage1.gd::GDScript::2114674683012921029::1791872641::0::1::::<>Node2D<><>0<>0<><>::
 title_screen.gd::GDScript::2538398259978023483::1791823937::0::1::::<>Control<><>0<>0<><>::
-touch_controls.gd::GDScript::894815413153087898::1791825756::0::1::::<>Control<><>0<>0<><>::
+touch_controls.gd::GDScript::894815413153087898::1791881877::0::1::::<>Control<><>0<>0<><>::
 vfx_manager.gd::GDScript::7602337275933706123::1791862544::0::1::::<>Node<><>0<>0<><>::
 water_body.gd::GDScript::5404336080748275290::1791872698::0::1::::WaterBody<>Node2D<><>0<>0<><>::
 ::res://shaders/::1791731217
