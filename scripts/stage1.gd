@@ -9,6 +9,8 @@ extends Node2D
 @export var grenadier_scene: PackedScene = preload("res://scenes/enemy_grenadier.tscn")
 @export var crawler_scene: PackedScene = preload("res://scenes/enemy_crawler.tscn")
 @export var contra_maker_scene: PackedScene = preload("res://scenes/contra_maker.tscn")
+@export var spore_pod_script: GDScript = preload("res://scripts/hazard_spore_pod.gd")
+@export var bio_eye_script: GDScript = preload("res://scripts/hazard_bio_eye.gd")
 
 @onready var camera: Camera2D = $Camera2D
 @onready var player: CharacterBody2D = $Player
@@ -24,6 +26,16 @@ var drone_spawn_timer: float = 5.0
 var blimp_spawn_timer: float = 7.0
 var blimp_index: int = 0
 var anim_timer: float = 0.0
+
+# Dynamic Stage Hazard States
+var rope_bridge_states: Array[Dictionary] = []
+var hydraulic_lifts: Array[Dictionary] = []
+var falling_icicles: Array[Dictionary] = []
+var flame_vents: Array[Dictionary] = []
+var tesla_arcs: Array[Dictionary] = []
+var security_tripwires: Array[Dictionary] = []
+var psychic_pulse_timer: float = 8.5
+var psychic_pulse_active: float = 0.0
 
 const LEVEL_MIN_X: float = 0.0
 const LEVEL_MAX_X: float = 6700.0
@@ -76,6 +88,10 @@ func _ready() -> void:
 		contra_maker.setup(self, camera)
 		if Global.is_maker_mode:
 			contra_maker.open_editor()
+	
+	if camera != null and Global.is_mobile_device():
+		camera.zoom = Vector2(1.18, 1.18)
+		camera.global_position.y = 280.0
 	
 	queue_redraw()
 
@@ -157,6 +173,85 @@ func _init_stage_geometry() -> void:
 		ground_segments.append(g)
 	for p in map_data.get("platforms", []):
 		platforms.append(p)
+	_init_stage_hazards()
+
+func _init_stage_hazards() -> void:
+	rope_bridge_states.clear()
+	hydraulic_lifts.clear()
+	falling_icicles.clear()
+	flame_vents.clear()
+	tesla_arcs.clear()
+	security_tripwires.clear()
+	psychic_pulse_timer = 8.5
+	psychic_pulse_active = 0.0
+	
+	match Global.current_stage:
+		1: # JUNGLE: Track rope bridges for collapsing mechanic
+			for i in range(platforms.size()):
+				if platforms[i]["type"] == PlatformType.ROPE_BRIDGE:
+					rope_bridge_states.append({
+						"platform_index": i,
+						"shake_timer": 0.0,
+						"is_collapsed": false,
+						"rebuild_timer": 0.0,
+						"shake_offset": 0.0
+					})
+		4: # TUNDRA: Hanging sharp icicles under ice platforms
+			for p in platforms:
+				if p["type"] == PlatformType.ICE_SLAB:
+					var pr: Rect2 = p["rect"]
+					falling_icicles.append({
+						"pos": Vector2(pr.position.x + pr.size.x * 0.32, pr.position.y + 20.0),
+						"initial_pos": Vector2(pr.position.x + pr.size.x * 0.32, pr.position.y + 20.0),
+						"vel_y": 0.0,
+						"state": 0, # 0=HANGING, 1=TREMBLING, 2=FALLING, 3=SHATTERED
+						"timer": 0.0
+					})
+					falling_icicles.append({
+						"pos": Vector2(pr.position.x + pr.size.x * 0.68, pr.position.y + 20.0),
+						"initial_pos": Vector2(pr.position.x + pr.size.x * 0.68, pr.position.y + 20.0),
+						"vel_y": 0.0,
+						"state": 0,
+						"timer": 0.0
+					})
+		5: # REFINERY: Molten flame geysers in foundry chasms
+			var vent_xs := [730.0, 1530.0, 2330.0, 3230.0, 4130.0, 5030.0]
+			for vx in vent_xs:
+				flame_vents.append({
+					"pos": Vector2(vx, 455.0),
+					"state": 0, # 0=Dormant, 1=Warning, 2=Erupting
+					"timer": randf_range(1.5, 3.8)
+				})
+		6: # DYNAMO: High-voltage tesla lightning coils across chasms
+			for i in range(ground_segments.size() - 1):
+				var pit_l := ground_segments[i].end.x
+				var pit_r := ground_segments[i + 1].position.x
+				if (i % 2 == 1):
+					tesla_arcs.append({
+						"start": Vector2(pit_l - 10.0, 375.0),
+						"end": Vector2(pit_r + 10.0, 375.0),
+						"cycle": randf_range(0.0, 3.0),
+						"active_dur": 0.85,
+						"period": 3.0
+					})
+		7: # HANGAR: Moving hydraulic elevator lifts and laser tripwires
+			for idx in [2, 5, 8, 11, 14]:
+				if idx < platforms.size():
+					var pr: Rect2 = platforms[idx]["rect"]
+					hydraulic_lifts.append({
+						"platform_index": idx,
+						"base_y": pr.position.y,
+						"amp": 68.0,
+						"speed": 1.5,
+						"phase": float(idx) * 1.2
+					})
+			for tw_x in [1350.0, 2600.0, 4100.0]:
+				security_tripwires.append({
+					"x": tw_x,
+					"top_y": 140.0,
+					"bottom_y": 440.0,
+					"triggered": false
+				})
 
 
 func _setup_background() -> void:
@@ -185,15 +280,23 @@ func _setup_background() -> void:
 		bg_texture = load(bg_path)
 		var p_layer := ParallaxLayer.new()
 		p_layer.motion_scale = Vector2(0.3, 0.0)
-		p_layer.motion_mirroring = Vector2(960.0, 0.0)
+		var tile_w: float = 960.0
+		var tile_h: float = 540.0
+		p_layer.motion_mirroring = Vector2(tile_w, 0.0)
 		p_bg.add_child(p_layer)
 		
-		var spr := Sprite2D.new()
-		spr.texture = bg_texture
 		var tex_size := bg_texture.get_size()
-		spr.scale = Vector2(960.0 / tex_size.x, 540.0 / tex_size.y)
-		spr.centered = false
-		p_layer.add_child(spr)
+		var spr_scale := Vector2(tile_w / tex_size.x, tile_h / tex_size.y)
+		
+		# Tile contiguous sprites inside the ParallaxLayer so that on any screen aspect ratio
+		# (16:9, ultrawide, mobile 20:9), the background spans seamlessly with zero gaps
+		for s_idx in range(3):
+			var spr := Sprite2D.new()
+			spr.texture = bg_texture
+			spr.scale = spr_scale
+			spr.position = Vector2(float(s_idx) * tile_w, 0.0)
+			spr.centered = false
+			p_layer.add_child(spr)
 	else:
 		# Procedural Atmospheric Parallax Layers fallback
 		var p_sky := ParallaxLayer.new()
@@ -277,6 +380,7 @@ func _setup_colliders() -> void:
 		c.position = b.position + b.size * 0.5
 		c.one_way_collision = true
 		world_colliders.add_child(c)
+		p["collider"] = c
 
 func _process(delta: float) -> void:
 	anim_timer += delta
@@ -298,9 +402,13 @@ func _physics_process(delta: float) -> void:
 	if player != null and is_instance_valid(player):
 		var target_cam_x := clampf(player.global_position.x + 120.0, 480.0, 5800.0)
 		camera.global_position.x = maxf(camera.global_position.x, target_cam_x)
+		if Global.is_mobile_device():
+			camera.global_position.y = 280.0
 		
 		if camera.global_position.x >= BOSS_TRIGGER_X and boss != null and is_instance_valid(boss):
 			boss.activate()
+	
+	_process_stage_mechanics(delta)
 	
 	if camera.global_position.x < BOSS_TRIGGER_X:
 		soldier_spawn_timer -= delta
@@ -320,6 +428,207 @@ func _physics_process(delta: float) -> void:
 		if blimp_spawn_timer <= 0.0:
 			blimp_spawn_timer = 14.0
 			_spawn_flying_blimp()
+
+func _process_stage_mechanics(delta: float) -> void:
+	if player == null or not is_instance_valid(player) or player.state == player.PlayerState.DEAD:
+		return
+	
+	var p_pos := player.global_position
+	var p_on_floor := player.is_on_floor()
+	var cur_stage := Global.current_stage
+
+	match cur_stage:
+		1: # JUNGLE: Collapsing rope bridges
+			for b in rope_bridge_states:
+				var p_idx: int = b["platform_index"]
+				if p_idx < platforms.size():
+					var p = platforms[p_idx]
+					var r: Rect2 = p["rect"]
+					var col: CollisionShape2D = p.get("collider", null)
+					
+					# Detect player standing on this bridge
+					if p_on_floor and not b["is_collapsed"] and b["shake_timer"] <= 0.0:
+						if p_pos.x >= r.position.x - 6.0 and p_pos.x <= r.end.x + 6.0 and abs(p_pos.y - r.position.y) < 18.0:
+							b["shake_timer"] = 0.85
+							Global.play_sfx("hit")
+							VFX.spawn_dust_puff(Vector2(p_pos.x, r.position.y), 3, Color(0.65, 0.50, 0.35, 0.7))
+					
+					# Shake countdown
+					if b["shake_timer"] > 0.0:
+						b["shake_timer"] -= delta
+						b["shake_offset"] = sin(b["shake_timer"] * 40.0) * 3.5
+						if b["shake_timer"] <= 0.0:
+							# Collapse!
+							b["is_collapsed"] = true
+							b["rebuild_timer"] = 3.6
+							b["shake_offset"] = 0.0
+							if col != null:
+								col.disabled = true
+							Global.play_sfx("hit")
+							VFX.spawn_dust_puff(Vector2(r.position.x + r.size.x * 0.5, r.position.y + 10.0), 6, Color(0.65, 0.50, 0.35, 0.8))
+					
+					# Rebuild countdown
+					if b["is_collapsed"]:
+						b["rebuild_timer"] -= delta
+						if b["rebuild_timer"] <= 0.0:
+							b["is_collapsed"] = false
+							if col != null:
+								col.disabled = false
+							VFX.spawn_dust_puff(Vector2(r.position.x + r.size.x * 0.5, r.position.y), 4, Color(0.7, 0.7, 0.7, 0.6))
+
+		2: # WATERFALL: Thermal Updrafts over river chasms
+			for i in range(ground_segments.size() - 1):
+				var pit_l := ground_segments[i].end.x
+				var pit_r := ground_segments[i + 1].position.x
+				if p_pos.x >= pit_l - 20.0 and p_pos.x <= pit_r + 20.0:
+					if not p_on_floor and p_pos.y >= 240.0 and p_pos.y <= 520.0:
+						player.in_updraft = true
+						if randf() < 0.15:
+							VFX.spawn_water_splash(Vector2(p_pos.x + randf_range(-15.0, 15.0), 485.0))
+
+		4: # TUNDRA: Low-friction ice sliding + falling stalactite icicles
+			if p_on_floor:
+				player.is_on_ice = true
+			
+			for ic in falling_icicles:
+				match ic["state"]:
+					0: # HANGING
+						if abs(p_pos.x - ic["pos"].x) < 42.0 and p_pos.y > ic["pos"].y and p_pos.y < ic["pos"].y + 280.0:
+							ic["state"] = 1 # TREMBLING
+							ic["timer"] = 0.38
+							Global.play_sfx("hit")
+							VFX.spawn_dust_puff(ic["pos"], 2, Color(0.85, 0.95, 1.0, 0.6))
+					1: # TREMBLING
+						ic["timer"] -= delta
+						if ic["timer"] <= 0.0:
+							ic["state"] = 2 # FALLING
+							ic["vel_y"] = 120.0
+					2: # FALLING
+						ic["vel_y"] += 1250.0 * delta
+						ic["pos"].y += ic["vel_y"] * delta
+						
+						# Player hit check
+						if ic["pos"].distance_to(p_pos) < 22.0:
+							player.take_damage(1.0)
+							ic["state"] = 3 # SHATTERED
+							VFX.spawn_hit_sparks(ic["pos"], Vector2.UP, Color(0.7, 0.95, 1.0))
+						elif ic["pos"].y >= 435.0:
+							ic["state"] = 3 # SHATTERED
+							VFX.spawn_dust_puff(ic["pos"], 3, Color(0.8, 0.95, 1.0, 0.8))
+
+		5: # REFINERY: Conveyor Catwalks & Flame Geysers
+			# Conveyors
+			if p_on_floor:
+				for i in range(platforms.size()):
+					var p = platforms[i]
+					if p["type"] == PlatformType.LAVA_GRATE or p["type"] == PlatformType.TECH_CATWALK:
+						var r: Rect2 = p["rect"]
+						if p_pos.x >= r.position.x and p_pos.x <= r.end.x and abs(p_pos.y - r.position.y) < 14.0:
+							var dir: float = 1.0 if (i % 2 == 0) else -1.0
+							player.conveyor_push = dir * 90.0 * delta * 60.0
+							break
+			
+			# Flame vents
+			for v in flame_vents:
+				v["timer"] -= delta
+				if v["timer"] <= 0.0:
+					match v["state"]:
+						0: # DORMANT -> WARNING
+							v["state"] = 1
+							v["timer"] = 0.6
+						1: # WARNING -> ERUPTING
+							v["state"] = 2
+							v["timer"] = 1.15
+							Global.play_sfx("shoot_spread")
+							Global.screen_shake_requested.emit(2.5, 0.3)
+						2: # ERUPTING -> DORMANT
+							v["state"] = 0
+							v["timer"] = randf_range(2.0, 3.8)
+				
+				# Active flame damage check
+				if v["state"] == 2:
+					if abs(p_pos.x - v["pos"].x) < 28.0 and p_pos.y <= v["pos"].y + 10.0 and p_pos.y >= v["pos"].y - 170.0:
+						player.take_damage(1.0)
+
+		6: # DYNAMO: High-voltage surge barrier cycle & tesla coils
+			var surge_phase := fmod(anim_timer, 2.8)
+			var is_surging := (surge_phase >= 1.8)
+			if is_surging and p_on_floor:
+				for p in platforms:
+					if p["type"] == PlatformType.ENERGY_BARRIER:
+						var r: Rect2 = p["rect"]
+						if p_pos.x >= r.position.x and p_pos.x <= r.end.x and abs(p_pos.y - r.position.y) < 14.0:
+							player.take_damage(1.0)
+							Global.play_sfx("hit")
+							VFX.spawn_explosion(p_pos, 0.85, true, false)
+							break
+			
+			# Tesla coils across chasms
+			for t in tesla_arcs:
+				var t_cycle: float = t["cycle"]
+				var t_period: float = t["period"]
+				var t_active_dur: float = t["active_dur"]
+				var t_phase: float = fmod(anim_timer + t_cycle, t_period)
+				var arc_active: bool = (t_phase < t_active_dur)
+				if arc_active:
+					var t_start: Vector2 = t["start"]
+					var t_end: Vector2 = t["end"]
+					if p_pos.x >= t_start.x and p_pos.x <= t_end.x and abs(p_pos.y - t_start.y) < 26.0:
+						player.take_damage(1.0)
+						Global.play_sfx("hit")
+						VFX.spawn_explosion(p_pos, 0.9, true, false)
+
+		7: # HANGAR: Hydraulic elevator lifts & security laser tripwires
+			for lift in hydraulic_lifts:
+				var p_idx: int = lift["platform_index"]
+				if p_idx < platforms.size():
+					var p = platforms[p_idx]
+					var lift_base_y: float = lift["base_y"]
+					var lift_speed: float = lift["speed"]
+					var lift_phase: float = lift["phase"]
+					var lift_amp: float = lift["amp"]
+					var new_y: float = lift_base_y + sin(anim_timer * lift_speed + lift_phase) * lift_amp
+					var old_y: float = p["rect"].position.y
+					var diff_y: float = new_y - old_y
+					p["rect"].position.y = new_y
+					
+					var col: CollisionShape2D = p.get("collider", null)
+					if col != null:
+						col.position.y = new_y + p["rect"].size.y * 0.5
+					
+					if p_on_floor:
+						var r: Rect2 = p["rect"]
+						if p_pos.x >= r.position.x and p_pos.x <= r.end.x and abs(p_pos.y - old_y) < 18.0:
+							player.global_position.y += diff_y
+			
+			# Security tripwires
+			for tw in security_tripwires:
+				if not tw["triggered"]:
+					if abs(p_pos.x - tw["x"]) < 20.0 and p_pos.y >= tw["top_y"] and p_pos.y <= tw["bottom_y"]:
+						tw["triggered"] = true
+						Global.play_sfx("hit")
+						Global.screen_shake_requested.emit(4.0, 0.5)
+						if drone_scene != null:
+							for d_i in range(2):
+								var d = drone_scene.instantiate()
+								d.global_position = Vector2(tw["x"] + (180.0 if d_i == 0 else -180.0), 160.0 + float(d_i) * 30.0)
+								d.facing_dir = -1 if d_i == 0 else 1
+								add_child(d)
+
+		8: # SANCTUM: Psychic Gravitational Distortion Wave
+			psychic_pulse_timer -= delta
+			if psychic_pulse_timer <= 0.0:
+				psychic_pulse_timer = 9.2
+				psychic_pulse_active = 2.4
+				Global.screen_shake_requested.emit(3.5, 0.9)
+				Global.play_sfx("jump")
+			
+			if psychic_pulse_active > 0.0:
+				psychic_pulse_active -= delta
+				var distort := sin(anim_timer * 8.0)
+				player.stage_gravity_scale = 0.50 if distort > 0.0 else 1.35
+			else:
+				player.stage_gravity_scale = 1.0
 
 func _unhandled_input(event: InputEvent) -> void:
 	# Advance to next stage when stage clear victory is displayed
@@ -342,76 +651,165 @@ func _on_maker_mode_toggled(is_maker: bool) -> void:
 			contra_maker.close_editor()
 
 func _setup_static_enemies() -> void:
-	# Handcrafted tactical placements matching classic Contra pacing
-	
-	# 1. Fortified Ground & Deck Turrets
-	var turret_positions: Array[Vector2] = [
-		Vector2(720.0, 435.0),    # Sector 1: Landing Beach defense bunker
-		Vector2(1380.0, 435.0),   # Sector 2: Fortress Perimeter ground pillbox
-		Vector2(2650.0, 435.0),   # Sector 3: Ravine choke point
-		Vector2(3480.0, 280.0),   # Sector 4: Heavy battery elevated deck
-		Vector2(4750.0, 435.0),   # Sector 5: Waterfall ridge approach
-		Vector2(5420.0, 435.0)    # Sector 6: Outer fortress gateway bunker
-	]
-	for pos in turret_positions:
-		if turret_scene != null and pos.x < BOSS_TRIGGER_X - 100.0:
+	match Global.current_stage:
+		1: # JUNGLE PERIMETER
+			# Classic fortified bunkers, high lookouts & river gorge bridges
+			_spawn_turrets([Vector2(720.0, 435.0), Vector2(1380.0, 435.0), Vector2(2650.0, 435.0), Vector2(3480.0, 280.0), Vector2(4750.0, 435.0), Vector2(5420.0, 435.0)])
+			_spawn_snipers([Vector2(530.0, 270.0), Vector2(890.0, 330.0), Vector2(1550.0, 215.0), Vector2(1890.0, 320.0), Vector2(2930.0, 330.0), Vector2(3750.0, 200.0), Vector2(4710.0, 205.0)])
+			_spawn_grenadiers([Vector2(3620.0, 275.0), Vector2(5640.0, 250.0)])
+			_spawn_crawlers([Vector2(2220.0, 420.0), Vector2(2440.0, 420.0), Vector2(4380.0, 420.0)])
+			_spawn_sensors([
+				{"pos": Vector2(330.0, 370.0), "weapon": Global.WeaponType.SPREAD},
+				{"pos": Vector2(1280.0, 295.0), "weapon": Global.WeaponType.MACHINE},
+				{"pos": Vector2(2380.0, 275.0), "weapon": Global.WeaponType.LASER},
+				{"pos": Vector2(4480.0, 285.0), "weapon": Global.WeaponType.SPREAD}
+			])
+
+		2: # WATERFALL FORTRESS
+			# Cliffside snipers overlooking waterfall chasms + escarpment turrets
+			_spawn_turrets([Vector2(1050.0, 435.0), Vector2(2850.0, 435.0), Vector2(3850.0, 340.0), Vector2(4950.0, 435.0), Vector2(5550.0, 320.0)])
+			_spawn_snipers([Vector2(380.0, 270.0), Vector2(720.0, 320.0), Vector2(1280.0, 280.0), Vector2(1620.0, 320.0), Vector2(2200.0, 260.0), Vector2(2520.0, 320.0), Vector2(3150.0, 270.0), Vector2(4150.0, 260.0), Vector2(5250.0, 270.0)])
+			_spawn_grenadiers([Vector2(2000.0, 435.0), Vector2(3520.0, 320.0), Vector2(5600.0, 435.0)])
+			_spawn_crawlers([Vector2(1400.0, 420.0), Vector2(2950.0, 420.0), Vector2(4350.0, 420.0)])
+			_spawn_sensors([
+				{"pos": Vector2(300.0, 350.0), "weapon": Global.WeaponType.MACHINE},
+				{"pos": Vector2(1600.0, 320.0), "weapon": Global.WeaponType.SPREAD},
+				{"pos": Vector2(3100.0, 270.0), "weapon": Global.WeaponType.LASER},
+				{"pos": Vector2(4800.0, 350.0), "weapon": Global.WeaponType.MACHINE}
+			])
+
+		3: # ALIEN HIVE BIO-CAVERN
+			# Living spore egg pods + swarming crawlers & bio-snipers
+			_spawn_spore_pods([Vector2(400.0, 270.0), Vector2(980.0, 350.0), Vector2(1520.0, 320.0), Vector2(2120.0, 260.0), Vector2(2750.0, 350.0), Vector2(3400.0, 320.0), Vector2(4100.0, 260.0), Vector2(5100.0, 270.0)])
+			_spawn_turrets([Vector2(690.0, 320.0), Vector2(1850.0, 350.0), Vector2(3750.0, 350.0), Vector2(4750.0, 435.0), Vector2(5480.0, 320.0)])
+			_spawn_snipers([Vector2(220.0, 350.0), Vector2(1200.0, 280.0), Vector2(2420.0, 320.0), Vector2(3050.0, 270.0), Vector2(4400.0, 320.0), Vector2(5300.0, 435.0)])
+			_spawn_crawlers([Vector2(550.0, 420.0), Vector2(1100.0, 420.0), Vector2(1950.0, 420.0), Vector2(2850.0, 420.0), Vector2(3800.0, 420.0), Vector2(4800.0, 420.0)])
+			_spawn_sensors([
+				{"pos": Vector2(260.0, 350.0), "weapon": Global.WeaponType.SPREAD},
+				{"pos": Vector2(1800.0, 340.0), "weapon": Global.WeaponType.LASER},
+				{"pos": Vector2(3300.0, 320.0), "weapon": Global.WeaponType.SPREAD},
+				{"pos": Vector2(4900.0, 350.0), "weapon": Global.WeaponType.LASER}
+			])
+
+		4: # SNOWFIELD TUNDRA
+			# Fortified mortar grenadiers & frost snipers
+			_spawn_turrets([Vector2(1320.0, 270.0), Vector2(2640.0, 320.0), Vector2(4000.0, 350.0), Vector2(5040.0, 340.0)])
+			_spawn_snipers([Vector2(450.0, 270.0), Vector2(1080.0, 350.0), Vector2(1680.0, 320.0), Vector2(2300.0, 260.0), Vector2(2980.0, 350.0), Vector2(3660.0, 320.0), Vector2(4300.0, 260.0), Vector2(5380.0, 260.0)])
+			_spawn_grenadiers([Vector2(760.0, 320.0), Vector2(2020.0, 350.0), Vector2(3300.0, 260.0), Vector2(4660.0, 320.0), Vector2(5500.0, 435.0)])
+			_spawn_sensors([
+				{"pos": Vector2(320.0, 350.0), "weapon": Global.WeaponType.SPREAD},
+				{"pos": Vector2(1900.0, 350.0), "weapon": Global.WeaponType.MACHINE},
+				{"pos": Vector2(3200.0, 260.0), "weapon": Global.WeaponType.SPREAD},
+				{"pos": Vector2(4500.0, 260.0), "weapon": Global.WeaponType.LASER}
+			])
+
+		5: # STEEL REFINERY
+			# Conveyor rush, molten foundry turrets & upper mortar posts
+			_spawn_turrets([Vector2(420.0, 270.0), Vector2(1450.0, 320.0), Vector2(2520.0, 340.0), Vector2(3750.0, 260.0), Vector2(4980.0, 320.0), Vector2(5650.0, 260.0)])
+			_spawn_snipers([Vector2(650.0, 320.0), Vector2(1740.0, 340.0), Vector2(2850.0, 260.0), Vector2(4050.0, 320.0), Vector2(5300.0, 340.0)])
+			_spawn_grenadiers([Vector2(920.0, 340.0), Vector2(2000.0, 260.0), Vector2(3150.0, 320.0), Vector2(4350.0, 340.0), Vector2(5200.0, 435.0)])
+			_spawn_sensors([
+				{"pos": Vector2(280.0, 350.0), "weapon": Global.WeaponType.LASER},
+				{"pos": Vector2(1600.0, 340.0), "weapon": Global.WeaponType.MACHINE},
+				{"pos": Vector2(3000.0, 260.0), "weapon": Global.WeaponType.SPREAD},
+				{"pos": Vector2(4800.0, 260.0), "weapon": Global.WeaponType.LASER}
+			])
+
+		6: # ELECTRIC DYNAMO
+			# High-voltage surge grid, tesla coils & dielectric snipers
+			_spawn_turrets([Vector2(440.0, 270.0), Vector2(1580.0, 320.0), Vector2(2800.0, 340.0), Vector2(4150.0, 260.0), Vector2(5520.0, 320.0)])
+			_spawn_snipers([Vector2(720.0, 320.0), Vector2(1260.0, 260.0), Vector2(1880.0, 340.0), Vector2(2480.0, 320.0), Vector2(3100.0, 260.0), Vector2(3800.0, 340.0), Vector2(4480.0, 320.0), Vector2(5200.0, 260.0)])
+			_spawn_grenadiers([Vector2(1000.0, 340.0), Vector2(2180.0, 260.0), Vector2(3480.0, 320.0), Vector2(4800.0, 340.0)])
+			_spawn_sensors([
+				{"pos": Vector2(300.0, 350.0), "weapon": Global.WeaponType.SPREAD},
+				{"pos": Vector2(1700.0, 320.0), "weapon": Global.WeaponType.LASER},
+				{"pos": Vector2(3300.0, 320.0), "weapon": Global.WeaponType.MACHINE},
+				{"pos": Vector2(4700.0, 340.0), "weapon": Global.WeaponType.SPREAD}
+			])
+
+		7: # ALIEN AEROSPACE HANGAR
+			# Moving hydraulic elevators, security lasers, orbital gantry turrets
+			_spawn_turrets([Vector2(480.0, 270.0), Vector2(1400.0, 260.0), Vector2(2450.0, 260.0), Vector2(3500.0, 260.0), Vector2(4650.0, 260.0), Vector2(5380.0, 340.0)])
+			_spawn_snipers([Vector2(250.0, 350.0), Vector2(1100.0, 350.0), Vector2(2120.0, 340.0), Vector2(3150.0, 340.0), Vector2(4250.0, 340.0), Vector2(5200.0, 435.0)])
+			_spawn_grenadiers([Vector2(1600.0, 435.0), Vector2(3800.0, 435.0), Vector2(4900.0, 435.0)])
+			_spawn_sensors([
+				{"pos": Vector2(290.0, 350.0), "weapon": Global.WeaponType.MACHINE},
+				{"pos": Vector2(1900.0, 340.0), "weapon": Global.WeaponType.SPREAD},
+				{"pos": Vector2(3300.0, 340.0), "weapon": Global.WeaponType.LASER},
+				{"pos": Vector2(4800.0, 260.0), "weapon": Global.WeaponType.MACHINE}
+			])
+
+		8: # MOTHER BRAIN SANCTUM
+			# Living bio-eye sentries, egg sacs, heavy crawler packs, final powerups
+			_spawn_bio_eyes([Vector2(400.0, 260.0), Vector2(1220.0, 250.0), Vector2(2100.0, 250.0), Vector2(3050.0, 250.0), Vector2(4050.0, 250.0), Vector2(5100.0, 250.0)])
+			_spawn_spore_pods([Vector2(200.0, 350.0), Vector2(680.0, 320.0), Vector2(1500.0, 320.0), Vector2(2400.0, 320.0), Vector2(3380.0, 320.0), Vector2(4380.0, 320.0), Vector2(5420.0, 320.0)])
+			_spawn_turrets([Vector2(950.0, 340.0), Vector2(1800.0, 340.0), Vector2(2720.0, 340.0), Vector2(3700.0, 340.0), Vector2(4700.0, 340.0)])
+			_spawn_crawlers([Vector2(1100.0, 420.0), Vector2(1950.0, 420.0), Vector2(2850.0, 420.0), Vector2(3850.0, 420.0), Vector2(4900.0, 420.0)])
+			_spawn_grenadiers([Vector2(2200.0, 435.0), Vector2(4500.0, 435.0), Vector2(5600.0, 435.0)])
+			_spawn_sensors([
+				{"pos": Vector2(250.0, 350.0), "weapon": Global.WeaponType.SPREAD},
+				{"pos": Vector2(1400.0, 320.0), "weapon": Global.WeaponType.MACHINE},
+				{"pos": Vector2(2600.0, 340.0), "weapon": Global.WeaponType.LASER},
+				{"pos": Vector2(3900.0, 340.0), "weapon": Global.WeaponType.SPREAD},
+				{"pos": Vector2(5200.0, 250.0), "weapon": Global.WeaponType.LASER}
+			])
+
+func _spawn_turrets(positions: Array[Vector2]) -> void:
+	if turret_scene == null: return
+	for pos in positions:
+		if pos.x < BOSS_TRIGGER_X - 100.0:
 			var t = turret_scene.instantiate()
 			t.global_position = pos
 			add_child(t)
-	
-	# 2. Elevated Snipers on Lookout Perches and Rope Bridges
-	var sniper_positions: Array[Vector2] = [
-		Vector2(530.0, 270.0),    # Sector 1: High observation perch
-		Vector2(890.0, 330.0),    # Chasm 1: Guarding Rope Bridge 1
-		Vector2(1550.0, 215.0),   # Sector 2: High fortress observation spire
-		Vector2(1890.0, 320.0),   # Chasm 2: Overlooking Waterfall Gorge
-		Vector2(2930.0, 330.0),   # Chasm 3: Guarding River Bridge 3
-		Vector2(3750.0, 200.0),   # Sector 4: Watchtower spire
-		Vector2(4710.0, 205.0)    # Sector 5: High cliff lookout
-	]
-	for pos in sniper_positions:
-		if sniper_scene != null and pos.x < BOSS_TRIGGER_X - 100.0:
+
+func _spawn_snipers(positions: Array[Vector2]) -> void:
+	if sniper_scene == null: return
+	for pos in positions:
+		if pos.x < BOSS_TRIGGER_X - 100.0:
 			var s = sniper_scene.instantiate()
 			s.global_position = pos
 			add_child(s)
-	
-	# 3. Heavy Grenadiers - Tactical Mini-Guardians at key strongpoints
-	var grenadier_positions: Array[Vector2] = [
-		Vector2(3620.0, 275.0),   # Sector 4: Heavy Battery mortar post
-		Vector2(5640.0, 250.0)    # Sector 6: Fortress Gatekeeper
-	]
-	for pos in grenadier_positions:
-		if grenadier_scene != null and pos.x < BOSS_TRIGGER_X - 120.0:
+
+func _spawn_grenadiers(positions: Array[Vector2]) -> void:
+	if grenadier_scene == null: return
+	for pos in positions:
+		if pos.x < BOSS_TRIGGER_X - 120.0:
 			var gr = grenadier_scene.instantiate()
 			gr.global_position = pos
 			add_child(gr)
-	
-	# 4. Ambush Crawlers - Surprise ambushes in the jungle ravine
-	var crawler_positions: Array[Vector2] = [
-		Vector2(2220.0, 420.0),   # Sector 3: Ambush in the ravine undergrowth
-		Vector2(2440.0, 420.0),   # Sector 3: Second crawler pack
-		Vector2(4380.0, 420.0),   # Sector 5: Ambush along waterfall cliff
-		Vector2(4580.0, 420.0)    # Sector 5: Ambush before fortress moat
-	]
-	for pos in crawler_positions:
-		if crawler_scene != null and pos.x < BOSS_TRIGGER_X - 150.0:
+
+func _spawn_crawlers(positions: Array[Vector2]) -> void:
+	if crawler_scene == null: return
+	for pos in positions:
+		if pos.x < BOSS_TRIGGER_X - 150.0:
 			var cr = crawler_scene.instantiate()
 			cr.global_position = pos
 			add_child(cr)
-	
-	# 5. Handcrafted Powerup Sensor Pods (Classic rewarding weapon progression)
-	var sensor_pods: Array[Dictionary] = [
-		{"pos": Vector2(330.0, 370.0), "weapon": Global.WeaponType.SPREAD},    # Sector 1: Spread gun
-		{"pos": Vector2(1280.0, 295.0), "weapon": Global.WeaponType.MACHINE},  # Sector 2: Machine gun
-		{"pos": Vector2(2380.0, 275.0), "weapon": Global.WeaponType.LASER},    # Sector 3: Laser gun
-		{"pos": Vector2(4480.0, 285.0), "weapon": Global.WeaponType.SPREAD}   # Sector 5: Spread gun
-	]
+
+func _spawn_sensors(sensor_pods: Array[Dictionary]) -> void:
+	if sensor_scene == null: return
 	for pod_info in sensor_pods:
-		if sensor_scene != null and pod_info["pos"].x < BOSS_TRIGGER_X - 150.0:
+		if pod_info["pos"].x < BOSS_TRIGGER_X - 150.0:
 			var pod = sensor_scene.instantiate()
 			pod.global_position = pod_info["pos"]
 			pod.weapon_type = pod_info["weapon"]
 			add_child(pod)
+
+func _spawn_spore_pods(positions: Array[Vector2]) -> void:
+	if spore_pod_script == null: return
+	for pos in positions:
+		if pos.x < BOSS_TRIGGER_X - 120.0:
+			var pod = spore_pod_script.new()
+			pod.global_position = pos
+			add_child(pod)
+
+func _spawn_bio_eyes(positions: Array[Vector2]) -> void:
+	if bio_eye_script == null: return
+	for pos in positions:
+		if pos.x < BOSS_TRIGGER_X - 120.0:
+			var eye = bio_eye_script.new()
+			eye.global_position = pos
+			add_child(eye)
 
 func _setup_animated_bg_props() -> void:
 	for c in get_children():
@@ -429,6 +827,7 @@ func _setup_animated_bg_props() -> void:
 	var res_term: BgItemData = load("res://resources/bg_props/flickering_terminal.tres") if ResourceLoader.exists("res://resources/bg_props/flickering_terminal.tres") else null
 	var res_core: BgItemData = load("res://resources/bg_props/alien_core.tres") if ResourceLoader.exists("res://resources/bg_props/alien_core.tres") else null
 	var res_arc: BgItemData = load("res://resources/bg_props/electric_arc.tres") if ResourceLoader.exists("res://resources/bg_props/electric_arc.tres") else null
+	var res_waterfall: BgItemData = load("res://resources/bg_props/waterfall_cascade.tres") if ResourceLoader.exists("res://resources/bg_props/waterfall_cascade.tres") else null
 
 	var stage_num := Global.current_stage
 	
@@ -452,7 +851,9 @@ func _setup_animated_bg_props() -> void:
 				elif res_beacon != null and i % 3 == 1:
 					chosen_data = res_beacon
 			2: # Waterfall & River Basin
-				if p_type == PlatformType.HIGH_PERCH and res_beacon != null:
+				if p_type == PlatformType.HIGH_PERCH and res_waterfall != null and i % 2 == 0:
+					chosen_data = res_waterfall
+				elif res_beacon != null:
 					chosen_data = res_beacon
 			3, 8: # Alien Bio-Hive / Sanctum
 				if i % 2 == 0 and res_core != null: chosen_data = res_core
@@ -546,9 +947,19 @@ func _spawn_soldier_wave() -> void:
 			spawn_x = pit_end + 40.0 if initial_facing == -1 else pit_start - 40.0
 			break
 	
-	var s = soldier_scene.instantiate()
-	s.facing_dir = initial_facing
-	s.global_position = Vector2(spawn_x, 420.0)
+	var s: Node2D
+	if Global.current_stage == 3 and crawler_scene != null:
+		s = crawler_scene.instantiate()
+		s.facing_dir = initial_facing
+		s.global_position = Vector2(spawn_x, 420.0)
+	elif Global.current_stage == 8 and crawler_scene != null and randf() < 0.65:
+		s = crawler_scene.instantiate()
+		s.facing_dir = initial_facing
+		s.global_position = Vector2(spawn_x, 420.0)
+	else:
+		s = soldier_scene.instantiate()
+		s.facing_dir = initial_facing
+		s.global_position = Vector2(spawn_x, 420.0)
 	add_child(s)
 
 func _spawn_drone_wave() -> void:
@@ -559,7 +970,11 @@ func _spawn_drone_wave() -> void:
 	var spawn_x: float = cam_x + 520.0 if spawn_from_right else cam_x - 520.0
 	var altitude: float = randf_range(130.0, 210.0)
 	
-	var count: int = 1 if Global.current_stage <= 2 else (2 if randf() < 0.6 else 1)
+	var count: int = 1
+	if Global.current_stage == 6 or Global.current_stage == 7:
+		count = 2 if randf() < 0.75 else 3
+	elif Global.current_stage >= 3:
+		count = 2 if randf() < 0.55 else 1
 	for i in range(count):
 		var d = drone_scene.instantiate()
 		var x_offset := float(i) * 55.0 * (1.0 if spawn_from_right else -1.0)
@@ -584,8 +999,132 @@ func _draw() -> void:
 	var cam_x: float = camera.global_position.x if camera != null else 480.0
 	var view_left: float = cam_x - 560.0
 	var view_right: float = cam_x + 560.0
+	_draw_stage_mechanics_background(view_left, view_right)
 	_draw_platforms(view_left, view_right)
+	_draw_stage_mechanics_foreground(view_left, view_right, cam_x)
 	_draw_weather_particles(view_left, view_right)
+
+func _draw_stage_mechanics_background(view_left: float, view_right: float) -> void:
+	match Global.current_stage:
+		2: # WATERFALL: Buoyant thermal updraft mist columns over chasms
+			for i in range(ground_segments.size() - 1):
+				var pit_l := ground_segments[i].end.x
+				var pit_r := ground_segments[i + 1].position.x
+				var pit_w := pit_r - pit_l
+				if pit_r >= view_left - 40.0 and pit_l <= view_right + 40.0:
+					for m in range(5):
+						var mx := pit_l + float(m + 1) * (pit_w / 6.0)
+						var my := 480.0 - fmod(anim_timer * 135.0 + float(m) * 55.0, 240.0)
+						var alpha := clampf((480.0 - my) / 240.0, 0.0, 1.0) * 0.38
+						draw_circle(Vector2(mx + sin(anim_timer * 2.5 + float(m)) * 12.0, my), 16.0, Color(0.75, 0.92, 1.0, alpha))
+		3, 8: # ALIEN HIVE & SANCTUM: Bubbling corrosive acid chasms
+			for i in range(ground_segments.size() - 1):
+				var pit_l := ground_segments[i].end.x
+				var pit_r := ground_segments[i + 1].position.x
+				var pit_w := pit_r - pit_l
+				if pit_r >= view_left - 40.0 and pit_l <= view_right + 40.0:
+					draw_rect(Rect2(pit_l, 490.0, pit_w, 50.0), Color(0.85, 0.15, 0.35, 0.9))
+					for b in range(5):
+						var bx := pit_l + fmod(float(b) * 45.0 + anim_timer * 22.0, pit_w)
+						var by := 490.0 - sin(anim_timer * 5.0 + float(b)) * 5.0
+						draw_circle(Vector2(bx, by), 3.5, Color(1.0, 0.45, 0.65, 0.8))
+		5: # REFINERY: Molten flame geysers
+			for v in flame_vents:
+				if v["pos"].x >= view_left - 50.0 and v["pos"].x <= view_right + 50.0:
+					draw_rect(Rect2(v["pos"].x - 16.0, v["pos"].y, 32.0, 16.0), Color(0.18, 0.12, 0.10))
+					draw_rect(Rect2(v["pos"].x - 12.0, v["pos"].y + 2.0, 24.0, 6.0), Color(0.95, 0.35, 0.05))
+					if v["state"] == 1:
+						for s in range(3):
+							var sy: float = v["pos"].y - float(s) * 12.0 - fmod(anim_timer * 40.0, 30.0)
+							draw_circle(Vector2(v["pos"].x + randf_range(-6.0, 6.0), sy), 2.5, Color(1.0, 0.7, 0.2, 0.75))
+					elif v["state"] == 2:
+						var flame_h := 160.0 + sin(anim_timer * 25.0) * 15.0
+						var pts := PackedVector2Array([
+							Vector2(v["pos"].x - 18.0, v["pos"].y),
+							Vector2(v["pos"].x - 12.0, v["pos"].y - flame_h * 0.6),
+							Vector2(v["pos"].x, v["pos"].y - flame_h),
+							Vector2(v["pos"].x + 12.0, v["pos"].y - flame_h * 0.6),
+							Vector2(v["pos"].x + 18.0, v["pos"].y)
+						])
+						draw_colored_polygon(pts, Color(1.0, 0.35, 0.05, 0.95))
+						var core_pts := PackedVector2Array([
+							Vector2(v["pos"].x - 8.0, v["pos"].y),
+							Vector2(v["pos"].x, v["pos"].y - flame_h * 0.75),
+							Vector2(v["pos"].x + 8.0, v["pos"].y)
+						])
+						draw_colored_polygon(core_pts, Color(1.0, 0.95, 0.7, 0.95))
+		6: # DYNAMO: Tesla coils across chasms
+			for t in tesla_arcs:
+				var t_start: Vector2 = t["start"]
+				var t_end: Vector2 = t["end"]
+				if t_end.x >= view_left - 40.0 and t_start.x <= view_right + 40.0:
+					draw_rect(Rect2(t_start.x - 4.0, t_start.y - 12.0, 8.0, 24.0), Color(0.2, 0.3, 0.45))
+					draw_rect(Rect2(t_end.x - 4.0, t_end.y - 12.0, 8.0, 24.0), Color(0.2, 0.3, 0.45))
+					draw_circle(t_start, 6.0, Color(0.4, 0.85, 1.0))
+					draw_circle(t_end, 6.0, Color(0.4, 0.85, 1.0))
+					var t_phase: float = fmod(anim_timer + float(t["cycle"]), float(t["period"]))
+					if t_phase < float(t["active_dur"]):
+						var segs := 6
+						var seg_w: float = (t_end.x - t_start.x) / float(segs)
+						var prev_pt: Vector2 = t_start
+						for s in range(1, segs):
+							var cur_x: float = t_start.x + float(s) * seg_w
+							var cur_y: float = t_start.y + sin(anim_timer * 35.0 + float(s)) * 14.0
+							var cur_pt := Vector2(cur_x, cur_y)
+							draw_line(prev_pt, cur_pt, Color(0.85, 0.95, 1.0), 3.0)
+							draw_line(prev_pt, cur_pt, Color(0.2, 0.8, 1.0, 0.6), 6.0)
+							prev_pt = cur_pt
+						draw_line(prev_pt, t_end, Color(0.85, 0.95, 1.0), 3.0)
+		7: # HANGAR: Hydraulic elevator chrome pistons
+			for lift in hydraulic_lifts:
+				var p_idx: int = lift["platform_index"]
+				if p_idx < platforms.size():
+					var p = platforms[p_idx]
+					var r: Rect2 = p["rect"]
+					if r.end.x >= view_left and r.position.x <= view_right:
+						var piston_offsets: Array[float] = [0.25, 0.75]
+						for c_i: float in piston_offsets:
+							var cx: float = r.position.x + r.size.x * c_i
+							var top_p := Vector2(cx, r.position.y + 24.0)
+							var bot_p := Vector2(cx, 440.0)
+							draw_line(top_p, bot_p, Color(0.32, 0.40, 0.50), 7.0)
+							draw_line(top_p, bot_p, Color(0.85, 0.92, 1.0), 2.5)
+
+func _draw_stage_mechanics_foreground(view_left: float, view_right: float, cam_x: float) -> void:
+	match Global.current_stage:
+		4: # TUNDRA: Falling icicles
+			for ic in falling_icicles:
+				if ic["state"] == 2: # FALLING
+					var ip: Vector2 = ic["pos"]
+					if ip.x >= view_left - 20.0 and ip.x <= view_right + 20.0:
+						var pts := PackedVector2Array([
+							Vector2(ip.x - 4.0, ip.y - 18.0),
+							Vector2(ip.x + 4.0, ip.y - 18.0),
+							Vector2(ip.x, ip.y)
+						])
+						draw_colored_polygon(pts, Color(0.70, 0.92, 1.0, 0.95))
+						draw_line(Vector2(ip.x, ip.y - 18.0), Vector2(ip.x, ip.y), Color.WHITE, 1.2)
+		7: # HANGAR: Security laser tripwires
+			for tw in security_tripwires:
+				if tw["x"] >= view_left - 30.0 and tw["x"] <= view_right + 30.0:
+					draw_rect(Rect2(tw["x"] - 6.0, tw["top_y"] - 8.0, 12.0, 16.0), Color(0.2, 0.2, 0.25))
+					draw_rect(Rect2(tw["x"] - 6.0, tw["bottom_y"] - 8.0, 12.0, 16.0), Color(0.2, 0.2, 0.25))
+					if not tw["triggered"]:
+						var pulse := 0.7 + 0.3 * sin(anim_timer * 12.0)
+						draw_line(Vector2(tw["x"], tw["top_y"]), Vector2(tw["x"], tw["bottom_y"]), Color(1.0, 0.1, 0.1, 0.85 * pulse), 2.0)
+						draw_line(Vector2(tw["x"], tw["top_y"]), Vector2(tw["x"], tw["bottom_y"]), Color(1.0, 0.6, 0.6, 0.45 * pulse), 4.5)
+					else:
+						if sin(anim_timer * 20.0) > 0.0:
+							draw_circle(Vector2(tw["x"], tw["top_y"]), 8.0, Color(1.0, 0.2, 0.2, 0.8))
+							draw_circle(Vector2(tw["x"], tw["bottom_y"]), 8.0, Color(1.0, 0.2, 0.2, 0.8))
+		8: # SANCTUM: Full-screen psychic distortion wave overlay
+			if psychic_pulse_active > 0.0:
+				var pulse_alpha := (psychic_pulse_active / 2.4) * 0.30 * (0.6 + 0.4 * sin(anim_timer * 14.0))
+				var vp_rect := Rect2(view_left, 0.0, view_right - view_left, 540.0)
+				draw_rect(vp_rect, Color(0.9, 0.15, 0.65, pulse_alpha))
+				for ring in range(3):
+					var r_radius := fmod(anim_timer * 220.0 + float(ring) * 90.0, 480.0)
+					draw_arc(Vector2(cam_x, 270.0), r_radius, 0.0, TAU, 32, Color(1.0, 0.4, 0.8, pulse_alpha * 0.6), 2.5)
 
 func _draw_platforms(view_left: float, view_right: float) -> void:
 	var g_tint := Color.WHITE
@@ -643,13 +1182,9 @@ func _draw_platforms(view_left: float, view_right: float) -> void:
 		if pit_right < view_left - 80.0 or pit_left > view_right + 80.0:
 			continue
 		
-		# Gorge canyon rock shadow behind cliff overhangs
-		draw_rect(Rect2(pit_left - 36.0, 440.0, pit_w + 72.0, 200.0), Color(0.03, 0.04, 0.06, 0.96))
-		draw_rect(Rect2(pit_left - 24.0, 475.0, pit_w + 48.0, 165.0), Color(0.015, 0.02, 0.03, 1.0))
-
-		if Global.current_stage == 1 or Global.current_stage == 2:
-			# Natural organic tropical river basin
-			var water_base_y: float = 484.0
+		if Global.current_stage == 1:
+			# Natural organic tropical river basin (translucent so backdrop shows through)
+			var water_base_y: float = 488.0
 			var water_bottom_y: float = 560.0
 			var num_pts := int(ceil(pit_w / 6.0)) + 1
 			var surface_pts := PackedVector2Array()
@@ -660,23 +1195,20 @@ func _draw_platforms(view_left: float, view_right: float) -> void:
 				var wave := sin(px * 0.016 + anim_timer * 1.3) * 2.2 + sin(px * 0.042 - anim_timer * 0.8) * 1.1
 				surface_pts.append(Vector2(px, water_base_y + wave))
 			
-			# Water body fill polygon
+			# Translucent water body fill polygon
 			var poly_pts := PackedVector2Array()
 			poly_pts.append_array(surface_pts)
 			poly_pts.append(Vector2(pit_right, water_bottom_y))
 			poly_pts.append(Vector2(pit_left, water_bottom_y))
 			
-			var c_river_surf := Color(0.06, 0.26, 0.38, 0.94) if Global.current_stage == 1 else Color(0.08, 0.32, 0.52, 0.94)
+			var c_river_surf := Color(0.06, 0.28, 0.42, 0.50)
 			draw_colored_polygon(poly_pts, c_river_surf)
 			
-			# Deep riverbed shadow
-			draw_rect(Rect2(pit_left, water_base_y + 14.0, pit_w, water_bottom_y - water_base_y - 14.0), Color(0.01, 0.04, 0.12, 0.65))
-			
 			# Subtle sub-surface caustics drifting calmly
-			for b in range(3):
+			for b in range(2):
 				var band_y := water_base_y + 8.0 + float(b) * 11.0
 				var band_drift := sin(anim_timer * 1.1 + float(b) * 1.4) * 8.0
-				var c_caustic := Color(0.30, 0.70, 0.85, 0.18)
+				var c_caustic := Color(0.30, 0.70, 0.85, 0.25)
 				draw_line(Vector2(pit_left + 12.0 + band_drift, band_y), Vector2(pit_right - 12.0 + band_drift, band_y), c_caustic, 1.5)
 			
 			# Soft translucent surface foam crest highlight
@@ -687,16 +1219,11 @@ func _draw_platforms(view_left: float, view_right: float) -> void:
 				draw_line(Vector2(pt1.x, pt1.y + 2.0), Vector2(pt2.x, pt2.y + 2.0), Color(0.22, 0.60, 0.78, 0.35), 1.0)
 		elif Global.current_stage == 5:
 			# Molten lava pool at bottom of refinery pits
-			draw_rect(Rect2(pit_left - 20.0, 460.0, pit_w + 40.0, 180.0), Color(0.08, 0.03, 0.02, 0.95))
 			var lava_pulse := 0.8 + 0.2 * sin(anim_timer * 6.0 + float(i))
-			draw_rect(Rect2(pit_left, 500.0, pit_w, 40.0), Color(1.0 * lava_pulse, 0.35, 0.05))
+			draw_rect(Rect2(pit_left, 500.0, pit_w, 40.0), Color(1.0 * lava_pulse, 0.35, 0.05, 0.85))
 		elif Global.current_stage == 6:
 			# Electric surge sparks at bottom of dynamo voids
-			draw_rect(Rect2(pit_left - 20.0, 460.0, pit_w + 40.0, 180.0), Color(0.02, 0.04, 0.08, 0.95))
 			draw_line(Vector2(pit_left, 510.0), Vector2(pit_right, 510.0), Color(0.2, 0.8, 1.0, 0.8), 2.5)
-		else:
-			# Bottomless pit abyss for space/hangar/alien chasms
-			draw_rect(Rect2(pit_left - 30.0, 440.0, pit_w + 60.0, 200.0), Color(0.02, 0.02, 0.04, 0.98))
 
 	# Ground segments
 	var edge_w: float = 96.0
@@ -780,15 +1307,27 @@ func _draw_platforms(view_left: float, view_right: float) -> void:
 					draw_rect(b, Color(0.35, 0.38, 0.44))
 					draw_rect(Rect2(b.position.x, b.position.y, b.size.x, 4.0), Color(0.92, 0.80, 0.15))
 			PlatformType.ROPE_BRIDGE:
-				if platform_bridge_texture != null:
-					draw_texture_rect(platform_bridge_texture, Rect2(b.position.x, b.position.y - 28.0, b.size.x, 52.0), false, p_tint)
+				var bridge_b: Rect2 = b
+				var is_col: bool = false
+				for br in rope_bridge_states:
+					if br["platform_index"] < platforms.size() and platforms[br["platform_index"]]["rect"].position == b.position:
+						bridge_b.position.y += br["shake_offset"]
+						is_col = br["is_collapsed"]
+						break
+				
+				if is_col:
+					# Snapped hanging rope ends and fallen bridge gap
+					draw_line(Vector2(b.position.x, b.position.y - 6.0), Vector2(b.position.x + 28.0, b.position.y + 26.0), Color(0.65, 0.48, 0.30), 2.5)
+					draw_line(Vector2(b.end.x, b.position.y - 6.0), Vector2(b.end.x - 28.0, b.position.y + 26.0), Color(0.65, 0.48, 0.30), 2.5)
+				elif platform_bridge_texture != null:
+					draw_texture_rect(platform_bridge_texture, Rect2(bridge_b.position.x, bridge_b.position.y - 28.0, bridge_b.size.x, 52.0), false, p_tint)
 				else:
 					var plank_w := 14.0
-					for pl in range(int(b.size.x / plank_w)):
-						var px := b.position.x + float(pl) * plank_w
+					for pl in range(int(bridge_b.size.x / plank_w)):
+						var px := bridge_b.position.x + float(pl) * plank_w
 						var c_plank := Color(0.55, 0.38, 0.22) if (pl % 2 == 0) else Color(0.46, 0.30, 0.16)
-						draw_rect(Rect2(px + 1.0, b.position.y + 3.0, plank_w - 2.0, 11.0), c_plank)
-					draw_line(Vector2(b.position.x, b.position.y - 6.0), Vector2(b.end.x, b.position.y - 6.0), Color(0.75, 0.60, 0.35), 2.5)
+						draw_rect(Rect2(px + 1.0, bridge_b.position.y + 3.0, plank_w - 2.0, 11.0), c_plank)
+					draw_line(Vector2(bridge_b.position.x, bridge_b.position.y - 6.0), Vector2(bridge_b.end.x, bridge_b.position.y - 6.0), Color(0.75, 0.60, 0.35), 2.5)
 			PlatformType.HIGH_PERCH:
 				var perch_lx: float = b.position.x + 12.0
 				var perch_rx: float = b.end.x - 12.0
@@ -863,6 +1402,18 @@ func _draw_platform_lava_grate(b: Rect2, p_tint: Color) -> void:
 	for r in range(int(b.size.x / 24.0)):
 		draw_circle(Vector2(b.position.x + 12.0 + float(r) * 24.0, b.position.y + 2.0), 1.5, Color(0.75, 0.65, 0.55))
 	
+	# Animated conveyor chevrons in Stage 5 Refinery
+	if Global.current_stage == 5:
+		var c_dir: float = 1.0 if (int(b.position.x) % 2 == 0) else -1.0
+		var scroll := fmod(anim_timer * 45.0 * c_dir, 20.0)
+		var num_ch := int(b.size.x / 20.0)
+		for ch in range(num_ch):
+			var ch_x := b.position.x + float(ch) * 20.0 + scroll
+			if ch_x >= b.position.x + 4.0 and ch_x <= b.end.x - 12.0:
+				var tip_x := ch_x + (6.0 * c_dir)
+				draw_line(Vector2(ch_x, b.position.y + 3.0), Vector2(tip_x, b.position.y + 7.0), Color(1.0, 0.85, 0.2, 0.85), 2.0)
+				draw_line(Vector2(ch_x, b.position.y + 11.0), Vector2(tip_x, b.position.y + 7.0), Color(1.0, 0.85, 0.2, 0.85), 2.0)
+
 	# Hanging fiery slag chains underneath
 	var chain_lx: float = b.position.x + 18.0
 	var chain_rx: float = b.end.x - 18.0
@@ -890,6 +1441,18 @@ func _draw_platform_energy_barrier(b: Rect2, p_tint: Color) -> void:
 		draw_line(Vector2(ax1, b.position.y), Vector2((ax1 + ax2) * 0.5, ay_mid), Color(0.7, 0.95, 1.0), 1.5)
 		draw_line(Vector2((ax1 + ax2) * 0.5, ay_mid), Vector2(ax2, b.position.y), Color(0.7, 0.95, 1.0), 1.5)
 	
+	# Blinding high-voltage yellow lightning arcs when surging in Stage 6 Dynamo
+	if Global.current_stage == 6:
+		var surge_phase := fmod(anim_timer, 2.8)
+		if surge_phase >= 1.8:
+			for a in range(4):
+				var ax1 := b.position.x + fmod(float(a) * 55.0 + anim_timer * 95.0, b.size.x - 30.0)
+				var ax2 := ax1 + 25.0
+				var ay_top := b.position.y - 12.0 - sin(anim_timer * 32.0 + float(a)) * 8.0
+				draw_line(Vector2(ax1, b.position.y), Vector2((ax1 + ax2) * 0.5, ay_top), Color(1.0, 0.95, 0.35), 2.5)
+				draw_line(Vector2((ax1 + ax2) * 0.5, ay_top), Vector2(ax2, b.position.y), Color(1.0, 0.95, 0.35), 2.5)
+				draw_line(Vector2(ax1, b.position.y), Vector2((ax1 + ax2) * 0.5, ay_top), Color(1.0, 0.6, 0.1, 0.4), 4.5)
+
 	# Ceramic high-voltage disc insulators beneath
 	for ins in range(int(b.size.x / 40.0)):
 		var inx := b.position.x + 20.0 + float(ins) * 40.0
@@ -929,6 +1492,18 @@ func _draw_platform_tech_catwalk(b: Rect2, p_tint: Color) -> void:
 	# Under-slung pneumatic support struts
 	draw_line(Vector2(b.position.x + 16.0, b.position.y + 24.0), Vector2(b.position.x + 8.0, b.position.y + 44.0), Color(0.35, 0.42, 0.52), 2.5)
 	draw_line(Vector2(b.end.x - 16.0, b.position.y + 24.0), Vector2(b.end.x - 8.0, b.position.y + 44.0), Color(0.35, 0.42, 0.52), 2.5)
+
+	# Animated conveyor chevrons in Stage 5 Refinery
+	if Global.current_stage == 5:
+		var c_dir: float = 1.0 if (int(b.position.x) % 2 == 0) else -1.0
+		var scroll := fmod(anim_timer * 45.0 * c_dir, 20.0)
+		var num_ch := int(b.size.x / 20.0)
+		for ch in range(num_ch):
+			var ch_x := b.position.x + float(ch) * 20.0 + scroll
+			if ch_x >= b.position.x + 4.0 and ch_x <= b.end.x - 12.0:
+				var tip_x := ch_x + (6.0 * c_dir)
+				draw_line(Vector2(ch_x, b.position.y + 6.0), Vector2(tip_x, b.position.y + 10.0), Color(1.0, 0.85, 0.2, 0.85), 2.0)
+				draw_line(Vector2(ch_x, b.position.y + 14.0), Vector2(tip_x, b.position.y + 10.0), Color(1.0, 0.85, 0.2, 0.85), 2.0)
 
 func _draw_platform_bio_rib(b: Rect2, p_tint: Color) -> void:
 	var pulse := 0.85 + 0.15 * sin(anim_timer * 4.0)
@@ -996,6 +1571,12 @@ func _draw_hanging_chain_hook(attach_pos: Vector2, chain_len: float = 54.0, tint
 
 func _draw_weather_particles(view_left: float, view_right: float) -> void:
 	match Global.current_stage:
+		2: # Rushing waterfall mist & ambient spray particles
+			for m in range(24):
+				var mx := fmod(float(m) * 88.0 + anim_timer * 75.0 + sin(anim_timer * 1.8 + float(m)) * 22.0, 1050.0) + view_left - 30.0
+				var my := fmod(float(m) * 36.0 + anim_timer * 170.0, 550.0)
+				var m_alpha := 0.22 + 0.18 * sin(anim_timer * 3.0 + float(m))
+				draw_circle(Vector2(mx, my), 1.8, Color(0.85, 0.95, 1.0, m_alpha))
 		4: # Falling blizzard snow
 			for s in range(25):
 				var sx := fmod(float(s) * 95.0 + anim_timer * 180.0, 1000.0) + view_left

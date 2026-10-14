@@ -64,13 +64,17 @@ func _handle_touch(pos: Vector2) -> void:
 		queue_redraw()
 		return
 	
-	# Check menu item clicks (between y = 300 and y = 470)
-	var ox := _get_offset_x()
-	var start_y := 296.0
-	var item_height := 38.0
+	# Check menu item clicks
+	var is_mob: bool = Global.is_mobile_device()
+	var screen_w := _get_screen_w()
+	var start_y: float = 286.0 if is_mob else 296.0
+	var item_height: float = 43.0 if is_mob else 38.0
+	var card_w: float = 380.0 if is_mob else 340.0
+	var card_h: float = 36.0 if is_mob else 32.0
+	var card_x: float = (screen_w - card_w) * 0.5
 	for i in range(menu_items.size()):
 		var item_y := start_y + float(i) * item_height
-		var item_rect := Rect2(300.0 + ox, item_y - 12.0, 360.0, 32.0)
+		var item_rect := Rect2(card_x - 10.0, item_y - card_h * 0.5 - 4.0, card_w + 20.0, card_h + 8.0)
 		if item_rect.has_point(pos):
 			selected_index = i
 			_activate_menu_item(i)
@@ -143,7 +147,10 @@ func _draw() -> void:
 	
 	# Subtitle
 	var font := ThemeDB.fallback_font
-	draw_string(font, Vector2(340.0 + ox, 248.0), "--- THE ALIEN WARS REBORN ---", HORIZONTAL_ALIGNMENT_LEFT, -1, 16, Color(0.2, 0.85, 1.0))
+	var sub_size: int = 17 if Global.is_mobile_device() else 16
+	var sub_text := "--- THE ALIEN WARS REBORN ---"
+	var sub_w := font.get_string_size(sub_text, HORIZONTAL_ALIGNMENT_LEFT, -1, sub_size).x
+	draw_string(font, Vector2((screen_w - sub_w) * 0.5, 248.0), sub_text, HORIZONTAL_ALIGNMENT_LEFT, -1, sub_size, Color(0.2, 0.85, 1.0))
 	
 	# Instructions Overlay or Menu Items
 	if show_instructions:
@@ -152,7 +159,10 @@ func _draw() -> void:
 		_draw_menu(ox)
 	
 	# Bottom Copyright line
-	draw_string(font, Vector2(270.0 + ox, 520.0), "© 2026 CONTRA RE PROJECT • BUILT FOR ANDROID & PC", HORIZONTAL_ALIGNMENT_LEFT, -1, 13, Color(0.5, 0.55, 0.65))
+	var cr_size: int = 14 if Global.is_mobile_device() else 13
+	var cr_text := "© 2026 CONTRA RE PROJECT • BUILT FOR ANDROID & PC"
+	var cr_w := font.get_string_size(cr_text, HORIZONTAL_ALIGNMENT_LEFT, -1, cr_size).x
+	draw_string(font, Vector2((screen_w - cr_w) * 0.5, 520.0), cr_text, HORIZONTAL_ALIGNMENT_LEFT, -1, cr_size, Color(0.5, 0.55, 0.65))
 
 func _draw_title_logo(ox: float) -> void:
 	var font := ThemeDB.fallback_font
@@ -174,15 +184,20 @@ func _draw_title_logo(ox: float) -> void:
 
 func _draw_menu(ox: float) -> void:
 	var font := ThemeDB.fallback_font
-	var start_y := 296.0
-	var item_height := 38.0
+	var is_mob: bool = Global.is_mobile_device()
+	var screen_w := _get_screen_w()
+	var start_y: float = 286.0 if is_mob else 296.0
+	var item_height: float = 43.0 if is_mob else 38.0
+	var card_w: float = 380.0 if is_mob else 340.0
+	var card_h: float = 36.0 if is_mob else 32.0
+	var card_x: float = (screen_w - card_w) * 0.5
 	
 	for i in range(menu_items.size()):
 		var item_y := start_y + float(i) * item_height
 		var is_sel := (i == selected_index)
 		
 		# Button Card Background
-		var card_rect := Rect2(310.0 + ox, item_y - 14.0, 340.0, 32.0)
+		var card_rect := Rect2(card_x, item_y - card_h * 0.5, card_w, card_h)
 		var bg_col := Color(0.15, 0.25, 0.45, 0.75) if is_sel else Color(0.08, 0.1, 0.16, 0.5)
 		draw_rect(card_rect, bg_col)
 		
@@ -191,7 +206,7 @@ func _draw_menu(ox: float) -> void:
 		
 		# Selection pointer indicator (Falcon wing)
 		if is_sel:
-			var pointer_x: float = 280.0 + ox + sin(anim_timer * 8.0) * 4.0
+			var pointer_x: float = card_x - (28.0 if is_mob else 24.0) + sin(anim_timer * 8.0) * 4.0
 			draw_polygon(PackedVector2Array([
 				Vector2(pointer_x, item_y - 8.0),
 				Vector2(pointer_x + 14.0, item_y + 2.0),
@@ -199,7 +214,7 @@ func _draw_menu(ox: float) -> void:
 			]), [Color(1.0, 0.85, 0.2)])
 		
 		var text_col := Color(1.0, 0.95, 0.4) if is_sel else Color(0.8, 0.85, 0.9)
-		draw_string(font, Vector2(340.0 + ox, item_y + 8.0), menu_items[i], HORIZONTAL_ALIGNMENT_LEFT, -1, 18, text_col)
+		draw_string(font, Vector2(card_x + (26.0 if is_mob else 20.0), item_y + (7.0 if is_mob else 6.0)), menu_items[i], HORIZONTAL_ALIGNMENT_LEFT, -1, 20 if is_mob else 18, text_col)
 
 func _draw_instructions_card(ox: float) -> void:
 	var font := ThemeDB.fallback_font

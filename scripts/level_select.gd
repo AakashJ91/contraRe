@@ -329,31 +329,36 @@ func _draw() -> void:
 		# Stage Number & Title
 		var title_col := Color(1.0, 0.95, 0.40) if is_sel else Color(0.92, 0.94, 0.98)
 		var title_short: String = "STAGE " + str(stage_id) + ": " + s["theme"]
-		draw_string(font, Vector2(cx + 10.0, cy + 96.0), title_short, HORIZONTAL_ALIGNMENT_LEFT, card_w - 20.0, 10, title_col)
+		var is_mob: bool = Global.is_mobile_device()
+		draw_string(font, Vector2(cx + 10.0, cy + 96.0), title_short, HORIZONTAL_ALIGNMENT_LEFT, card_w - 20.0, 11 if is_mob else 10, title_col)
 		
 		# Difficulty badge + Boss readout
-		draw_rect(Rect2(cx + 10.0, cy + 106.0, 68.0, 16.0), Color(0.08, 0.10, 0.14))
-		draw_rect(Rect2(cx + 10.0, cy + 106.0, 68.0, 16.0), s["color"], false, 1.0)
-		draw_string(font, Vector2(cx + 14.0, cy + 118.0), s["diff"], HORIZONTAL_ALIGNMENT_LEFT, -1, 9, s["color"])
+		draw_rect(Rect2(cx + 10.0, cy + 105.0, 72.0 if is_mob else 68.0, 17.0 if is_mob else 16.0), Color(0.08, 0.10, 0.14))
+		draw_rect(Rect2(cx + 10.0, cy + 105.0, 72.0 if is_mob else 68.0, 17.0 if is_mob else 16.0), s["color"], false, 1.0)
+		draw_string(font, Vector2(cx + 14.0, cy + (118.0 if not is_mob else 119.0)), s["diff"], HORIZONTAL_ALIGNMENT_LEFT, -1, 10 if is_mob else 9, s["color"])
 		
 		# Boss target tag
-		draw_string(font, Vector2(cx + 84.0, cy + 118.0), "BOSS: " + s["boss"], HORIZONTAL_ALIGNMENT_LEFT, card_w - 92.0, 9, Color(1.0, 0.40, 0.40))
+		draw_string(font, Vector2(cx + (88.0 if is_mob else 84.0), cy + (118.0 if not is_mob else 119.0)), "BOSS: " + s["boss"], HORIZONTAL_ALIGNMENT_LEFT, card_w - 92.0, 10 if is_mob else 9, Color(1.0, 0.40, 0.40))
 		
 		# Deploy Button at bottom of card
-		var btn_rect := Rect2(cx + 10.0, cy + 134.0, card_w - 20.0, 26.0)
+		var btn_h: float = 28.0 if is_mob else 26.0
+		var btn_rect := Rect2(cx + 10.0, cy + (132.0 if is_mob else 134.0), card_w - 20.0, btn_h)
 		var btn_bg: Color = s["color"] if is_sel else Color(0.12, 0.18, 0.25)
 		draw_rect(btn_rect, btn_bg)
 		draw_rect(btn_rect, Color.WHITE if is_sel else Color(0.30, 0.45, 0.60), false, 1.0)
 		
 		var deploy_label := "► DEPLOY ◄" if is_sel else "SELECT"
 		var label_col := Color.WHITE if is_sel else Color(0.70, 0.80, 0.90)
-		draw_string(font, Vector2(cx + card_w * 0.5 - 34.0, cy + 151.0), deploy_label, HORIZONTAL_ALIGNMENT_LEFT, -1, 11, label_col)
+		var d_size: int = 12 if is_mob else 11
+		var d_w := font.get_string_size(deploy_label, HORIZONTAL_ALIGNMENT_LEFT, -1, d_size).x
+		draw_string(font, Vector2(cx + (card_w - d_w) * 0.5, cy + (151.0 if not is_mob else 151.0)), deploy_label, HORIZONTAL_ALIGNMENT_LEFT, -1, d_size, label_col)
 	
 	# Bottom Return Button
-	var back_rect := Rect2(32.0 + ox, 485.0, 140.0, 36.0)
+	var is_mob_ui: bool = Global.is_mobile_device()
+	var back_rect := Rect2(32.0 + ox, 482.0 if is_mob_ui else 485.0, 140.0, 38.0 if is_mob_ui else 36.0)
 	draw_rect(back_rect, Color(0.12, 0.16, 0.24, 0.90))
 	draw_rect(back_rect, Color(0.40, 0.55, 0.75, 0.80), false, 1.5)
-	draw_string(font, Vector2(52.0 + ox, 508.0), "◄ TITLE", HORIZONTAL_ALIGNMENT_LEFT, -1, 13, Color(0.90, 0.95, 1.0))
+	draw_string(font, Vector2(50.0 + ox, 508.0), "◄ TITLE", HORIZONTAL_ALIGNMENT_LEFT, -1, 14 if is_mob_ui else 13, Color(0.90, 0.95, 1.0))
 	
 	# Center Tactical Blueprint Map Inspector Button
 	var map_btn_rect := Rect2(182.0 + ox, 485.0, 320.0, 36.0)

@@ -19,7 +19,7 @@ var crawler_texture: Texture2D = null
 func _ready() -> void:
 	collision_layer = 1 << 2 # Layer 3: Enemies
 	collision_mask = 1 << 1 # Layer 2: World
-	is_alien_theme = (Global.current_stage == 2 or Global.current_stage == 8)
+	is_alien_theme = (Global.current_stage == 3 or Global.current_stage == 8)
 	
 	if enemy_data != null:
 		health = enemy_data.max_health

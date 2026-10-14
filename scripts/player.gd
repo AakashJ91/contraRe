@@ -6,6 +6,8 @@ const GRAVITY: float = 950.0
 
 @export var bullet_scene: PackedScene = preload("res://scenes/bullet.tscn")
 @export var explosion_scene: PackedScene = preload("res://scenes/explosion.tscn")
+@export var border_color: Color = Color(1.0, 1.0, 1.0, 1.0)
+@export var border_width: float = 1.35
 
 enum PlayerState {
 	IDLE,
@@ -36,11 +38,20 @@ var tex_jump: Texture2D = null
 var tex_prone: Texture2D = null
 var tex_run: Array[Texture2D] = []
 
+var stage_gravity_scale: float = 1.0
+var conveyor_push: float = 0.0
+var is_on_ice: bool = false
+var in_updraft: bool = false
+
 @onready var collision_shape: CollisionShape2D = $CollisionShape2D
 
 func _ready() -> void:
 	collision_layer = 1 << 0 # Layer 1: Player
 	collision_mask = (1 << 1) # Layer 2: World
+	if Global.current_stage == 7:
+		stage_gravity_scale = 0.60 # Stage 7 Orbital Hangar Low Gravity
+	else:
+		stage_gravity_scale = 1.0
 	if ResourceLoader.exists("res://assets/player/player_idle.png"):
 		tex_idle = load("res://assets/player/player_idle.png")
 	if ResourceLoader.exists("res://assets/player/player_aim.png"):
@@ -57,6 +68,20 @@ func _ready() -> void:
 		var p := "res://assets/player/player_run_%d.png" % i
 		if ResourceLoader.exists(p):
 			tex_run.append(load(p))
+	Global.player_health = Global.PLAYER_MAX_HEALTH
+	Global.player_health_changed.emit(Global.player_health, Global.PLAYER_MAX_HEALTH)
+	
+	# Apply soft shimmering white outline shader
+	if ResourceLoader.exists("res://shaders/player_outline.gdshader"):
+		var outline_shader = load("res://shaders/player_outline.gdshader")
+		var outline_mat := ShaderMaterial.new()
+		outline_mat.shader = outline_shader
+		outline_mat.set_shader_parameter("outline_color", border_color)
+		outline_mat.set_shader_parameter("outline_width", border_width)
+		outline_mat.set_shader_parameter("shimmer_speed", 3.2)
+		outline_mat.set_shader_parameter("shimmer_intensity", 0.38)
+		material = outline_mat
+	
 	queue_redraw()
 
 func _physics_process(delta: float) -> void:
@@ -92,9 +117,14 @@ func _physics_process(delta: float) -> void:
 	if shoot_cooldown > 0.0:
 		shoot_cooldown -= delta
 	
-	# Gravity
+	# Gravity & Stage Physics
 	if not is_on_floor():
-		velocity.y += GRAVITY * delta
+		var eff_gravity: float = GRAVITY * stage_gravity_scale
+		if in_updraft and velocity.y > -260.0:
+			# Buoyant thermal mist updraft
+			eff_gravity *= 0.35
+			velocity.y = maxf(velocity.y - 420.0 * delta, -340.0)
+		velocity.y += eff_gravity * delta
 		state = PlayerState.JUMP
 		somersault_angle += 14.0 * delta * facing_dir
 	else:
@@ -112,7 +142,8 @@ func _physics_process(delta: float) -> void:
 		velocity.y = 80.0
 		is_jumping = false
 	elif is_on_floor() and is_jumping:
-		velocity.y = JUMP_VELOCITY
+		var jump_boost: float = 1.10 if stage_gravity_scale < 0.9 else 1.0
+		velocity.y = JUMP_VELOCITY * jump_boost
 		state = PlayerState.JUMP
 		Global.play_sfx("jump")
 	
@@ -127,18 +158,28 @@ func _physics_process(delta: float) -> void:
 	
 	# Movement logic
 	if is_on_floor():
+		var target_x: float = 0.0
 		if input_y > 0.6 and abs(input_x) < 0.2:
 			# Prone state: cannot run, crouching flat to ground
 			state = PlayerState.PRONE
-			velocity.x = 0.0
+			target_x = 0.0
 		elif abs(input_x) > 0.1:
 			state = PlayerState.RUN
-			velocity.x = facing_dir * SPEED
+			target_x = facing_dir * SPEED
 			run_frame += delta * 9.0
 		else:
 			state = PlayerState.IDLE
-			velocity.x = 0.0
+			target_x = 0.0
 			run_frame = 0.0
+		
+		if is_on_ice:
+			# Low-friction ice sliding inertia (skating momentum)
+			var accel: float = 240.0 if abs(target_x) > 0.1 else 140.0
+			velocity.x = move_toward(velocity.x, target_x, accel * delta)
+			if abs(velocity.x) > 50.0 and randf() < 0.25:
+				VFX.spawn_dust_puff(global_position + Vector2(0.0, 18.0), 2)
+		else:
+			velocity.x = target_x
 	else:
 		# Air control
 		if abs(input_x) > 0.1:
@@ -146,14 +187,23 @@ func _physics_process(delta: float) -> void:
 		else:
 			velocity.x = move_toward(velocity.x, 0.0, 400.0 * delta)
 	
+	# Apply motorized conveyor belt push
+	if conveyor_push != 0.0:
+		velocity.x += conveyor_push
+	
 	var was_in_air: bool = not is_on_floor()
 	move_and_slide()
 	if was_in_air and is_on_floor():
 		VFX.spawn_dust_puff(global_position + Vector2(0.0, 18.0), 6)
 	
+	# Reset single-frame stage interaction flags
+	conveyor_push = 0.0
+	is_on_ice = false
+	in_updraft = false
+	
 	# Bottomless pit hazard death
 	if global_position.y > 545.0:
-		if Global.is_maker_mode:
+		if Global.is_maker_mode or Global.is_stage_intro_active():
 			velocity = Vector2.ZERO
 			var current_scene = get_tree().current_scene
 			if current_scene != null and current_scene.has_method("get_safe_respawn_position"):
@@ -163,6 +213,9 @@ func _physics_process(delta: float) -> void:
 		else:
 			take_damage(999.0)
 			return
+	
+	if Global.is_stage_intro_active():
+		queue_redraw()
 	
 	# Continuous shooting for Machine Gun, single tap or cooldown for others
 	if is_shooting and shoot_cooldown <= 0.0:
@@ -254,12 +307,36 @@ func _get_gun_barrel_offset() -> Vector2:
 			return Vector2(facing_dir * 16.0, -18.0)
 		return Vector2(facing_dir * 24.0, -6.0)
 
-func take_damage(_amount: float = 1.0) -> void:
-	if Global.is_maker_mode:
+func take_damage(amount: float = 1.0) -> void:
+	if Global.is_maker_mode or Global.is_stage_intro_active():
 		return
 	if is_invulnerable or state == PlayerState.DEAD or state == PlayerState.RESPAWNING:
 		return
 	
+	# Lethal bottomless pit or instant-kill hazards (amount >= 900.0)
+	if amount >= 900.0:
+		Global.player_health = 0
+		Global.player_health_changed.emit(0, Global.PLAYER_MAX_HEALTH)
+		_die()
+		return
+	
+	# Normal damage reduces health
+	var dmg_int: int = maxi(1, int(amount))
+	Global.player_health = maxi(0, Global.player_health - dmg_int)
+	Global.player_health_changed.emit(Global.player_health, Global.PLAYER_MAX_HEALTH)
+	
+	if Global.player_health <= 0:
+		_die()
+	else:
+		# Player survived hit: play hit SFX, sparks, screen shake and grant invulnerability window
+		Global.play_sfx("hit")
+		Global.shake_screen(4.5, 0.22)
+		VFX.spawn_hit_sparks(global_position, Vector2.UP, Color(1.0, 0.4, 0.3))
+		is_invulnerable = true
+		invulnerable_timer = 1.6
+		queue_redraw()
+
+func _die() -> void:
 	state = PlayerState.DEAD
 	velocity = Vector2.ZERO
 	Global.play_sfx("player_death")
@@ -274,6 +351,8 @@ func take_damage(_amount: float = 1.0) -> void:
 func _respawn() -> void:
 	state = PlayerState.RESPAWNING
 	respawn_timer = 0.8
+	Global.player_health = Global.PLAYER_MAX_HEALTH
+	Global.player_health_changed.emit(Global.player_health, Global.PLAYER_MAX_HEALTH)
 	var current_scene = get_tree().current_scene
 	if current_scene != null and current_scene.has_method("get_safe_respawn_position"):
 		global_position = current_scene.get_safe_respawn_position(global_position.x)
@@ -282,8 +361,9 @@ func _respawn() -> void:
 	velocity = Vector2.ZERO
 	Global.set_weapon(Global.WeaponType.RIFLE) # Reset to default rifle on death
 
-func _draw_maker_invincible_aura() -> void:
-	if not Global.is_maker_mode:
+func _draw_invincible_aura() -> void:
+	var is_intro := Global.is_stage_intro_active()
+	if not Global.is_maker_mode and not is_intro:
 		return
 	var t: float = Time.get_ticks_msec() / 1000.0
 	var pulse: float = 0.5 + 0.5 * sin(t * 7.0)
@@ -293,7 +373,7 @@ func _draw_maker_invincible_aura() -> void:
 	elif state != PlayerState.JUMP:
 		center = Vector2(0.0, -8.0)
 	
-	var shield_color := Color(0.15, 0.85, 1.0, 0.45 + 0.35 * pulse)
+	var shield_color := Color(0.15, 0.85, 1.0, 0.45 + 0.35 * pulse) if not is_intro else Color(1.0, 0.85, 0.25, 0.40 + 0.30 * pulse)
 	
 	# Concentric glowing energy arcs
 	draw_arc(center, 18.0 + 1.5 * pulse, 0.0, TAU, 28, shield_color, 2.0)
@@ -310,7 +390,7 @@ func _draw() -> void:
 	if state == PlayerState.DEAD:
 		return
 	
-	_draw_maker_invincible_aura()
+	_draw_invincible_aura()
 	
 	# Flicker when invulnerable
 	if is_invulnerable and fmod(invulnerable_timer * 12.0, 1.0) > 0.5:
@@ -329,6 +409,7 @@ func _draw() -> void:
 		var col_skin_fb := Color(0.96, 0.76, 0.60)
 		var col_pants_fb := Color(0.15, 0.35, 0.85)
 		draw_set_transform(Vector2.ZERO, somersault_angle, Vector2.ONE)
+		draw_circle(Vector2.ZERO, 11.5, border_color)
 		draw_circle(Vector2.ZERO, 10.0, col_pants_fb)
 		draw_circle(Vector2(2.0, -2.0), 6.5, col_skin_fb)
 		draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
@@ -347,6 +428,7 @@ func _draw() -> void:
 		
 		# Procedural fallback
 		var dir := float(facing_dir)
+		draw_rect(Rect2(-dir * 15.0, 1.0, 16.0, 9.0), border_color)
 		draw_rect(Rect2(-dir * 14.0, 2.0, 14.0, 7.0), Color(0.15, 0.35, 0.85))
 		draw_rect(Rect2(-dir * 2.0, 0.0, 10.0, 8.0), Color(0.96, 0.76, 0.60))
 		draw_circle(Vector2(dir * 10.0, 2.0), 5.0, Color(0.96, 0.76, 0.60))

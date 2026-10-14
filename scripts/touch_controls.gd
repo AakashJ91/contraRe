@@ -23,9 +23,7 @@ var jump_touch_ids: Array[int] = []
 var jump_active: bool = false
 var last_jump_tap_pos: Vector2 = Vector2.ZERO
 var jump_tap_anim: float = 0.0
-
-var btn_map_pos: Vector2 = Vector2(848.0, 14.0)
-var btn_map_size: Vector2 = Vector2(34.0, 22.0)
+@export var show_jump_button: bool = true
 
 var btn_menu_pos: Vector2 = Vector2(890.0, 14.0)
 var btn_menu_size: Vector2 = Vector2(34.0, 22.0)
@@ -35,7 +33,6 @@ var btn_restart_pos: Vector2 = Vector2(932.0, 14.0)
 var btn_restart_size: Vector2 = Vector2(34.0, 22.0)
 var btn_restart_radius: float = 18.0
 
-var style_map_btn: StyleBoxFlat
 var style_menu_btn: StyleBoxFlat
 var style_restart_btn: StyleBoxFlat
 
@@ -52,12 +49,17 @@ func _ready() -> void:
 	mouse_filter = Control.MOUSE_FILTER_PASS
 	set_process_input(true)
 	
-	style_map_btn = StyleBoxFlat.new()
-	style_map_btn.bg_color = Color(0.04, 0.08, 0.14, 0.60)
-	style_map_btn.border_color = Color(0.25, 0.85, 0.55, 0.40)
-	style_map_btn.set_border_width_all(1)
-	style_map_btn.set_corner_radius_all(6)
-	style_map_btn.anti_aliasing = true
+	if Global.is_mobile_device():
+		show_jump_button = false
+		dpad_radius = 90.0
+		btn_shoot_radius = 86.0
+		default_dpad_center = Vector2(145.0, 405.0)
+		dpad_center = default_dpad_center
+		current_thumb_pos = default_dpad_center
+		btn_menu_size = Vector2(44.0, 30.0)
+		btn_menu_radius = 22.0
+		btn_restart_size = Vector2(44.0, 30.0)
+		btn_restart_radius = 22.0
 	
 	style_menu_btn = StyleBoxFlat.new()
 	style_menu_btn.bg_color = Color(0.06, 0.09, 0.14, 0.60)
@@ -83,11 +85,16 @@ func _get_screen_w() -> float:
 
 func _update_layout_positions() -> void:
 	var w := _get_screen_w()
-	btn_shoot_pos = Vector2(w - 116.0, 418.0)
-	btn_jump_pos = Vector2(w - 275.0, 430.0)
-	btn_map_pos = Vector2(w - 112.0, 14.0)
-	btn_menu_pos = Vector2(w - 70.0, 14.0)
-	btn_restart_pos = Vector2(w - 28.0, 14.0)
+	if Global.is_mobile_device():
+		btn_shoot_pos = Vector2(w - 120.0, 405.0)
+		btn_jump_pos = Vector2(w - 290.0, 415.0)
+		btn_menu_pos = Vector2(w - 82.0, 18.0)
+		btn_restart_pos = Vector2(w - 28.0, 18.0)
+	else:
+		btn_shoot_pos = Vector2(w - 116.0, 418.0)
+		btn_jump_pos = Vector2(w - 275.0, 430.0)
+		btn_menu_pos = Vector2(w - 70.0, 14.0)
+		btn_restart_pos = Vector2(w - 28.0, 14.0)
 
 func _on_maker_mode_toggled(maker_active: bool) -> void:
 	if maker_active:
@@ -153,17 +160,14 @@ func _handle_touch_down(idx: int, pos: Vector2) -> void:
 	var w := _get_screen_w()
 	var half_w := w * 0.5
 
-	# Tactical Map, Level Selector & Restart on top-right (aligned with scoreboard)
-	if pos.y <= 36.0:
-		if pos.x >= w - 132.0 and pos.x < w - 92.0:
-			Global.play_sfx("menu_cursor")
-			Global.toggle_map()
-			return
-		elif pos.x >= w - 92.0 and pos.x < w - 49.0:
+	# Level Selector & Restart on top-right (aligned with scoreboard)
+	var top_touch_h: float = 46.0 if Global.is_mobile_device() else 36.0
+	if pos.y <= top_touch_h:
+		if pos.x >= w - 110.0 and pos.x < w - 55.0:
 			Global.play_sfx("menu_cursor")
 			Global.go_to_level_select()
 			return
-		elif pos.x >= w - 49.0:
+		elif pos.x >= w - 55.0:
 			Global.reset_game()
 			get_tree().reload_current_scene()
 			return
@@ -347,12 +351,12 @@ func _draw() -> void:
 			draw_circle(arrow_pt, 4.0, Color(1.0, 0.85, 0.2))
 	
 	# Thumb Knob
-	var knob_radius := 26.0
+	var knob_radius: float = 32.0 if Global.is_mobile_device() else 26.0
 	var knob_bg := Color(0.1, 0.45, 0.9, 0.9) if dpad_active else Color(0.45, 0.5, 0.6, 0.5)
 	draw_circle(current_thumb_pos, knob_radius, Color(0.02, 0.05, 0.1, 0.6))
 	draw_circle(current_thumb_pos, knob_radius * 0.85, knob_bg)
-	draw_arc(current_thumb_pos, knob_radius * 0.85, 0.0, TAU, 24, Color(0.8, 0.95, 1.0, 0.8), 2.0)
-	draw_circle(current_thumb_pos, 8.0, Color.WHITE)
+	draw_arc(current_thumb_pos, knob_radius * 0.85, 0.0, TAU, 24, Color(0.8, 0.95, 1.0, 0.8), 2.2 if Global.is_mobile_device() else 2.0)
+	draw_circle(current_thumb_pos, 10.0 if Global.is_mobile_device() else 8.0, Color.WHITE)
 	
 	# --- JUMP TAP SHOCKWAVE / RIPPLE FEEDBACK (ANYWHERE ON RIGHT SIDE) ---
 	if jump_tap_anim > 0.0 and last_jump_tap_pos != Vector2.ZERO:
@@ -362,26 +366,27 @@ func _draw() -> void:
 		draw_arc(last_jump_tap_pos, rip_r, 0.0, TAU, 28, Color(0.25, 0.85, 1.0, rip_a), 2.5)
 		draw_circle(last_jump_tap_pos, 7.0 * (1.0 - prog), Color(0.50, 0.95, 1.0, rip_a * 0.7))
 
-	# --- JUMP BUTTON (A / JUMP) ---
-	var jump_col := Color(0.12, 0.62, 1.0, 0.95) if jump_active else Color(0.12, 0.42, 0.85, fg_alpha)
-	var jump_border_col := Color(0.40, 0.92, 1.0, 0.95) if jump_active else Color(0.35, 0.75, 1.0, 0.60)
-	draw_circle(btn_jump_pos, btn_jump_radius + 3.0, Color(0.0, 0.0, 0.0, 0.35))
-	draw_circle(btn_jump_pos, btn_jump_radius, Color(0.04, 0.10, 0.20, bg_alpha * 1.3))
-	draw_circle(btn_jump_pos, btn_jump_radius * 0.86, jump_col)
-	draw_arc(btn_jump_pos, btn_jump_radius, 0.0, TAU, 32, jump_border_col, 3.2 if jump_active else 2.4)
-	if jump_active:
-		var jpulse := btn_jump_radius + 5.0 + sin(pulse_time * 2.0) * 3.0
-		draw_arc(btn_jump_pos, jpulse, 0.0, TAU, 30, Color(0.2, 0.8, 1.0, 0.45), 2.0)
-	
-	# Jump Letter 'A'
-	var a_offset := Vector2(0.0, -6.0)
-	draw_line(btn_jump_pos + a_offset + Vector2(-11.0, 13.0), btn_jump_pos + a_offset + Vector2(0.0, -14.0), Color.WHITE, 3.8)
-	draw_line(btn_jump_pos + a_offset + Vector2(11.0, 13.0), btn_jump_pos + a_offset + Vector2(0.0, -14.0), Color.WHITE, 3.8)
-	draw_line(btn_jump_pos + a_offset + Vector2(-7.0, 2.0), btn_jump_pos + a_offset + Vector2(7.0, 2.0), Color.WHITE, 3.2)
-	_draw_btn_text("JUMP", btn_jump_pos + Vector2(0.0, 21.0), Color(0.88, 0.96, 1.0, 0.95), 11)
+	# --- JUMP BUTTON (A / JUMP) (INVISIBLE ON ANDROID) ---
+	if show_jump_button:
+		var jump_col := Color(0.12, 0.62, 1.0, 0.95) if jump_active else Color(0.12, 0.42, 0.85, fg_alpha)
+		var jump_border_col := Color(0.40, 0.92, 1.0, 0.95) if jump_active else Color(0.35, 0.75, 1.0, 0.60)
+		draw_circle(btn_jump_pos, btn_jump_radius + 3.0, Color(0.0, 0.0, 0.0, 0.35))
+		draw_circle(btn_jump_pos, btn_jump_radius, Color(0.04, 0.10, 0.20, bg_alpha * 1.3))
+		draw_circle(btn_jump_pos, btn_jump_radius * 0.86, jump_col)
+		draw_arc(btn_jump_pos, btn_jump_radius, 0.0, TAU, 32, jump_border_col, 3.2 if jump_active else 2.4)
+		if jump_active:
+			var jpulse := btn_jump_radius + 5.0 + sin(pulse_time * 2.0) * 3.0
+			draw_arc(btn_jump_pos, jpulse, 0.0, TAU, 30, Color(0.2, 0.8, 1.0, 0.45), 2.0)
+		
+		# Jump Letter 'A'
+		var a_offset := Vector2(0.0, -6.0)
+		draw_line(btn_jump_pos + a_offset + Vector2(-11.0, 13.0), btn_jump_pos + a_offset + Vector2(0.0, -14.0), Color.WHITE, 3.8)
+		draw_line(btn_jump_pos + a_offset + Vector2(11.0, 13.0), btn_jump_pos + a_offset + Vector2(0.0, -14.0), Color.WHITE, 3.8)
+		draw_line(btn_jump_pos + a_offset + Vector2(-7.0, 2.0), btn_jump_pos + a_offset + Vector2(7.0, 2.0), Color.WHITE, 3.2)
+		_draw_btn_text("JUMP", btn_jump_pos + Vector2(0.0, 21.0), Color(0.88, 0.96, 1.0, 0.95), 11)
 
-	# Subtle arcade hint below jump area
-	_draw_btn_text("TAP RIGHT HALF TO JUMP", Vector2(btn_jump_pos.x, 498.0), Color(0.40, 0.80, 1.0, 0.45), 10)
+		# Subtle arcade hint below jump area
+		_draw_btn_text("TAP RIGHT HALF TO JUMP", Vector2(btn_jump_pos.x, 498.0), Color(0.40, 0.80, 1.0, 0.45), 10)
 	
 	# --- BIG SHOOT BUTTON (B / FIRE) ---
 	var shoot_col := Color(1.0, 0.22, 0.15, 0.96) if shoot_active else Color(0.85, 0.18, 0.16, fg_alpha * 1.15)
@@ -407,33 +412,18 @@ func _draw() -> void:
 	draw_line(btn_shoot_pos + b_offset + Vector2(-13.0, 16.0), btn_shoot_pos + b_offset + Vector2(-2.0, 16.0), Color.WHITE, 4.4)
 	draw_arc(btn_shoot_pos + b_offset + Vector2(-2.0, -8.0), 8.0, -PI*0.5, PI*0.5, 14, Color.WHITE, 3.8)
 	draw_arc(btn_shoot_pos + b_offset + Vector2(-2.0, 8.0), 8.0, -PI*0.5, PI*0.5, 14, Color.WHITE, 3.8)
-	_draw_btn_text("FIRE", btn_shoot_pos + Vector2(0.0, 26.0), Color(1.0, 0.90, 0.90, 0.95), 13)
-	
-	# --- SLEEK FLAT TACTICAL MAP BUTTON (HEADER) ---
-	var map_rect := Rect2(btn_map_pos.x - btn_map_size.x * 0.5, btn_map_pos.y - btn_map_size.y * 0.5, btn_map_size.x, btn_map_size.y)
-	draw_style_box(style_map_btn, map_rect)
-	
-	var map_col := Color(0.40, 0.95, 0.70, 0.95)
-	var mx := btn_map_pos.x - 7.0
-	var my := btn_map_pos.y - 5.5
-	draw_line(Vector2(mx, my), Vector2(mx, my + 11.0), map_col, 1.6)
-	draw_line(Vector2(mx, my), Vector2(mx + 4.5, my + 2.0), map_col, 1.4)
-	draw_line(Vector2(mx + 4.5, my + 2.0), Vector2(mx + 4.5, my + 13.0), map_col, 1.6)
-	draw_line(Vector2(mx + 4.5, my + 2.0), Vector2(mx + 9.5, my), map_col, 1.4)
-	draw_line(Vector2(mx + 9.5, my), Vector2(mx + 9.5, my + 11.0), map_col, 1.6)
-	draw_line(Vector2(mx + 9.5, my), Vector2(mx + 14.0, my + 2.0), map_col, 1.4)
-	draw_line(Vector2(mx + 14.0, my + 2.0), Vector2(mx + 14.0, my + 13.0), map_col, 1.6)
-	draw_line(Vector2(mx, my + 11.0), Vector2(mx + 4.5, my + 13.0), map_col, 1.4)
-	draw_line(Vector2(mx + 4.5, my + 13.0), Vector2(mx + 9.5, my + 11.0), map_col, 1.4)
-	draw_line(Vector2(mx + 9.5, my + 11.0), Vector2(mx + 14.0, my + 13.0), map_col, 1.4)
+	var fire_font: int = 15 if Global.is_mobile_device() else 13
+	var fire_y_off: float = 30.0 if Global.is_mobile_device() else 26.0
+	_draw_btn_text("FIRE", btn_shoot_pos + Vector2(0.0, fire_y_off), Color(1.0, 0.90, 0.90, 0.95), fire_font)
 	
 	# --- SLEEK FLAT LEVEL SELECTOR (MENU) BUTTON (HEADER) ---
 	var menu_rect := Rect2(btn_menu_pos.x - btn_menu_size.x * 0.5, btn_menu_pos.y - btn_menu_size.y * 0.5, btn_menu_size.x, btn_menu_size.y)
 	draw_style_box(style_menu_btn, menu_rect)
 	
+	var is_mob: bool = Global.is_mobile_device()
 	var grid_col := Color(0.92, 0.95, 1.0, 0.90)
-	var tile_sz: float = 3.5
-	var tile_gap: float = 2.5
+	var tile_sz: float = 4.4 if is_mob else 3.5
+	var tile_gap: float = 3.0 if is_mob else 2.5
 	var hg: float = tile_sz + tile_gap * 0.5
 	draw_rect(Rect2(btn_menu_pos.x - hg, btn_menu_pos.y - hg, tile_sz, tile_sz), grid_col)
 	draw_rect(Rect2(btn_menu_pos.x + tile_gap * 0.5, btn_menu_pos.y - hg, tile_sz, tile_sz), grid_col)
@@ -445,14 +435,15 @@ func _draw() -> void:
 	draw_style_box(style_restart_btn, restart_rect)
 	
 	var restart_col := Color(1.0, 0.92, 0.75, 0.90)
-	var r_rad: float = 5.5
-	draw_arc(btn_restart_pos, r_rad, 0.5, 5.5, 20, restart_col, 1.8)
+	var r_rad: float = 7.0 if is_mob else 5.5
+	draw_arc(btn_restart_pos, r_rad, 0.5, 5.5, 20, restart_col, 2.0 if is_mob else 1.8)
 	var tip := btn_restart_pos + Vector2(cos(5.5), sin(5.5)) * r_rad
 	var dir := Vector2(0.706, 0.708)
+	var arrow_sz: float = 4.2 if is_mob else 3.2
 	var arrow_pts := PackedVector2Array([
-		tip + dir * 3.2,
-		tip - dir * 1.5 + Vector2(-dir.y, dir.x) * 2.8,
-		tip - dir * 1.5 - Vector2(-dir.y, dir.x) * 2.8
+		tip + dir * arrow_sz,
+		tip - dir * 1.8 + Vector2(-dir.y, dir.x) * (3.6 if is_mob else 2.8),
+		tip - dir * 1.8 - Vector2(-dir.y, dir.x) * (3.6 if is_mob else 2.8)
 	])
 	draw_colored_polygon(arrow_pts, restart_col)
 

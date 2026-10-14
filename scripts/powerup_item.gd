@@ -64,6 +64,7 @@ func _on_area_entered(area: Area2D) -> void:
 func _collect() -> void:
 	Global.add_score(500)
 	Global.set_weapon(weapon_type)
+	Global.heal_player(1)
 	VFX.spawn_powerup_sparkle(global_position)
 	queue_free()
 
