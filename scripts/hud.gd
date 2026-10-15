@@ -32,6 +32,7 @@ func _process(delta: float) -> void:
 
 func trigger_stage_intro() -> void:
 	Global.start_stage_intro()
+	Global.play_sfx("menu_start")
 	queue_redraw()
 
 func _on_stage_started(_stage_idx: int) -> void:
@@ -263,49 +264,261 @@ func _draw_stage_intro_splash(screen_w: float) -> void:
 	var screen_h: float = maxf(540.0, get_viewport_rect().size.y)
 	var is_mob: bool = Global.is_mobile_device()
 	var timer: float = Global.stage_intro_timer
+	var t_elapsed: float = Global.STAGE_INTRO_DURATION - timer
 	
-	# Calculate alpha fade-in, hold, and vanish fade-out
-	var alpha: float = 1.0
-	if timer > 2.8:
-		# Fade in during first 0.4s
-		alpha = clampf((Global.STAGE_INTRO_DURATION - timer) / 0.4, 0.0, 1.0)
-	elif timer < 0.8:
-		# Vanish fade-out during final 0.8s
-		alpha = clampf(timer / 0.8, 0.0, 1.0)
-	
-	if alpha <= 0.001:
+	if timer <= 0.0 or timer > Global.STAGE_INTRO_DURATION:
 		return
-	
+
 	var cx: float = screen_w * 0.5
 	var cy: float = screen_h * 0.35
 	
-	# Subtle floating vertical entrance ease
-	var entrance_offset: float = 0.0
-	if timer > 2.8:
-		var t := (Global.STAGE_INTRO_DURATION - timer) / 0.4
-		entrance_offset = (1.0 - sin(t * PI * 0.5)) * -12.0
-	cy += entrance_offset
+	var enter_dur: float = 0.92
+	var exit_dur: float = 0.85
 	
-	# Line 1: STAGE NUMBER (Arcade Gold with multi-pass drop-shadow)
+	var is_entering := (t_elapsed < enter_dur)
+	var is_exiting := (timer < exit_dur)
+	var t_exit := (exit_dur - timer) if is_exiting else 0.0
+	
+	var flash_intensity: float = 0.0
+	if is_entering and t_elapsed >= 0.80:
+		var flash_t := clampf((t_elapsed - 0.80) / 0.18, 0.0, 1.0)
+		flash_intensity = (1.0 - flash_t) * 0.95
+	
+	# Gentle hover breathing during presentation hold
+	if not is_entering and not is_exiting:
+		cy += sin(anim_timer * 4.0) * 2.5
+	
 	var stage_badge := "STAGE " + str(Global.current_stage)
-	var badge_col := Color(1.0, 0.85, 0.25, alpha)
-	_draw_centered_pixel_text(stage_badge, cx, cy - (16.0 if not is_mob else 18.0), badge_col, 20 if not is_mob else 22)
-	
-	# Line 2: STAGE FULL TITLE (Crisp Glowing Cyan/White with multi-pass drop-shadow)
 	var stage_title := Global.get_stage_full_title()
-	var pulse := 0.92 + 0.08 * sin(anim_timer * 8.0)
-	var title_col := Color(0.50 * pulse, 0.95 * pulse, 1.0, alpha)
-	_draw_centered_pixel_text(stage_title, cx, cy + (22.0 if not is_mob else 26.0), title_col, 32 if not is_mob else 36)
+	
+	var badge_font_size: int = 22 if is_mob else 20
+	var title_font_size: int = 36 if is_mob else 32
+	
+	var pos1_y: float = cy - (18.0 if not is_mob else 20.0)
+	var pos2_y: float = cy + (22.0 if not is_mob else 26.0)
+	
+	# Shimmer & Pulse base colors
+	var pulse := 0.92 + 0.08 * sin(anim_timer * 7.0)
+	var badge_base := Color(1.0, 0.85, 0.25, 1.0)
+	var title_base := Color(0.45 * pulse, 0.95 * pulse, 1.0, 1.0)
+	
+	if flash_intensity > 0.01:
+		badge_base = badge_base.lerp(Color.WHITE, flash_intensity)
+		title_base = title_base.lerp(Color.WHITE, flash_intensity)
+		
+		# Center impact laser streak upon full text completion
+		var streak_w: float = lerpf(80.0, screen_w * 0.45, 1.0 - flash_intensity)
+		var streak_col_inner := Color(1.0, 1.0, 1.0, flash_intensity * 0.9)
+		var streak_col_outer := Color(0.25, 0.90, 1.0, flash_intensity * 0.5)
+		draw_line(Vector2(cx - streak_w, cy), Vector2(cx + streak_w, cy), streak_col_outer, 5.0)
+		draw_line(Vector2(cx - streak_w * 0.8, cy), Vector2(cx + streak_w * 0.8, cy), streak_col_inner, 2.0)
+	
+	# Decorative wings flanking STAGE X
+	var font := ThemeDB.fallback_font
+	var badge_w := font.get_string_size(stage_badge, HORIZONTAL_ALIGNMENT_LEFT, -1, badge_font_size).x
+	var badge_finish: float = 0.0 + float(stage_badge.length()) * 0.045 + 0.15
+	
+	var wing_progress: float = 1.0
+	if is_entering:
+		wing_progress = clampf((t_elapsed - 0.20) / (badge_finish - 0.20), 0.0, 1.0)
+	elif is_exiting:
+		wing_progress = clampf(1.0 - t_exit / 0.35, 0.0, 1.0)
+	
+	if wing_progress > 0.02:
+		var wing_pad: float = 16.0
+		var max_wing_len: float = 38.0
+		var wing_len: float = max_wing_len * wing_progress
+		var wing_alpha: float = wing_progress * 0.85
+		var wing_col := Color(1.0, 0.82, 0.20, wing_alpha)
+		var lx1 := cx - (badge_w * 0.5) - wing_pad - wing_len
+		var lx2 := cx - (badge_w * 0.5) - wing_pad
+		draw_line(Vector2(lx1, pos1_y), Vector2(lx2, pos1_y), wing_col, 2.0)
+		draw_line(Vector2(lx1, pos1_y - 4.0), Vector2(lx1, pos1_y + 4.0), wing_col, 2.0)
+		var rx1 := cx + (badge_w * 0.5) + wing_pad
+		var rx2 := cx + (badge_w * 0.5) + wing_pad + wing_len
+		draw_line(Vector2(rx1, pos1_y), Vector2(rx2, pos1_y), wing_col, 2.0)
+		draw_line(Vector2(rx2, pos1_y - 4.0), Vector2(rx2, pos1_y + 4.0), wing_col, 2.0)
 
-func _draw_centered_pixel_text(text: String, center_x: float, y: float, col: Color, font_size: int = 14) -> void:
+	# Letter-by-letter rendering for Line 1 (Badge) & Line 2 (Full Title)
+	_draw_letter_by_letter_line(
+		stage_badge,
+		Vector2(cx, pos1_y),
+		badge_base,
+		badge_font_size,
+		0.0,      # line_enter_delay
+		0.0,      # line_exit_delay
+		t_elapsed,
+		t_exit,
+		is_entering,
+		is_exiting,
+		0.045,    # enter_stagger
+		0.032,    # exit_stagger
+		0.20,     # enter_char_dur
+		0.28,     # exit_char_dur
+		false,    # show_cursor
+		-1.0      # fan_bias
+	)
+	_draw_letter_by_letter_line(
+		stage_title,
+		Vector2(cx, pos2_y),
+		title_base,
+		title_font_size,
+		0.16,     # line_enter_delay
+		0.10,     # line_exit_delay
+		t_elapsed,
+		t_exit,
+		is_entering,
+		is_exiting,
+		0.038,    # enter_stagger
+		0.032,    # exit_stagger
+		0.20,     # enter_char_dur
+		0.28,     # exit_char_dur
+		true,     # show_cursor
+		1.0       # fan_bias
+	)
+
+func _draw_letter_by_letter_line(
+	text: String,
+	center_pos: Vector2,
+	base_color: Color,
+	font_size: int,
+	line_enter_delay: float,
+	line_exit_delay: float,
+	t_elapsed: float,
+	t_exit: float,
+	is_entering: bool,
+	is_exiting: bool,
+	enter_stagger: float,
+	exit_stagger: float,
+	enter_char_dur: float,
+	exit_char_dur: float,
+	show_cursor: bool,
+	fan_bias: float
+) -> void:
+	if text.is_empty():
+		return
+		
+	var font := ThemeDB.fallback_font
+	var total_w := font.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size).x
+	var start_x := center_pos.x - (total_w * 0.5)
+	var base_y := center_pos.y
+	
+	var enter_finish := line_enter_delay + float(text.length()) * enter_stagger + enter_char_dur
+	var is_line_entering := (is_entering and t_elapsed < enter_finish)
+	var latest_active_x: float = start_x
+	
+	for i in range(text.length()):
+		var ch := text.substr(i, 1)
+		var pref_w := font.get_string_size(text.substr(0, i), HORIZONTAL_ALIGNMENT_LEFT, -1, font_size).x
+		var char_w := font.get_string_size(ch, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size).x
+		var char_cx := start_x + pref_w + char_w * 0.5
+		
+		# If line is entering and character hasn't started its entrance yet, omit it
+		if is_line_entering:
+			var char_enter_start := line_enter_delay + float(i) * enter_stagger
+			if t_elapsed < char_enter_start:
+				continue
+		
+		var char_pos := Vector2(char_cx, base_y)
+		var char_scale := Vector2.ONE
+		var char_alpha: float = 1.0
+		var char_col := base_color
+		
+		if is_line_entering:
+			var char_enter_start := line_enter_delay + float(i) * enter_stagger
+			var char_t := clampf((t_elapsed - char_enter_start) / enter_char_dur, 0.0, 1.0)
+			if char_t < 1.0:
+				var e := _ease_out_back(char_t)
+				var drop_y := (1.0 - e) * -26.0
+				char_pos.y += drop_y
+				char_scale = Vector2.ONE * lerpf(2.0, 1.0, e)
+				char_alpha = clampf(char_t / 0.20, 0.0, 1.0)
+				
+				var flash := clampf((0.35 - char_t) / 0.35, 0.0, 1.0)
+				char_col = char_col.lerp(Color.WHITE, flash)
+				latest_active_x = start_x + pref_w + char_w + 3.0
+		elif is_exiting:
+			var char_exit_start := line_exit_delay + float(i) * exit_stagger
+			var char_exit_t := clampf((t_exit - char_exit_start) / exit_char_dur, 0.0, 1.0)
+			
+			# If character has completed its flight, do not draw
+			if char_exit_t >= 1.0:
+				continue
+				
+			if t_exit >= char_exit_start:
+				# Active supersonic liftoff per letter
+				var e_exit := pow(char_exit_t, 2.2)
+				var lift_y: float = -e_exit * 190.0
+				var fan_x: float = fan_bias * 25.0 * e_exit + (float(i) - float(text.length() - 1) * 0.5) * char_exit_t * 10.0
+				
+				char_pos.y += lift_y
+				char_pos.x += fan_x
+				
+				# Vertical hyper-warp elongation
+				char_scale.x = maxf(0.1, 1.0 - char_exit_t * 0.35)
+				char_scale.y = 1.0 + char_exit_t * 1.6
+				char_alpha = clampf(1.0 - pow(char_exit_t, 1.6), 0.0, 1.0)
+				
+				# Initial ignition white flash
+				if char_exit_t < 0.28:
+					var blast := (0.28 - char_exit_t) / 0.28
+					char_col = char_col.lerp(Color.WHITE, blast * 0.9)
+				
+				# Speed blur afterimage ghost
+				if char_exit_t > 0.08 and char_exit_t < 0.85:
+					var g_pos := Vector2(char_cx + fan_x * 0.55, base_y + lift_y * 0.55)
+					var g_col := char_col
+					g_col.a = char_alpha * 0.35
+					if ch != " ":
+						_draw_transformed_pixel_text(ch, g_pos, char_scale, g_col, font_size)
+		else:
+			# Traveling shimmer wave across settled letters during hold
+			var shimmer_center := start_x + fmod(anim_timer * 340.0, total_w + 140.0) - 70.0
+			var dist := absf(char_cx - shimmer_center)
+			var gleam := clampf(1.0 - dist / 36.0, 0.0, 1.0)
+			char_col = char_col.lerp(Color.WHITE, gleam * 0.6)
+		
+		char_col.a = char_alpha
+		
+		if ch != " " and char_alpha > 0.001:
+			_draw_transformed_pixel_text(ch, char_pos, char_scale, char_col, font_size)
+	
+	# High-tech cyber typing cursor at leading edge during entrance
+	if show_cursor and is_line_entering and t_elapsed >= line_enter_delay:
+		var cur_blink := 0.65 + 0.35 * sin(anim_timer * 22.0)
+		var cur_col := Color(0.40, 0.95, 1.0, cur_blink)
+		var cur_h: float = float(font_size) * 0.70
+		draw_line(Vector2(latest_active_x, base_y - cur_h * 0.5), Vector2(latest_active_x, base_y + cur_h * 0.5), cur_col, 2.5)
+
+static func _ease_out_back(t: float) -> float:
+	var c1: float = 1.70158
+	var c3: float = c1 + 1.0
+	var p := clampf(t, 0.0, 1.0) - 1.0
+	return 1.0 + c3 * p * p * p + c1 * p * p
+
+static func _ease_in_back(t: float) -> float:
+	var c1: float = 1.70158
+	var c3: float = c1 + 1.0
+	var p := clampf(t, 0.0, 1.0)
+	return c3 * p * p * p - c1 * p * p
+
+func _draw_transformed_pixel_text(text: String, center: Vector2, scale_vec: Vector2, col: Color, font_size: int = 14) -> void:
+	if col.a <= 0.001 or scale_vec.x <= 0.001 or scale_vec.y <= 0.001:
+		return
 	var font := ThemeDB.fallback_font
 	var text_w := font.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size).x
-	var pos := Vector2(center_x - text_w * 0.5, y)
+	var ascent := font.get_ascent(font_size)
+	var descent := font.get_descent(font_size)
+	var baseline_offset_y := (ascent - descent) * 0.5
+	var local_pos := Vector2(-text_w * 0.5, baseline_offset_y)
+	
+	draw_set_transform(center, 0.0, scale_vec)
 	var shadow_col := Color(0.0, 0.0, 0.0, col.a * 0.95)
-	# 8-way outline for supreme legibility on pure floating transparent background
+	# 8-way outline for supreme floating contrast
 	for ox in [-2.0, 0.0, 2.0]:
 		for oy in [-2.0, 0.0, 2.0]:
 			if ox != 0.0 or oy != 0.0:
-				draw_string(font, pos + Vector2(ox, oy), text, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size, shadow_col)
-	draw_string(font, pos + Vector2(3.0, 3.0), text, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size, Color(0.0, 0.0, 0.0, col.a * 0.85))
-	draw_string(font, pos, text, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size, col)
+				draw_string(font, local_pos + Vector2(ox, oy), text, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size, shadow_col)
+	draw_string(font, local_pos + Vector2(3.0, 3.0), text, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size, Color(0.0, 0.0, 0.0, col.a * 0.85))
+	draw_string(font, local_pos, text, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size, col)
+	draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)

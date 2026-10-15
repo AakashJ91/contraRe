@@ -11,14 +11,14 @@ var dpad_vector: Vector2 = Vector2.ZERO
 var dpad_active: bool = false
 
 # Large, highly responsive Shoot Button (Fire / B)
-var btn_shoot_pos: Vector2 = Vector2(844.0, 418.0)
-var btn_shoot_radius: float = 72.0
+var btn_shoot_pos: Vector2 = Vector2(850.0, 415.0)
+var btn_shoot_radius: float = 68.0
 var btn_shoot_touch_id: int = -1
 var shoot_active: bool = false
 
-# Jump Button & Universal Right-Side Jump Zone
-var btn_jump_pos: Vector2 = Vector2(685.0, 430.0)
-var btn_jump_radius: float = 48.0
+# Jump Button (A) & Universal Right-Side Jump Zone
+var btn_jump_pos: Vector2 = Vector2(715.0, 435.0)
+var btn_jump_radius: float = 60.0
 var jump_touch_ids: Array[int] = []
 var jump_active: bool = false
 var last_jump_tap_pos: Vector2 = Vector2.ZERO
@@ -49,10 +49,11 @@ func _ready() -> void:
 	mouse_filter = Control.MOUSE_FILTER_PASS
 	set_process_input(true)
 	
+	show_jump_button = true
 	if Global.is_mobile_device():
-		show_jump_button = false
-		dpad_radius = 90.0
-		btn_shoot_radius = 86.0
+		dpad_radius = 85.0
+		btn_shoot_radius = 68.0
+		btn_jump_radius = 60.0
 		default_dpad_center = Vector2(145.0, 405.0)
 		dpad_center = default_dpad_center
 		current_thumb_pos = default_dpad_center
@@ -86,13 +87,13 @@ func _get_screen_w() -> float:
 func _update_layout_positions() -> void:
 	var w := _get_screen_w()
 	if Global.is_mobile_device():
-		btn_shoot_pos = Vector2(w - 120.0, 405.0)
-		btn_jump_pos = Vector2(w - 290.0, 415.0)
+		btn_shoot_pos = Vector2(w - 110.0, 415.0)
+		btn_jump_pos = Vector2(w - 245.0, 435.0)
 		btn_menu_pos = Vector2(w - 82.0, 18.0)
 		btn_restart_pos = Vector2(w - 28.0, 18.0)
 	else:
-		btn_shoot_pos = Vector2(w - 116.0, 418.0)
-		btn_jump_pos = Vector2(w - 275.0, 430.0)
+		btn_shoot_pos = Vector2(w - 110.0, 415.0)
+		btn_jump_pos = Vector2(w - 245.0, 435.0)
 		btn_menu_pos = Vector2(w - 70.0, 14.0)
 		btn_restart_pos = Vector2(w - 28.0, 14.0)
 
@@ -172,7 +173,7 @@ func _handle_touch_down(idx: int, pos: Vector2) -> void:
 			get_tree().reload_current_scene()
 			return
 	
-	# Shoot Button: Large primary action button
+	# Shoot Button (B): Primary firing action
 	if pos.distance_to(btn_shoot_pos) <= btn_shoot_radius * 1.15:
 		btn_shoot_touch_id = idx
 		shoot_active = true
@@ -180,8 +181,8 @@ func _handle_touch_down(idx: int, pos: Vector2) -> void:
 		queue_redraw()
 		return
 	
-	# Jump: Touching anywhere on the right half of the screen
-	if pos.x >= half_w and pos.y > 36.0:
+	# Jump Button (A) or Right-Half Screen Tap
+	if pos.distance_to(btn_jump_pos) <= btn_jump_radius * 1.25 or (pos.x >= half_w and pos.y > 36.0):
 		if not jump_touch_ids.has(idx):
 			jump_touch_ids.append(idx)
 		jump_active = true
@@ -207,7 +208,7 @@ func _handle_touch_drag(idx: int, pos: Vector2) -> void:
 		_update_dpad(pos)
 		queue_redraw()
 	elif jump_touch_ids.has(idx):
-		# If sliding into the large shoot button from jump area
+		# If sliding into the shoot button from jump area
 		if btn_shoot_touch_id == -1 and pos.distance_to(btn_shoot_pos) <= btn_shoot_radius * 1.15:
 			jump_touch_ids.erase(idx)
 			if jump_touch_ids.is_empty():
@@ -216,6 +217,17 @@ func _handle_touch_drag(idx: int, pos: Vector2) -> void:
 			btn_shoot_touch_id = idx
 			shoot_active = true
 			Input.action_press("shoot")
+			queue_redraw()
+	elif idx == btn_shoot_touch_id:
+		# If sliding from shoot button into jump button area
+		if pos.distance_to(btn_jump_pos) <= btn_jump_radius * 1.15:
+			btn_shoot_touch_id = -1
+			shoot_active = false
+			Input.action_release("shoot")
+			if not jump_touch_ids.has(idx):
+				jump_touch_ids.append(idx)
+			jump_active = true
+			Input.action_press("jump")
 			queue_redraw()
 
 func _handle_touch_up(idx: int) -> void:
@@ -366,55 +378,53 @@ func _draw() -> void:
 		draw_arc(last_jump_tap_pos, rip_r, 0.0, TAU, 28, Color(0.25, 0.85, 1.0, rip_a), 2.5)
 		draw_circle(last_jump_tap_pos, 7.0 * (1.0 - prog), Color(0.50, 0.95, 1.0, rip_a * 0.7))
 
-	# --- JUMP BUTTON (A / JUMP) (INVISIBLE ON ANDROID) ---
+	# --- JUMP BUTTON (A / JUMP) ---
 	if show_jump_button:
-		var jump_col := Color(0.12, 0.62, 1.0, 0.95) if jump_active else Color(0.12, 0.42, 0.85, fg_alpha)
-		var jump_border_col := Color(0.40, 0.92, 1.0, 0.95) if jump_active else Color(0.35, 0.75, 1.0, 0.60)
-		draw_circle(btn_jump_pos, btn_jump_radius + 3.0, Color(0.0, 0.0, 0.0, 0.35))
-		draw_circle(btn_jump_pos, btn_jump_radius, Color(0.04, 0.10, 0.20, bg_alpha * 1.3))
-		draw_circle(btn_jump_pos, btn_jump_radius * 0.86, jump_col)
-		draw_arc(btn_jump_pos, btn_jump_radius, 0.0, TAU, 32, jump_border_col, 3.2 if jump_active else 2.4)
-		if jump_active:
-			var jpulse := btn_jump_radius + 5.0 + sin(pulse_time * 2.0) * 3.0
-			draw_arc(btn_jump_pos, jpulse, 0.0, TAU, 30, Color(0.2, 0.8, 1.0, 0.45), 2.0)
+		var jump_bg := Color(0.20, 0.65, 1.0, 0.22) if jump_active else Color(0.15, 0.50, 0.95, 0.08)
+		var jump_border_col := Color(0.40, 0.92, 1.0, 0.85) if jump_active else Color(0.35, 0.75, 1.0, 0.38)
 		
-		# Jump Letter 'A'
-		var a_offset := Vector2(0.0, -6.0)
-		draw_line(btn_jump_pos + a_offset + Vector2(-11.0, 13.0), btn_jump_pos + a_offset + Vector2(0.0, -14.0), Color.WHITE, 3.8)
-		draw_line(btn_jump_pos + a_offset + Vector2(11.0, 13.0), btn_jump_pos + a_offset + Vector2(0.0, -14.0), Color.WHITE, 3.8)
-		draw_line(btn_jump_pos + a_offset + Vector2(-7.0, 2.0), btn_jump_pos + a_offset + Vector2(7.0, 2.0), Color.WHITE, 3.2)
-		_draw_btn_text("JUMP", btn_jump_pos + Vector2(0.0, 21.0), Color(0.88, 0.96, 1.0, 0.95), 11)
+		# Transparent glassmorphic circle fill
+		draw_circle(btn_jump_pos, btn_jump_radius, jump_bg)
+		# Translucent perimeter ring
+		draw_arc(btn_jump_pos, btn_jump_radius, 0.0, TAU, 36, jump_border_col, 2.6 if jump_active else 1.8)
+		
+		if jump_active:
+			var jpulse := btn_jump_radius + 4.0 + sin(pulse_time * 2.0) * 2.5
+			draw_arc(btn_jump_pos, jpulse, 0.0, TAU, 32, Color(0.30, 0.85, 1.0, 0.35), 1.5)
+		
+		# Jump Letter 'A' (Translucent white, perfectly centered)
+		var a_col := Color(1.0, 1.0, 1.0, 0.95 if jump_active else 0.55)
+		draw_line(btn_jump_pos + Vector2(-12.0, 14.0), btn_jump_pos + Vector2(0.0, -14.0), a_col, 3.6)
+		draw_line(btn_jump_pos + Vector2(12.0, 14.0), btn_jump_pos + Vector2(0.0, -14.0), a_col, 3.6)
+		draw_line(btn_jump_pos + Vector2(-7.5, 2.0), btn_jump_pos + Vector2(7.5, 2.0), a_col, 3.0)
 
-		# Subtle arcade hint below jump area
-		_draw_btn_text("TAP RIGHT HALF TO JUMP", Vector2(btn_jump_pos.x, 498.0), Color(0.40, 0.80, 1.0, 0.45), 10)
+	# --- SHOOT BUTTON (B / FIRE) ---
+	var shoot_bg := Color(1.0, 0.25, 0.20, 0.24) if shoot_active else Color(0.85, 0.18, 0.16, 0.08)
+	var shoot_border_col := Color(1.0, 0.65, 0.45, 0.85) if shoot_active else Color(1.0, 0.45, 0.35, 0.38)
 	
-	# --- BIG SHOOT BUTTON (B / FIRE) ---
-	var shoot_col := Color(1.0, 0.22, 0.15, 0.96) if shoot_active else Color(0.85, 0.18, 0.16, fg_alpha * 1.15)
-	var shoot_border_col := Color(1.0, 0.65, 0.45, 0.95) if shoot_active else Color(1.0, 0.45, 0.35, 0.70)
-	draw_circle(btn_shoot_pos, btn_shoot_radius + 4.0, Color(0.0, 0.0, 0.0, 0.40))
-	draw_circle(btn_shoot_pos, btn_shoot_radius, Color(0.30, 0.05, 0.05, bg_alpha * 1.3))
-	draw_circle(btn_shoot_pos, btn_shoot_radius * 0.88, shoot_col)
+	# Transparent glassmorphic circle fill
+	draw_circle(btn_shoot_pos, btn_shoot_radius, shoot_bg)
+	# Translucent perimeter ring
+	draw_arc(btn_shoot_pos, btn_shoot_radius, 0.0, TAU, 36, shoot_border_col, 2.6 if shoot_active else 1.8)
+	
 	if shoot_active:
-		draw_circle(btn_shoot_pos, btn_shoot_radius * 0.50, Color(1.0, 0.70, 0.30, 0.35))
-		var spulse := btn_shoot_radius + 6.0 + sin(pulse_time * 2.0) * 3.5
-		draw_arc(btn_shoot_pos, spulse, 0.0, TAU, 36, Color(1.0, 0.40, 0.20, 0.50), 2.2)
-	draw_arc(btn_shoot_pos, btn_shoot_radius, 0.0, TAU, 36, shoot_border_col, 3.6 if shoot_active else 2.6)
+		var spulse := btn_shoot_radius + 4.0 + sin(pulse_time * 2.0) * 2.5
+		draw_arc(btn_shoot_pos, spulse, 0.0, TAU, 36, Color(1.0, 0.50, 0.30, 0.35), 1.5)
 	
-	# Cardinal reticle notches around the big Shoot button
+	# Reticle tick marks on B perimeter
 	for rdir in [Vector2.UP, Vector2.DOWN, Vector2.LEFT, Vector2.RIGHT]:
-		draw_line(btn_shoot_pos + rdir * (btn_shoot_radius - 9.0), btn_shoot_pos + rdir * (btn_shoot_radius + 5.0), shoot_border_col, 2.2)
+		var tick_col := Color(1.0, 0.65, 0.45, 0.70 if shoot_active else 0.26)
+		draw_line(btn_shoot_pos + rdir * (btn_shoot_radius - 7.0), btn_shoot_pos + rdir * (btn_shoot_radius + 4.0), tick_col, 1.8)
 
-	# Bold scaled Letter 'B'
-	var b_offset := Vector2(0.0, -8.0)
-	draw_line(btn_shoot_pos + b_offset + Vector2(-13.0, -16.0), btn_shoot_pos + b_offset + Vector2(-13.0, 16.0), Color.WHITE, 4.4)
-	draw_line(btn_shoot_pos + b_offset + Vector2(-13.0, -16.0), btn_shoot_pos + b_offset + Vector2(-2.0, -16.0), Color.WHITE, 4.4)
-	draw_line(btn_shoot_pos + b_offset + Vector2(-13.0, 0.0), btn_shoot_pos + b_offset + Vector2(-2.0, 0.0), Color.WHITE, 3.8)
-	draw_line(btn_shoot_pos + b_offset + Vector2(-13.0, 16.0), btn_shoot_pos + b_offset + Vector2(-2.0, 16.0), Color.WHITE, 4.4)
-	draw_arc(btn_shoot_pos + b_offset + Vector2(-2.0, -8.0), 8.0, -PI*0.5, PI*0.5, 14, Color.WHITE, 3.8)
-	draw_arc(btn_shoot_pos + b_offset + Vector2(-2.0, 8.0), 8.0, -PI*0.5, PI*0.5, 14, Color.WHITE, 3.8)
-	var fire_font: int = 15 if Global.is_mobile_device() else 13
-	var fire_y_off: float = 30.0 if Global.is_mobile_device() else 26.0
-	_draw_btn_text("FIRE", btn_shoot_pos + Vector2(0.0, fire_y_off), Color(1.0, 0.90, 0.90, 0.95), fire_font)
+	# Scaled Letter 'B' (Translucent white, perfectly centered)
+	var b_col := Color(1.0, 1.0, 1.0, 0.95 if shoot_active else 0.55)
+	var b_offset := Vector2(3.0, 0.0)
+	draw_line(btn_shoot_pos + b_offset + Vector2(-12.0, -15.0), btn_shoot_pos + b_offset + Vector2(-12.0, 15.0), b_col, 4.0)
+	draw_line(btn_shoot_pos + b_offset + Vector2(-12.0, -15.0), btn_shoot_pos + b_offset + Vector2(-2.0, -15.0), b_col, 4.0)
+	draw_line(btn_shoot_pos + b_offset + Vector2(-12.0, 0.0), btn_shoot_pos + b_offset + Vector2(-2.0, 0.0), b_col, 3.4)
+	draw_line(btn_shoot_pos + b_offset + Vector2(-12.0, 15.0), btn_shoot_pos + b_offset + Vector2(-2.0, 15.0), b_col, 4.0)
+	draw_arc(btn_shoot_pos + b_offset + Vector2(-2.0, -7.5), 7.5, -PI*0.5, PI*0.5, 14, b_col, 3.4)
+	draw_arc(btn_shoot_pos + b_offset + Vector2(-2.0, 7.5), 7.5, -PI*0.5, PI*0.5, 14, b_col, 3.4)
 	
 	# --- SLEEK FLAT LEVEL SELECTOR (MENU) BUTTON (HEADER) ---
 	var menu_rect := Rect2(btn_menu_pos.x - btn_menu_size.x * 0.5, btn_menu_pos.y - btn_menu_size.y * 0.5, btn_menu_size.x, btn_menu_size.y)
@@ -451,6 +461,6 @@ func _draw_btn_text(text: String, pos: Vector2, col: Color, font_size: int = 11)
 	var font := ThemeDB.fallback_font
 	var string_size := font.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size)
 	var text_pos := Vector2(pos.x - string_size.x * 0.5, pos.y + string_size.y * 0.35)
-	# Drop shadow
-	draw_string(font, text_pos + Vector2(1.0, 1.0), text, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size, Color(0.0, 0.0, 0.0, 0.85))
+	# Soft translucent drop shadow that respects text opacity
+	draw_string(font, text_pos + Vector2(1.0, 1.0), text, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size, Color(0.0, 0.0, 0.0, col.a * 0.55))
 	draw_string(font, text_pos, text, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size, col)

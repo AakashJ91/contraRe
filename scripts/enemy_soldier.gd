@@ -7,7 +7,7 @@ const RUN_TEXTURES: Array[Texture2D] = [
 	preload("res://assets/enemies/enemy_soldier_run_3.png")
 ]
 
-const SPEED: float = 110.0
+const SPEED: float = 80.0
 const GRAVITY: float = 950.0
 
 @export var bullet_scene: PackedScene = preload("res://scenes/bullet.tscn")
@@ -22,6 +22,8 @@ var turn_cooldown: float = 0.0
 var flash_timer: float = 0.0
 
 func _ready() -> void:
+	add_to_group("foot_soldiers")
+	add_to_group("enemies")
 	collision_layer = 1 << 2 # Layer 3: Enemies
 	collision_mask = (1 << 1) # Layer 2: World
 	shoot_timer = randf_range(1.5, 3.5)
@@ -34,8 +36,8 @@ func _physics_process(delta: float) -> void:
 	if not is_on_floor():
 		velocity.y += GRAVITY * delta
 	
-	# Continuously cycle run frames while moving
-	run_frame += delta * 7.0
+	# Continuously cycle run frames while moving (proportional to slower speed)
+	run_frame += delta * 5.2
 	
 	shoot_timer -= delta
 	jump_cooldown -= delta
@@ -73,10 +75,15 @@ func _physics_process(delta: float) -> void:
 			if player_node.has_method("take_damage"):
 				player_node.take_damage(1.0)
 	
-	# Despawn if fallen into bottomless pit
+	# Despawn if fallen into bottomless pit or too far off-screen
 	if global_position.y > 550.0:
 		queue_free()
 		return
+	
+	if player_node != null and is_instance_valid(player_node):
+		if absf(global_position.x - player_node.global_position.x) > 680.0:
+			queue_free()
+			return
 	
 	# Shoot at player
 	if shoot_timer <= 0.0:

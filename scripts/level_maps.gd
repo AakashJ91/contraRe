@@ -105,7 +105,7 @@ static func get_map_data(stage_id: int) -> Dictionary:
 			data["diff"] = "HARD"
 			data["boss"] = "HYDRO-GOLIATH MECH"
 			data["hazard"] = "RUSHING WATERFALLS & CLIFF PITS"
-			data["intel"] = "Ascend vertical granite escarpments over raging torrents. Maintain footing across suspended log crossings while dodging sniper fire."
+			data["intel"] = "Ascend vertical granite escarpments over raging torrents. Leap across cataract chasms using high thermal updrafts while dodging sniper fire."
 			data["primary_color"] = Color(0.20, 0.65, 0.95)
 			data["accent_color"] = Color(0.60, 0.90, 1.0)
 			data["ground_segments"] = [
@@ -119,19 +119,14 @@ static func get_map_data(stage_id: int) -> Dictionary:
 			data["platforms"] = [
 				{"rect": Rect2(200.0, 360.0, 220.0, 16.0), "type": PlatformType.ROPE_BRIDGE},
 				{"rect": Rect2(380.0, 280.0, 200.0, 16.0), "type": PlatformType.HIGH_PERCH},
-				{"rect": Rect2(720.0, 330.0, 260.0, 16.0), "type": PlatformType.ROPE_BRIDGE},
 				{"rect": Rect2(1050.0, 360.0, 220.0, 16.0), "type": PlatformType.TURF},
 				{"rect": Rect2(1280.0, 290.0, 240.0, 16.0), "type": PlatformType.TURF},
-				{"rect": Rect2(1620.0, 330.0, 260.0, 16.0), "type": PlatformType.ROPE_BRIDGE},
 				{"rect": Rect2(1950.0, 350.0, 240.0, 16.0), "type": PlatformType.TURF},
 				{"rect": Rect2(2200.0, 270.0, 220.0, 16.0), "type": PlatformType.HIGH_PERCH},
-				{"rect": Rect2(2520.0, 330.0, 260.0, 16.0), "type": PlatformType.ROPE_BRIDGE},
 				{"rect": Rect2(2850.0, 360.0, 260.0, 16.0), "type": PlatformType.TURF},
 				{"rect": Rect2(3150.0, 280.0, 280.0, 16.0), "type": PlatformType.ROPE_BRIDGE},
-				{"rect": Rect2(3520.0, 330.0, 260.0, 16.0), "type": PlatformType.ROPE_BRIDGE},
 				{"rect": Rect2(3850.0, 350.0, 240.0, 16.0), "type": PlatformType.TURF},
 				{"rect": Rect2(4150.0, 270.0, 260.0, 16.0), "type": PlatformType.HIGH_PERCH},
-				{"rect": Rect2(4520.0, 330.0, 280.0, 16.0), "type": PlatformType.ROPE_BRIDGE},
 				{"rect": Rect2(4950.0, 360.0, 260.0, 16.0), "type": PlatformType.TURF},
 				{"rect": Rect2(5250.0, 280.0, 280.0, 16.0), "type": PlatformType.HIGH_PERCH},
 				{"rect": Rect2(5550.0, 330.0, 240.0, 16.0), "type": PlatformType.ROPE_BRIDGE}

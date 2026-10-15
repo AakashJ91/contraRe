@@ -32,11 +32,19 @@ var idle_timer: float = 0.0
 
 var tex_idle: Texture2D = null
 var tex_aim: Texture2D = null
+var tex_aim_diag_up: Texture2D = null
 var tex_aim_up: Texture2D = null
 var tex_fire: Texture2D = null
+var tex_fire_1: Texture2D = null
+var tex_fire_diag_up: Texture2D = null
+var tex_fire_diag_up_1: Texture2D = null
+var tex_fire_up: Texture2D = null
+var tex_fire_up_1: Texture2D = null
 var tex_jump: Texture2D = null
 var tex_prone: Texture2D = null
 var tex_run: Array[Texture2D] = []
+var tex_run_fire: Array[Texture2D] = []
+var tex_run_fire_up: Array[Texture2D] = []
 
 var stage_gravity_scale: float = 1.0
 var conveyor_push: float = 0.0
@@ -56,10 +64,22 @@ func _ready() -> void:
 		tex_idle = load("res://assets/player/player_idle.png")
 	if ResourceLoader.exists("res://assets/player/player_aim.png"):
 		tex_aim = load("res://assets/player/player_aim.png")
+	if ResourceLoader.exists("res://assets/player/player_aim_diag_up.png"):
+		tex_aim_diag_up = load("res://assets/player/player_aim_diag_up.png")
 	if ResourceLoader.exists("res://assets/player/player_aim_up.png"):
 		tex_aim_up = load("res://assets/player/player_aim_up.png")
 	if ResourceLoader.exists("res://assets/player/player_fire.png"):
 		tex_fire = load("res://assets/player/player_fire.png")
+	if ResourceLoader.exists("res://assets/player/player_fire_1.png"):
+		tex_fire_1 = load("res://assets/player/player_fire_1.png")
+	if ResourceLoader.exists("res://assets/player/player_fire_diag_up.png"):
+		tex_fire_diag_up = load("res://assets/player/player_fire_diag_up.png")
+	if ResourceLoader.exists("res://assets/player/player_fire_diag_up_1.png"):
+		tex_fire_diag_up_1 = load("res://assets/player/player_fire_diag_up_1.png")
+	if ResourceLoader.exists("res://assets/player/player_fire_up.png"):
+		tex_fire_up = load("res://assets/player/player_fire_up.png")
+	if ResourceLoader.exists("res://assets/player/player_fire_up_1.png"):
+		tex_fire_up_1 = load("res://assets/player/player_fire_up_1.png")
 	if ResourceLoader.exists("res://assets/player/player_jump.png"):
 		tex_jump = load("res://assets/player/player_jump.png")
 	if ResourceLoader.exists("res://assets/player/player_prone.png"):
@@ -68,6 +88,12 @@ func _ready() -> void:
 		var p := "res://assets/player/player_run_%d.png" % i
 		if ResourceLoader.exists(p):
 			tex_run.append(load(p))
+		var pf := "res://assets/player/player_run_fire_%d.png" % i
+		if ResourceLoader.exists(pf):
+			tex_run_fire.append(load(pf))
+		var pfu := "res://assets/player/player_run_fire_up_%d.png" % i
+		if ResourceLoader.exists(pfu):
+			tex_run_fire_up.append(load(pfu))
 	Global.player_health = Global.PLAYER_MAX_HEALTH
 	Global.player_health_changed.emit(Global.player_health, Global.PLAYER_MAX_HEALTH)
 	
@@ -81,6 +107,12 @@ func _ready() -> void:
 		outline_mat.set_shader_parameter("shimmer_speed", 3.2)
 		outline_mat.set_shader_parameter("shimmer_intensity", 0.38)
 		material = outline_mat
+	
+	if not Global.is_maker_mode:
+		state = PlayerState.RESPAWNING
+		respawn_timer = 0.8
+		global_position.y -= 140.0
+		velocity.y = 320.0
 	
 	queue_redraw()
 
@@ -98,6 +130,7 @@ func _physics_process(delta: float) -> void:
 			state = PlayerState.IDLE
 			is_invulnerable = true
 			invulnerable_timer = 2.5
+			VFX.spawn_dust_puff(global_position + Vector2(0.0, 16.0), 3, Color(0.8, 0.85, 0.9, 0.6))
 		queue_redraw()
 		return
 	
@@ -256,7 +289,7 @@ func _calculate_aim_direction(input_x: float, input_y: float) -> void:
 
 func _shoot() -> void:
 	var spawn_pos: Vector2 = global_position + _get_gun_barrel_offset()
-	muzzle_flash_timer = 0.06
+	muzzle_flash_timer = 0.10
 	VFX.spawn_muzzle_flash(spawn_pos, aim_dir, Global.current_weapon)
 	
 	match Global.current_weapon:
@@ -303,9 +336,13 @@ func _get_gun_barrel_offset() -> Vector2:
 	elif state == PlayerState.JUMP:
 		return aim_dir * 12.0
 	else:
-		if aim_dir.y < -0.3:
+		if abs(aim_dir.x) < 0.2 and aim_dir.y < -0.3:
+			# Straight vertical UP (90 deg)
+			return Vector2(facing_dir * 4.0, -26.0)
+		elif aim_dir.y < -0.3:
+			# Diagonal UP (42-45 deg)
 			return Vector2(facing_dir * 16.0, -18.0)
-		return Vector2(facing_dir * 24.0, -6.0)
+		return Vector2(facing_dir * 18.0, -11.0)
 
 func take_damage(amount: float = 1.0) -> void:
 	if Global.is_maker_mode or Global.is_stage_intro_active():
@@ -447,10 +484,11 @@ func _draw() -> void:
 			var idx: int = int(fmod(run_frame, float(tex_run.size())))
 			var cur_tex: Texture2D = tex_run[idx]
 			
-			if muzzle_flash_timer > 0.0 and aim_dir.y < -0.3 and tex_aim_up != null:
-				cur_tex = tex_aim_up
-			elif muzzle_flash_timer > 0.0 and tex_fire != null:
-				cur_tex = tex_fire
+			if muzzle_flash_timer > 0.0:
+				if aim_dir.y < -0.3 and tex_run_fire_up.size() > idx and tex_run_fire_up[idx] != null:
+					cur_tex = tex_run_fire_up[idx]
+				elif tex_run_fire.size() > idx and tex_run_fire[idx] != null:
+					cur_tex = tex_run_fire[idx]
 			
 			# Subtle 1px vertical stride bobbing on passing frames
 			var bob_y: float = -1.0 if (idx == 1 or idx == 3) else 0.0
@@ -462,14 +500,40 @@ func _draw() -> void:
 	# 4. IDLE / AIMING / FIRING STATE
 	var cur_tex: Texture2D = tex_idle
 	var breath: float = sin(idle_timer * 2.5) * 0.5
+	var is_straight_up: bool = (abs(aim_dir.x) < 0.2 and aim_dir.y < -0.3)
+	var is_diag_up: bool = (aim_dir.y < -0.3 and not is_straight_up)
 	
 	if muzzle_flash_timer > 0.0:
-		if aim_dir.y < -0.3 and tex_aim_up != null:
-			cur_tex = tex_aim_up
-		elif tex_fire != null:
-			cur_tex = tex_fire
-	elif aim_dir.y < -0.3 and tex_aim_up != null:
+		if is_straight_up:
+			if muzzle_flash_timer > 0.05 and tex_fire_up != null:
+				cur_tex = tex_fire_up
+			elif tex_fire_up_1 != null:
+				cur_tex = tex_fire_up_1
+			elif tex_fire_up != null:
+				cur_tex = tex_fire_up
+			elif tex_aim_up != null:
+				cur_tex = tex_aim_up
+		elif is_diag_up:
+			if muzzle_flash_timer > 0.05 and tex_fire_diag_up != null:
+				cur_tex = tex_fire_diag_up
+			elif tex_fire_diag_up_1 != null:
+				cur_tex = tex_fire_diag_up_1
+			elif tex_fire_diag_up != null:
+				cur_tex = tex_fire_diag_up
+			elif tex_aim_diag_up != null:
+				cur_tex = tex_aim_diag_up
+		else:
+			# Horizontal fire
+			if muzzle_flash_timer > 0.05 and tex_fire != null:
+				cur_tex = tex_fire
+			elif tex_fire_1 != null:
+				cur_tex = tex_fire_1
+			elif tex_fire != null:
+				cur_tex = tex_fire
+	elif is_straight_up and tex_aim_up != null:
 		cur_tex = tex_aim_up
+	elif is_diag_up and tex_aim_diag_up != null:
+		cur_tex = tex_aim_diag_up
 	elif abs(aim_dir.x) > 0.1 and tex_aim != null:
 		cur_tex = tex_aim
 	

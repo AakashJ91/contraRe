@@ -89,9 +89,15 @@ func _ready() -> void:
 		if Global.is_maker_mode:
 			contra_maker.open_editor()
 	
-	if camera != null and Global.is_mobile_device():
-		camera.zoom = Vector2(1.18, 1.18)
-		camera.global_position.y = 280.0
+	if camera != null:
+		var is_mob: bool = Global.is_mobile_device()
+		var entry_zoom := Vector2(1.75, 1.75) if is_mob else Vector2(1.60, 1.60)
+		camera.zoom = entry_zoom
+		var cur_half_w: float = (960.0 / entry_zoom.x) * 0.5
+		var cur_half_h: float = (540.0 / entry_zoom.y) * 0.5
+		var p_x: float = player.global_position.x if (player != null and is_instance_valid(player)) else 100.0
+		var p_y: float = player.global_position.y if (player != null and is_instance_valid(player)) else 410.0
+		camera.global_position = Vector2(clampf(p_x + 80.0, cur_half_w, 5800.0), clampf(p_y - 30.0, cur_half_h, 540.0 - cur_half_h))
 	
 	queue_redraw()
 
@@ -399,11 +405,38 @@ func _physics_process(delta: float) -> void:
 	else:
 		camera.offset = Vector2.ZERO
 	
-	if player != null and is_instance_valid(player):
-		var target_cam_x := clampf(player.global_position.x + 120.0, 480.0, 5800.0)
-		camera.global_position.x = maxf(camera.global_position.x, target_cam_x)
-		if Global.is_mobile_device():
-			camera.global_position.y = 280.0
+	if player != null and is_instance_valid(player) and camera != null:
+		var is_mob: bool = Global.is_mobile_device()
+		var target_zoom: Vector2 = Vector2(1.18, 1.18) if is_mob else Vector2(1.0, 1.0)
+		var entry_zoom: Vector2 = Vector2(1.75, 1.75) if is_mob else Vector2(1.60, 1.60)
+		
+		var t_elapsed: float = Global.STAGE_INTRO_DURATION - Global.stage_intro_timer
+		var zoom_anim_dur: float = 1.6
+		
+		if Global.is_stage_intro_active() and t_elapsed < zoom_anim_dur and not Global.is_maker_mode:
+			var zoom_p: float = clampf(t_elapsed / zoom_anim_dur, 0.0, 1.0)
+			var zoom_ease: float = 1.0 - pow(1.0 - zoom_p, 3.0)
+			camera.zoom = entry_zoom.lerp(target_zoom, zoom_ease)
+			
+			var cur_half_w: float = (960.0 / camera.zoom.x) * 0.5
+			var cur_half_h: float = (540.0 / camera.zoom.y) * 0.5
+			var min_y: float = cur_half_h
+			var max_y: float = 540.0 - cur_half_h
+			
+			var entry_cam_x: float = clampf(player.global_position.x + 80.0, cur_half_w, 5800.0)
+			var entry_cam_y: float = clampf(player.global_position.y - 30.0, min_y, max_y)
+			
+			var game_cam_x: float = clampf(player.global_position.x + 120.0, cur_half_w, 5800.0)
+			var game_cam_y: float = clampf(280.0 if is_mob else 270.0, min_y, max_y)
+			
+			camera.global_position.x = lerpf(entry_cam_x, game_cam_x, zoom_ease)
+			camera.global_position.y = lerpf(entry_cam_y, game_cam_y, zoom_ease)
+		else:
+			camera.zoom = target_zoom
+			var half_w: float = (960.0 / camera.zoom.x) * 0.5
+			var target_cam_x := clampf(player.global_position.x + 120.0, half_w, 5800.0)
+			camera.global_position.x = maxf(camera.global_position.x, target_cam_x)
+			camera.global_position.y = 280.0 if is_mob else 270.0
 		
 		if camera.global_position.x >= BOSS_TRIGGER_X and boss != null and is_instance_valid(boss):
 			boss.activate()
@@ -484,7 +517,7 @@ func _process_stage_mechanics(delta: float) -> void:
 					if not p_on_floor and p_pos.y >= 240.0 and p_pos.y <= 520.0:
 						player.in_updraft = true
 						if randf() < 0.15:
-							VFX.spawn_water_splash(Vector2(p_pos.x + randf_range(-15.0, 15.0), 485.0))
+							VFX.spawn_dust_puff(Vector2(p_pos.x + randf_range(-15.0, 15.0), 485.0), 3, Color(0.8, 0.9, 1.0, 0.5))
 
 		4: # TUNDRA: Low-friction ice sliding + falling stalactite icicles
 			if p_on_floor:
@@ -668,12 +701,12 @@ func _setup_static_enemies() -> void:
 		2: # WATERFALL FORTRESS
 			# Cliffside snipers overlooking waterfall chasms + escarpment turrets
 			_spawn_turrets([Vector2(1050.0, 435.0), Vector2(2850.0, 435.0), Vector2(3850.0, 340.0), Vector2(4950.0, 435.0), Vector2(5550.0, 320.0)])
-			_spawn_snipers([Vector2(380.0, 270.0), Vector2(720.0, 320.0), Vector2(1280.0, 280.0), Vector2(1620.0, 320.0), Vector2(2200.0, 260.0), Vector2(2520.0, 320.0), Vector2(3150.0, 270.0), Vector2(4150.0, 260.0), Vector2(5250.0, 270.0)])
-			_spawn_grenadiers([Vector2(2000.0, 435.0), Vector2(3520.0, 320.0), Vector2(5600.0, 435.0)])
+			_spawn_snipers([Vector2(380.0, 270.0), Vector2(710.0, 435.0), Vector2(1280.0, 280.0), Vector2(1610.0, 435.0), Vector2(2200.0, 260.0), Vector2(2510.0, 435.0), Vector2(3150.0, 270.0), Vector2(4150.0, 260.0), Vector2(5250.0, 270.0)])
+			_spawn_grenadiers([Vector2(2000.0, 435.0), Vector2(3460.0, 435.0), Vector2(5600.0, 435.0)])
 			_spawn_crawlers([Vector2(1400.0, 420.0), Vector2(2950.0, 420.0), Vector2(4350.0, 420.0)])
 			_spawn_sensors([
 				{"pos": Vector2(300.0, 350.0), "weapon": Global.WeaponType.MACHINE},
-				{"pos": Vector2(1600.0, 320.0), "weapon": Global.WeaponType.SPREAD},
+				{"pos": Vector2(1600.0, 430.0), "weapon": Global.WeaponType.SPREAD},
 				{"pos": Vector2(3100.0, 270.0), "weapon": Global.WeaponType.LASER},
 				{"pos": Vector2(4800.0, 350.0), "weapon": Global.WeaponType.MACHINE}
 			])
@@ -912,6 +945,16 @@ func is_position_over_ground(pos_x: float) -> bool:
 func _spawn_soldier_wave() -> void:
 	if soldier_scene == null or camera == null or player == null or not is_instance_valid(player):
 		return
+	
+	# Cap maximum simultaneous active foot soldiers to 4
+	var active_soldiers: int = 0
+	for node in get_tree().get_nodes_in_group("foot_soldiers"):
+		if is_instance_valid(node) and not node.is_queued_for_deletion():
+			active_soldiers += 1
+	if active_soldiers >= 4:
+		soldier_spawn_timer = 1.0
+		return
+	
 	var cam_x := camera.global_position.x
 	var player_x := player.global_position.x
 	if ground_segments.is_empty():
@@ -952,10 +995,12 @@ func _spawn_soldier_wave() -> void:
 		s = crawler_scene.instantiate()
 		s.facing_dir = initial_facing
 		s.global_position = Vector2(spawn_x, 420.0)
+		s.add_to_group("foot_soldiers")
 	elif Global.current_stage == 8 and crawler_scene != null and randf() < 0.65:
 		s = crawler_scene.instantiate()
 		s.facing_dir = initial_facing
 		s.global_position = Vector2(spawn_x, 420.0)
+		s.add_to_group("foot_soldiers")
 	else:
 		s = soldier_scene.instantiate()
 		s.facing_dir = initial_facing
@@ -1182,42 +1227,7 @@ func _draw_platforms(view_left: float, view_right: float) -> void:
 		if pit_right < view_left - 80.0 or pit_left > view_right + 80.0:
 			continue
 		
-		if Global.current_stage == 1:
-			# Natural organic tropical river basin (translucent so backdrop shows through)
-			var water_base_y: float = 488.0
-			var water_bottom_y: float = 560.0
-			var num_pts := int(ceil(pit_w / 6.0)) + 1
-			var surface_pts := PackedVector2Array()
-			
-			for p in range(num_pts):
-				var px := minf(pit_left + float(p) * 6.0, pit_right)
-				# Gentle natural river swell (smooth calm wave oscillation)
-				var wave := sin(px * 0.016 + anim_timer * 1.3) * 2.2 + sin(px * 0.042 - anim_timer * 0.8) * 1.1
-				surface_pts.append(Vector2(px, water_base_y + wave))
-			
-			# Translucent water body fill polygon
-			var poly_pts := PackedVector2Array()
-			poly_pts.append_array(surface_pts)
-			poly_pts.append(Vector2(pit_right, water_bottom_y))
-			poly_pts.append(Vector2(pit_left, water_bottom_y))
-			
-			var c_river_surf := Color(0.06, 0.28, 0.42, 0.50)
-			draw_colored_polygon(poly_pts, c_river_surf)
-			
-			# Subtle sub-surface caustics drifting calmly
-			for b in range(2):
-				var band_y := water_base_y + 8.0 + float(b) * 11.0
-				var band_drift := sin(anim_timer * 1.1 + float(b) * 1.4) * 8.0
-				var c_caustic := Color(0.30, 0.70, 0.85, 0.25)
-				draw_line(Vector2(pit_left + 12.0 + band_drift, band_y), Vector2(pit_right - 12.0 + band_drift, band_y), c_caustic, 1.5)
-			
-			# Soft translucent surface foam crest highlight
-			for p in range(surface_pts.size() - 1):
-				var pt1 := surface_pts[p]
-				var pt2 := surface_pts[p + 1]
-				draw_line(pt1, pt2, Color(0.68, 0.94, 0.98, 0.65), 1.8)
-				draw_line(Vector2(pt1.x, pt1.y + 2.0), Vector2(pt2.x, pt2.y + 2.0), Color(0.22, 0.60, 0.78, 0.35), 1.0)
-		elif Global.current_stage == 5:
+		if Global.current_stage == 5:
 			# Molten lava pool at bottom of refinery pits
 			var lava_pulse := 0.8 + 0.2 * sin(anim_timer * 6.0 + float(i))
 			draw_rect(Rect2(pit_left, 500.0, pit_w, 40.0), Color(1.0 * lava_pulse, 0.35, 0.05, 0.85))
