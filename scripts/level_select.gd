@@ -79,21 +79,50 @@ var stages_info: Array[Dictionary] = [
 ]
 
 var stage_thumbnails: Dictionary = {}
+var stage_backgrounds: Dictionary = {}
 var bg_texture: Texture2D = null
+var prev_bg_stage: int = 1
+var bg_fade: float = 1.0
 
 func _ready() -> void:
 	if ResourceLoader.exists("res://assets/backgrounds/title_bg.jpg"):
 		bg_texture = load("res://assets/backgrounds/title_bg.jpg")
-	if ResourceLoader.exists("res://assets/backgrounds/stage1_jungle.jpg"):
-		stage_thumbnails[1] = load("res://assets/backgrounds/stage1_jungle.jpg")
-	if ResourceLoader.exists("res://assets/backgrounds/stage2_waterfall.jpg"):
-		stage_thumbnails[2] = load("res://assets/backgrounds/stage2_waterfall.jpg")
-	if ResourceLoader.exists("res://assets/backgrounds/stage3_alien_hive.jpg"):
-		stage_thumbnails[3] = load("res://assets/backgrounds/stage3_alien_hive.jpg")
+	
+	var stage_bg_files := {
+		1: "stage1_jungle.jpg",
+		2: "stage2_waterfall.jpg",
+		3: "stage3_alien_hive.jpg",
+		4: "stage4_tundra.jpg",
+		5: "stage5_refinery.jpg",
+		6: "stage6_dynamo.jpg",
+		7: "stage7_hangar.jpg",
+		8: "stage8_sanctum.jpg"
+	}
+	for sid in stage_bg_files:
+		var path: String = "res://assets/backgrounds/" + str(stage_bg_files[sid])
+		if ResourceLoader.exists(path):
+			stage_backgrounds[sid] = load(path)
+			stage_thumbnails[sid] = stage_backgrounds[sid]
+	
+	if Global.current_stage >= 1 and Global.current_stage <= 8:
+		selected_stage = Global.current_stage
+	prev_bg_stage = selected_stage
+	bg_fade = 1.0
+	queue_redraw()
+
+func _set_selected_stage(new_stage: int) -> void:
+	if new_stage == selected_stage:
+		return
+	prev_bg_stage = selected_stage
+	selected_stage = new_stage
+	bg_fade = 0.0
+	Global.play_sfx("menu_cursor")
 	queue_redraw()
 
 func _process(delta: float) -> void:
 	anim_timer += delta
+	if bg_fade < 1.0:
+		bg_fade = minf(1.0, bg_fade + delta * 3.5)
 	queue_redraw()
 
 var show_full_map: bool = false
@@ -116,32 +145,20 @@ func _unhandled_input(event: InputEvent) -> void:
 			_deploy(selected_stage)
 			return
 		elif event.is_action_pressed("move_left"):
-			selected_stage = 8 if selected_stage == 1 else selected_stage - 1
-			Global.play_sfx("menu_cursor")
-			queue_redraw()
+			_set_selected_stage(8 if selected_stage == 1 else selected_stage - 1)
 			return
 		elif event.is_action_pressed("move_right"):
-			selected_stage = 1 if selected_stage == 8 else selected_stage + 1
-			Global.play_sfx("menu_cursor")
-			queue_redraw()
+			_set_selected_stage(1 if selected_stage == 8 else selected_stage + 1)
 			return
 
 	if event.is_action_pressed("move_left"):
-		selected_stage = 8 if selected_stage == 1 else selected_stage - 1
-		Global.play_sfx("menu_cursor")
-		queue_redraw()
+		_set_selected_stage(8 if selected_stage == 1 else selected_stage - 1)
 	elif event.is_action_pressed("move_right"):
-		selected_stage = 1 if selected_stage == 8 else selected_stage + 1
-		Global.play_sfx("menu_cursor")
-		queue_redraw()
+		_set_selected_stage(1 if selected_stage == 8 else selected_stage + 1)
 	elif event.is_action_pressed("move_up"):
-		selected_stage = selected_stage - 4 if selected_stage > 4 else selected_stage + 4
-		Global.play_sfx("menu_cursor")
-		queue_redraw()
+		_set_selected_stage(selected_stage - 4 if selected_stage > 4 else selected_stage + 4)
 	elif event.is_action_pressed("move_down"):
-		selected_stage = selected_stage + 4 if selected_stage <= 4 else selected_stage - 4
-		Global.play_sfx("menu_cursor")
-		queue_redraw()
+		_set_selected_stage(selected_stage + 4 if selected_stage <= 4 else selected_stage - 4)
 	elif event.is_action_pressed("jump") or event.is_action_pressed("shoot") or (event is InputEventKey and event.pressed and (event.keycode == KEY_ENTER or event.keycode == KEY_SPACE)):
 		_deploy(selected_stage)
 	elif event is InputEventKey and event.pressed and event.keycode == KEY_ESCAPE:
@@ -181,14 +198,10 @@ func _handle_click(pos: Vector2) -> void:
 		
 		# Stage switcher arrows in header
 		if Rect2(20.0 + ox, 15.0, 60.0, 35.0).has_point(pos):
-			selected_stage = 8 if selected_stage == 1 else selected_stage - 1
-			Global.play_sfx("menu_cursor")
-			queue_redraw()
+			_set_selected_stage(8 if selected_stage == 1 else selected_stage - 1)
 			return
 		elif Rect2(880.0 + ox, 15.0, 60.0, 35.0).has_point(pos):
-			selected_stage = 1 if selected_stage == 8 else selected_stage + 1
-			Global.play_sfx("menu_cursor")
-			queue_redraw()
+			_set_selected_stage(1 if selected_stage == 8 else selected_stage + 1)
 			return
 		return
 
@@ -238,10 +251,10 @@ func _handle_click(pos: Vector2) -> void:
 		var crect := Rect2(cx, cy, card_w, card_h)
 		if crect.has_point(pos):
 			var stage_num := i + 1
-			var btn_rect := Rect2(cx + 10.0, cy + 134.0, card_w - 20.0, 26.0)
+			var btn_rect := Rect2(cx + 8.0, cy + 132.0, card_w - 16.0, 28.0)
 			if btn_rect.has_point(pos):
 				# Directly clicked Deploy/Select button on the card
-				selected_stage = stage_num
+				_set_selected_stage(stage_num)
 				_deploy(stage_num)
 				return
 			elif selected_stage == stage_num:
@@ -250,9 +263,7 @@ func _handle_click(pos: Vector2) -> void:
 				return
 			else:
 				# Select the clicked card
-				selected_stage = stage_num
-				Global.play_sfx("menu_cursor")
-				queue_redraw()
+				_set_selected_stage(stage_num)
 				return
 
 func _deploy(stage_id: int) -> void:
@@ -266,12 +277,30 @@ func _draw() -> void:
 	var w := _get_screen_w()
 	var ox := _get_offset_x()
 
-	# Background Wallpaper & Wash
-	if bg_texture != null:
-		draw_texture_rect(bg_texture, Rect2(0.0, 0.0, w, 540.0), false)
-		draw_rect(Rect2(0.0, 0.0, w, 540.0), Color(0.04, 0.07, 0.12, 0.88))
+	# Background Wallpaper & Dynamic Cross-Fade between Stage Backgrounds
+	var cur_bg: Texture2D = stage_backgrounds.get(selected_stage, bg_texture)
+	var prev_bg: Texture2D = stage_backgrounds.get(prev_bg_stage, bg_texture)
+	var screen_rect := Rect2(0.0, 0.0, w, 540.0)
+	
+	if cur_bg != null:
+		if bg_fade < 1.0 and prev_bg != null and prev_bg != cur_bg:
+			draw_texture_rect(prev_bg, screen_rect, false)
+			draw_texture_rect(cur_bg, screen_rect, false, Color(1.0, 1.0, 1.0, bg_fade))
+		else:
+			draw_texture_rect(cur_bg, screen_rect, false)
+		
+		# Tactical wash tuned for rich aesthetics while ensuring maximum text readability
+		var sel_color: Color = stages_info[selected_stage - 1]["color"]
+		draw_rect(screen_rect, Color(0.03, 0.05, 0.09, 0.62))
+		draw_rect(screen_rect, Color(sel_color.r * 0.12, sel_color.g * 0.12, sel_color.b * 0.18, 0.22))
+		# Header & footer contrast bands
+		draw_rect(Rect2(0.0, 0.0, w, 86.0), Color(0.02, 0.03, 0.06, 0.60))
+		draw_rect(Rect2(0.0, 474.0, w, 66.0), Color(0.02, 0.03, 0.06, 0.70))
+	elif bg_texture != null:
+		draw_texture_rect(bg_texture, screen_rect, false)
+		draw_rect(screen_rect, Color(0.04, 0.07, 0.12, 0.88))
 	else:
-		draw_rect(Rect2(0.0, 0.0, w, 540.0), Color(0.05, 0.07, 0.11))
+		draw_rect(screen_rect, Color(0.05, 0.07, 0.11))
 	
 	# Tactical Tech Grid Lines
 	for i in range(11):
@@ -308,47 +337,128 @@ func _draw() -> void:
 		var cy := start_y + float(row) * (card_h + row_gap)
 		var card_rect := Rect2(cx, cy, card_w, card_h)
 		
-		# Card Background Plate
-		var bg_col := Color(0.10, 0.16, 0.26, 0.95) if is_sel else Color(0.06, 0.08, 0.13, 0.90)
+		# Drop Shadow for floating card depth
+		draw_rect(Rect2(cx + 3.0, cy + 4.0, card_w, card_h), Color(0.0, 0.0, 0.0, 0.52))
+		
+		# Glassmorphism Base Plate
+		var bg_col := Color(0.07, 0.11, 0.18, 0.96) if is_sel else Color(0.04, 0.06, 0.10, 0.90)
 		draw_rect(card_rect, bg_col)
 		
-		# Glowing border when selected
-		var border_col: Color = s["color"] if is_sel else Color(0.20, 0.28, 0.38, 0.70)
-		var border_w: float = 2.5 if is_sel else 1.0
-		draw_rect(card_rect, border_col, false, border_w)
+		# Subtle top-half glass reflection sheen
+		draw_rect(Rect2(cx, cy, card_w, 42.0), Color(1.0, 1.0, 1.0, 0.05 if is_sel else 0.025))
 		
-		# Top pulsing accent bar on selected card
+		# Inset chamfer line for glass border effect
+		draw_rect(Rect2(cx + 1.0, cy + 1.0, card_w - 2.0, card_h - 2.0), Color(1.0, 1.0, 1.0, 0.08 if is_sel else 0.04), false, 1.0)
+		
+		# Outer Glow & Glowing border when selected
 		if is_sel:
-			var pulse := 0.7 + 0.3 * sin(anim_timer * 8.0)
+			var glow_pulse := 0.22 + 0.10 * sin(anim_timer * 6.0)
+			draw_rect(Rect2(cx - 2.0, cy - 2.0, card_w + 4.0, card_h + 4.0), Color(s["color"].r, s["color"].g, s["color"].b, glow_pulse), false, 2.0)
+			draw_rect(card_rect, s["color"], false, 1.8)
+			
+			# Top pulsating energy accent bar
+			var pulse := 0.75 + 0.25 * sin(anim_timer * 8.0)
 			draw_rect(Rect2(cx, cy, card_w, 3.0), Color(s["color"].r, s["color"].g, s["color"].b, pulse))
+			
+			# Tech corner brackets (6px L-accents)
+			var b_len := 7.0
+			var b_col: Color = Color.WHITE
+			draw_line(Vector2(cx, cy), Vector2(cx + b_len, cy), b_col, 1.5)
+			draw_line(Vector2(cx, cy), Vector2(cx, cy + b_len), b_col, 1.5)
+			draw_line(Vector2(cx + card_w, cy), Vector2(cx + card_w - b_len, cy), b_col, 1.5)
+			draw_line(Vector2(cx + card_w, cy), Vector2(cx + card_w, cy + b_len), b_col, 1.5)
+			draw_line(Vector2(cx, cy + card_h), Vector2(cx + b_len, cy + card_h), b_col, 1.5)
+			draw_line(Vector2(cx, cy + card_h), Vector2(cx, cy + card_h - b_len), b_col, 1.5)
+			draw_line(Vector2(cx + card_w, cy + card_h), Vector2(cx + card_w - b_len, cy + card_h), b_col, 1.5)
+			draw_line(Vector2(cx + card_w, cy + card_h), Vector2(cx + card_w, cy + card_h - b_len), b_col, 1.5)
+		else:
+			draw_rect(card_rect, Color(0.18, 0.25, 0.36, 0.65), false, 1.0)
+			# Subtle corner ticks
+			var b_len := 4.0
+			var b_col := Color(0.30, 0.42, 0.58, 0.40)
+			draw_line(Vector2(cx, cy), Vector2(cx + b_len, cy), b_col, 1.0)
+			draw_line(Vector2(cx, cy), Vector2(cx, cy + b_len), b_col, 1.0)
+			draw_line(Vector2(cx + card_w, cy), Vector2(cx + card_w - b_len, cy), b_col, 1.0)
+			draw_line(Vector2(cx + card_w, cy), Vector2(cx + card_w, cy + b_len), b_col, 1.0)
+			draw_line(Vector2(cx, cy + card_h), Vector2(cx + b_len, cy + card_h), b_col, 1.0)
+			draw_line(Vector2(cx, cy + card_h), Vector2(cx, cy + card_h - b_len), b_col, 1.0)
+			draw_line(Vector2(cx + card_w, cy + card_h), Vector2(cx + card_w - b_len, cy + card_h), b_col, 1.0)
+			draw_line(Vector2(cx + card_w, cy + card_h), Vector2(cx + card_w, cy + card_h - b_len), b_col, 1.0)
+
+		# Stage Background Preview Monitor (Sleek 16:6 widescreen viewport)
+		var thumb_rect := Rect2(cx + 6.0, cy + 6.0, card_w - 12.0, 72.0)
+		var thumb_bg: Texture2D = stage_backgrounds.get(stage_id, null)
+		if thumb_bg != null:
+			var thumb_mod: Color = Color.WHITE if is_sel else Color(0.86, 0.89, 0.94, 0.88)
+			draw_texture_rect(thumb_bg, thumb_rect, false, thumb_mod)
+			if is_sel:
+				draw_rect(thumb_rect, Color(s["color"].r * 0.12, s["color"].g * 0.12, s["color"].b * 0.18, 0.15))
+			# Vignette bands on top & bottom of monitor
+			draw_rect(Rect2(thumb_rect.position.x, thumb_rect.position.y, thumb_rect.size.x, 14.0), Color(0.02, 0.03, 0.06, 0.45))
+			draw_rect(Rect2(thumb_rect.position.x, thumb_rect.end.y - 14.0, thumb_rect.size.x, 14.0), Color(0.02, 0.04, 0.08, 0.55))
+		else:
+			draw_rect(thumb_rect, Color(0.08, 0.12, 0.18))
 		
-		# Authentic Level Map schematic inside thumbnail box
-		var thumb_rect := Rect2(cx + 8.0, cy + 8.0, card_w - 16.0, 68.0)
-		LevelMaps.draw_level_map(self, stage_id, thumb_rect, -1.0, false, anim_timer)
+		# Monitor Bezel / Frame
+		var frame_col: Color = s["color"] if is_sel else Color(0.24, 0.33, 0.45, 0.75)
+		draw_rect(thumb_rect, frame_col, false, 1.2 if is_sel else 1.0)
 		
-		# Stage Number & Title
-		var title_col := Color(1.0, 0.95, 0.40) if is_sel else Color(0.92, 0.94, 0.98)
-		var title_short: String = "STAGE " + str(stage_id) + ": " + s["theme"]
+		# Monitor Tactical Overlays:
+		# Top-Left: Stage ID pill badge
+		var badge_rect := Rect2(cx + 10.0, cy + 10.0, 52.0, 15.0)
+		draw_rect(badge_rect, Color(0.02, 0.04, 0.07, 0.82))
+		draw_rect(badge_rect, s["color"] if is_sel else Color(0.35, 0.45, 0.60, 0.80), false, 1.0)
+		draw_string(font, Vector2(cx + 14.0, cy + 21.0), "ST. 0" + str(stage_id), HORIZONTAL_ALIGNMENT_LEFT, -1, 9, Color.WHITE)
+		
+		# Top-Right: Active Target Telemetry Blip (if selected) or Sector Distance
+		if is_sel:
+			var blip := 0.65 + 0.35 * sin(anim_timer * 9.0)
+			draw_circle(Vector2(cx + card_w - 18.0, cy + 17.5), 3.0, Color(s["color"].r, s["color"].g, s["color"].b, blip))
+			draw_string(font, Vector2(cx + card_w - 48.0, cy + 21.0), "ACTIVE", HORIZONTAL_ALIGNMENT_LEFT, -1, 8, s["color"])
+		else:
+			draw_string(font, Vector2(cx + card_w - 46.0, cy + 21.0), "5800M", HORIZONTAL_ALIGNMENT_LEFT, -1, 8, Color(0.65, 0.75, 0.90, 0.60))
+
+		# Stage Title
+		var title_col := Color(1.0, 0.92, 0.45) if is_sel else Color(0.92, 0.95, 1.0)
+		var title_text: String = s["theme"]
 		var is_mob: bool = Global.is_mobile_device()
-		draw_string(font, Vector2(cx + 10.0, cy + 96.0), title_short, HORIZONTAL_ALIGNMENT_LEFT, card_w - 20.0, 11 if is_mob else 10, title_col)
+		draw_string(font, Vector2(cx + 8.0, cy + 96.0), title_text, HORIZONTAL_ALIGNMENT_LEFT, card_w - 16.0, 11 if is_mob else 10, title_col)
 		
-		# Difficulty badge + Boss readout
-		draw_rect(Rect2(cx + 10.0, cy + 105.0, 72.0 if is_mob else 68.0, 17.0 if is_mob else 16.0), Color(0.08, 0.10, 0.14))
-		draw_rect(Rect2(cx + 10.0, cy + 105.0, 72.0 if is_mob else 68.0, 17.0 if is_mob else 16.0), s["color"], false, 1.0)
-		draw_string(font, Vector2(cx + 14.0, cy + (118.0 if not is_mob else 119.0)), s["diff"], HORIZONTAL_ALIGNMENT_LEFT, -1, 10 if is_mob else 9, s["color"])
+		# Tactical Chips: Difficulty badge & Boss target
+		var diff_w: float = 68.0 if is_mob else 65.0
+		var chip_y: float = cy + (105.0 if is_mob else 104.0)
+		var chip_h: float = 17.0
 		
-		# Boss target tag
-		draw_string(font, Vector2(cx + (88.0 if is_mob else 84.0), cy + (118.0 if not is_mob else 119.0)), "BOSS: " + s["boss"], HORIZONTAL_ALIGNMENT_LEFT, card_w - 92.0, 10 if is_mob else 9, Color(1.0, 0.40, 0.40))
+		# Difficulty Chip
+		draw_rect(Rect2(cx + 8.0, chip_y, diff_w, chip_h), Color(s["color"].r * 0.16, s["color"].g * 0.16, s["color"].b * 0.22, 0.90))
+		draw_rect(Rect2(cx + 8.0, chip_y, diff_w, chip_h), s["color"], false, 1.0)
+		draw_string(font, Vector2(cx + 12.0, chip_y + 12.0), "◈ " + s["diff"], HORIZONTAL_ALIGNMENT_LEFT, -1, 9, s["color"])
 		
-		# Deploy Button at bottom of card
+		# Boss Target Chip
+		var boss_x: float = cx + diff_w + 12.0
+		var boss_w: float = card_w - diff_w - 20.0
+		draw_rect(Rect2(boss_x, chip_y, boss_w, chip_h), Color(0.12, 0.06, 0.08, 0.85))
+		draw_rect(Rect2(boss_x, chip_y, boss_w, chip_h), Color(0.60, 0.22, 0.22, 0.65), false, 1.0)
+		draw_string(font, Vector2(boss_x + 5.0, chip_y + 12.0), "BOSS: " + s["boss"], HORIZONTAL_ALIGNMENT_LEFT, boss_w - 8.0, 9, Color(1.0, 0.50, 0.50))
+		
+		# Deploy / Select Button at bottom of card
 		var btn_h: float = 28.0 if is_mob else 26.0
-		var btn_rect := Rect2(cx + 10.0, cy + (132.0 if is_mob else 134.0), card_w - 20.0, btn_h)
-		var btn_bg: Color = s["color"] if is_sel else Color(0.12, 0.18, 0.25)
-		draw_rect(btn_rect, btn_bg)
-		draw_rect(btn_rect, Color.WHITE if is_sel else Color(0.30, 0.45, 0.60), false, 1.0)
+		var btn_y: float = cy + (132.0 if is_mob else 134.0)
+		var btn_rect := Rect2(cx + 8.0, btn_y, card_w - 16.0, btn_h)
+		
+		if is_sel:
+			var b_pulse := 0.88 + 0.12 * sin(anim_timer * 6.0)
+			var btn_bg := Color(s["color"].r * 0.58 * b_pulse, s["color"].g * 0.58 * b_pulse, s["color"].b * 0.58 * b_pulse, 0.95)
+			draw_rect(btn_rect, btn_bg)
+			draw_line(Vector2(btn_rect.position.x + 2.0, btn_rect.position.y + 1.0), Vector2(btn_rect.end.x - 2.0, btn_rect.position.y + 1.0), Color(1.0, 1.0, 1.0, 0.50), 1.0)
+			draw_rect(btn_rect, Color.WHITE, false, 1.2)
+		else:
+			draw_rect(btn_rect, Color(0.09, 0.14, 0.22, 0.88))
+			draw_line(Vector2(btn_rect.position.x + 2.0, btn_rect.position.y + 1.0), Vector2(btn_rect.end.x - 2.0, btn_rect.position.y + 1.0), Color(1.0, 1.0, 1.0, 0.12), 1.0)
+			draw_rect(btn_rect, Color(0.25, 0.38, 0.52, 0.60), false, 1.0)
 		
 		var deploy_label := "► DEPLOY ◄" if is_sel else "SELECT"
-		var label_col := Color.WHITE if is_sel else Color(0.70, 0.80, 0.90)
+		var label_col := Color.WHITE if is_sel else Color(0.72, 0.82, 0.94)
 		var d_size: int = 12 if is_mob else 11
 		var d_w := font.get_string_size(deploy_label, HORIZONTAL_ALIGNMENT_LEFT, -1, d_size).x
 		draw_string(font, Vector2(cx + (card_w - d_w) * 0.5, cy + (151.0 if not is_mob else 151.0)), deploy_label, HORIZONTAL_ALIGNMENT_LEFT, -1, d_size, label_col)
@@ -383,8 +493,12 @@ func _draw_full_level_map_view(font: Font, w: float, ox: float) -> void:
 	var m := LevelMaps.get_map_data(selected_stage)
 	var p_col: Color = m["primary_color"]
 	
-	# Dark tech wash
-	draw_rect(Rect2(0.0, 0.0, w, 540.0), Color(0.02, 0.04, 0.08, 0.96))
+	# Stage Background & Dark tech wash
+	var full_bg: Texture2D = stage_backgrounds.get(selected_stage, bg_texture)
+	var screen_rect := Rect2(0.0, 0.0, w, 540.0)
+	if full_bg != null:
+		draw_texture_rect(full_bg, screen_rect, false, Color(0.7, 0.75, 0.85, 1.0))
+	draw_rect(screen_rect, Color(0.02, 0.04, 0.08, 0.88))
 	
 	# Top Header with Stage Switcher hints
 	draw_string(font, Vector2(32.0 + ox, 42.0), "◄ [Q]", HORIZONTAL_ALIGNMENT_LEFT, -1, 14, Color(0.4, 0.6, 0.8))
@@ -397,6 +511,9 @@ func _draw_full_level_map_view(font: Font, w: float, ox: float) -> void:
 	
 	# Large Panoramic Terrain Blueprint Schematic Canvas
 	var schematic_rect := Rect2(32.0 + ox, 78.0, 896.0, 230.0)
+	if full_bg != null:
+		draw_texture_rect(full_bg, schematic_rect, false, Color(0.85, 0.85, 0.95, 0.35))
+		draw_rect(schematic_rect, Color(0.01, 0.03, 0.06, 0.45))
 	LevelMaps.draw_level_map(self, selected_stage, schematic_rect, -1.0, true, anim_timer)
 	
 	# Tactical Briefing Intel Card

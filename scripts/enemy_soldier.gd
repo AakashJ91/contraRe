@@ -1,12 +1,5 @@
 extends CharacterBody2D
 
-const RUN_TEXTURES: Array[Texture2D] = [
-	preload("res://assets/enemies/enemy_soldier_run_0.png"),
-	preload("res://assets/enemies/enemy_soldier_run_1.png"),
-	preload("res://assets/enemies/enemy_soldier_run_2.png"),
-	preload("res://assets/enemies/enemy_soldier_run_3.png")
-]
-
 const SPEED: float = 80.0
 const GRAVITY: float = 950.0
 
@@ -21,15 +14,48 @@ var jump_cooldown: float = 0.0
 var turn_cooldown: float = 0.0
 var flash_timer: float = 0.0
 
+var run_textures: Array[Texture2D] = []
+var death_textures: Array[Texture2D] = []
+var is_dying: bool = false
+var death_frame: int = 0
+var death_timer: float = 0.0
+
 func _ready() -> void:
 	add_to_group("foot_soldiers")
 	add_to_group("enemies")
 	collision_layer = 1 << 2 # Layer 3: Enemies
 	collision_mask = (1 << 1) # Layer 2: World
 	shoot_timer = randf_range(1.5, 3.5)
+	
+	run_textures.clear()
+	for i in range(4):
+		var p := "res://assets/enemies/soldier/movement/run_%d.png" % i
+		if ResourceLoader.exists(p):
+			run_textures.append(load(p))
+		elif ResourceLoader.exists("res://assets/enemies/enemy_soldier_run_%d.png" % i):
+			run_textures.append(load("res://assets/enemies/enemy_soldier_run_%d.png" % i))
+	
+	death_textures.clear()
+	for i in range(4):
+		var p := "res://assets/enemies/soldier/death/death_%d.png" % i
+		if ResourceLoader.exists(p):
+			death_textures.append(load(p))
+	
 	queue_redraw()
 
 func _physics_process(delta: float) -> void:
+	if is_dying:
+		velocity.x = move_toward(velocity.x, 0.0, SPEED * 3.0 * delta)
+		if not is_on_floor():
+			velocity.y += GRAVITY * delta
+		move_and_slide()
+		death_timer += delta
+		death_frame = clampi(int(death_timer * 8.0), 0, 3)
+		if death_timer >= 0.5:
+			queue_free()
+		queue_redraw()
+		return
+	
 	if flash_timer > 0.0:
 		flash_timer -= delta
 	
@@ -111,6 +137,8 @@ func _shoot() -> void:
 	get_parent().add_child(b)
 
 func take_damage(dmg: float = 1.0) -> void:
+	if is_dying:
+		return
 	health -= dmg
 	flash_timer = 0.08
 	Global.play_sfx("hit")
@@ -118,12 +146,14 @@ func take_damage(dmg: float = 1.0) -> void:
 		_die()
 
 func _die() -> void:
+	if is_dying:
+		return
+	is_dying = true
 	Global.add_score(100)
-	if explosion_scene != null:
-		var exp_node = explosion_scene.instantiate()
-		exp_node.global_position = global_position
-		get_parent().add_child(exp_node)
-	queue_free()
+	collision_layer = 0
+	velocity = Vector2(-facing_dir * 55.0, -125.0)
+	Global.shake_screen(3.5, 0.15)
+	VFX.spawn_dust_puff(global_position + Vector2(0.0, 8.0), 4)
 
 func _draw() -> void:
 	var col: Color = Color(1.8, 0.4, 0.4) if flash_timer > 0.0 else Color.WHITE
@@ -132,15 +162,26 @@ func _draw() -> void:
 	var std_rect := Rect2(-17.0, -19.0, spr_w, spr_h)
 	var scale_x: float = 1.0 if facing_dir >= 0 else -1.0
 	
-	var idx: int = int(fmod(run_frame, float(RUN_TEXTURES.size())))
-	if not is_on_floor():
-		idx = 0
-	var cur_tex: Texture2D = RUN_TEXTURES[idx]
-	if cur_tex != null:
-		draw_set_transform(Vector2.ZERO, 0.0, Vector2(scale_x, 1.0))
-		draw_texture_rect(cur_tex, std_rect, false, col)
-		draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
-		return
+	if is_dying:
+		var d_tex: Texture2D = death_textures[death_frame] if death_frame < death_textures.size() else null
+		if d_tex != null:
+			var alpha: float = 1.0 - clampf((death_timer - 0.45) / 0.20, 0.0, 1.0)
+			var d_col := Color(col.r, col.g, col.b, alpha)
+			draw_set_transform(Vector2.ZERO, 0.0, Vector2(scale_x, 1.0))
+			draw_texture_rect(d_tex, std_rect, false, d_col)
+			draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+			return
+	
+	if run_textures.size() > 0:
+		var idx: int = int(fmod(run_frame, float(run_textures.size())))
+		if not is_on_floor():
+			idx = 0
+		var cur_tex: Texture2D = run_textures[idx]
+		if cur_tex != null:
+			draw_set_transform(Vector2.ZERO, 0.0, Vector2(scale_x, 1.0))
+			draw_texture_rect(cur_tex, std_rect, false, col)
+			draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+			return
 	
 	# Procedural fallback (only used if textures fail to load)
 	var col_suit := Color(0.85, 0.25, 0.20) # Red uniform

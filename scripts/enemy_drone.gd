@@ -12,6 +12,11 @@ var flight_speed: float = 110.0
 var base_altitude: float = 180.0
 var hover_offset_y: float = 0.0
 var drone_texture: Texture2D = null
+var fly_textures: Array[Texture2D] = []
+var death_textures: Array[Texture2D] = []
+var is_dying: bool = false
+var death_frame: int = 0
+var death_timer: float = 0.0
 
 enum DroneState {
 	PATROL,
@@ -33,18 +38,44 @@ func _ready() -> void:
 	base_altitude = global_position.y
 	is_alien_theme = (Global.current_stage == 2 or Global.current_stage == 8)
 	
-	if enemy_data != null:
-		health = enemy_data.max_health
-		flight_speed = enemy_data.move_speed
+	fly_textures.clear()
+	for i in range(4):
+		var p := "res://assets/enemies/drone/movement/fly_%d.png" % i
+		if ResourceLoader.exists(p):
+			fly_textures.append(load(p))
+	
+	death_textures.clear()
+	for i in range(4):
+		var p := "res://assets/enemies/drone/death/crash_%d.png" % i
+		if ResourceLoader.exists(p):
+			death_textures.append(load(p))
+	
+	if ResourceLoader.exists("res://assets/enemies/drone/drone.png"):
+		drone_texture = load("res://assets/enemies/drone/drone.png")
+	elif enemy_data != null and enemy_data.sprite_texture != null:
 		drone_texture = enemy_data.sprite_texture
 	elif ResourceLoader.exists("res://assets/enemies/enemy_drone.png"):
 		drone_texture = load("res://assets/enemies/enemy_drone.png")
+	
+	if enemy_data != null:
+		health = enemy_data.max_health
+		flight_speed = enemy_data.move_speed
 	
 	attack_cooldown = randf_range(1.5, 3.0)
 	queue_redraw()
 
 func _physics_process(delta: float) -> void:
 	anim_timer += delta
+	if is_dying:
+		death_timer += delta
+		death_frame = clampi(int(death_timer * 6.5), 0, 3)
+		velocity.y += 350.0 * delta # falling crash
+		global_position += velocity * delta
+		if death_timer >= 0.65:
+			queue_free()
+		queue_redraw()
+		return
+
 	if flash_timer > 0.0:
 		flash_timer -= delta
 	
@@ -135,6 +166,8 @@ func _fire_plasma_burst() -> void:
 		get_parent().add_child(b)
 
 func take_damage(dmg: float = 1.0) -> void:
+	if is_dying:
+		return
 	health -= dmg
 	flash_timer = 0.08
 	Global.play_sfx("hit")
@@ -142,35 +175,69 @@ func take_damage(dmg: float = 1.0) -> void:
 		_die()
 
 func _die() -> void:
+	if is_dying:
+		return
+	is_dying = true
+	collision_layer = 0
+	velocity = Vector2(facing_dir * 40.0, -80.0)
 	var reward: int = enemy_data.score_reward if enemy_data != null else 350
 	Global.add_score(reward)
-	VFX.spawn_explosion(global_position, 1.15, true, false)
-	queue_free()
+	Global.shake_screen(5.5, 0.2)
+	Global.play_sfx("explosion")
 
 func _draw() -> void:
 	var flash_col := Color(1.8, 0.4, 0.4) if flash_timer > 0.0 else Color.WHITE
 	var dir_f := float(facing_dir)
 	var bank_tilt := clampf(velocity.x * 0.002, -0.3, 0.3)
+	# New asset faces left by default (facing_dir == -1 -> scale_x = 1.0)
+	var scale_x: float = -1.0 if facing_dir > 0 else 1.0
+	var spr_w: float = 52.0
+	var spr_h: float = 24.0
 	
-	if not is_alien_theme and drone_texture != null:
-		var spr_w: float = 46.0
-		var spr_h: float = 24.0
-		var scale_x: float = 1.0 if facing_dir > 0 else -1.0
-		draw_set_transform(Vector2.ZERO, bank_tilt, Vector2(scale_x, 1.0))
-		draw_texture_rect(drone_texture, Rect2(-spr_w * 0.5, -spr_h * 0.5, spr_w, spr_h), false, flash_col)
+	if is_dying:
+		var d_tex: Texture2D = death_textures[death_frame] if death_frame < death_textures.size() else null
+		if d_tex != null:
+			var alpha: float = 1.0 - clampf((death_timer - 0.45) / 0.20, 0.0, 1.0)
+			var d_col := Color(flash_col.r, flash_col.g, flash_col.b, alpha)
+			draw_set_transform(Vector2.ZERO, bank_tilt + death_timer * 3.5, Vector2(scale_x, 1.0))
+			draw_texture_rect(d_tex, Rect2(-spr_w * 0.5, -spr_h * 0.5, spr_w, spr_h), false, d_col)
+			draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+			return
+	
+	if not is_alien_theme:
+		var cur_tex: Texture2D = drone_texture
+		if fly_textures.size() > 0:
+			var f_idx: int = int(anim_timer * 8.0) % fly_textures.size()
+			cur_tex = fly_textures[f_idx]
 		
-		# Thruster exhaust flame behind drone
-		var flame_len := 7.0 + sin(anim_timer * 25.0) * 4.0
-		draw_line(Vector2(-spr_w * 0.48, 2.0), Vector2(-spr_w * 0.48 - flame_len, 2.0), Color(0.2, 0.8, 1.0, 0.8), 3.0)
-		
-		# Laser telegraph line when locking on
-		if state == DroneState.LOCK_ON:
-			var optic_pulse := (sin(anim_timer * 8.0) + 1.0) * 0.5
-			var laser_col := Color(1.0, 0.15, 0.15, 0.5 + optic_pulse * 0.4)
-			draw_line(Vector2(spr_w * 0.3, 0.0), target_aim_dir * 220.0, laser_col, 2.0)
-		
-		draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
-		return
+		if cur_tex != null:
+			draw_set_transform(Vector2.ZERO, bank_tilt, Vector2(scale_x, 1.0))
+			draw_texture_rect(cur_tex, Rect2(-spr_w * 0.5, -spr_h * 0.5, spr_w, spr_h), false, flash_col)
+			
+			# Thruster exhaust flame behind drone (drone faces left, exhaust on the right)
+			var flame_len := 7.0 + sin(anim_timer * 25.0) * 4.0
+			if state == DroneState.SWOOP_AWAY:
+				flame_len *= 2.2 # Afterburner boost
+			draw_line(Vector2(spr_w * 0.44, 2.0), Vector2(spr_w * 0.44 + flame_len, 2.0), Color(0.2, 0.8, 1.0, 0.85), 3.0)
+			draw_line(Vector2(spr_w * 0.44, 2.0), Vector2(spr_w * 0.44 + flame_len * 0.5, 2.0), Color.WHITE, 1.5)
+			
+			# Laser telegraph line when locking on (from the red eye at -spr_w * 0.38)
+			if state == DroneState.LOCK_ON:
+				var optic_pulse := (sin(anim_timer * 12.0) + 1.0) * 0.5
+				var laser_col := Color(1.0, 0.15, 0.15, 0.5 + optic_pulse * 0.45)
+				var eye_local := Vector2(-spr_w * 0.38, -2.0)
+				var aim_in_local := target_aim_dir
+				aim_in_local.x *= scale_x
+				draw_line(eye_local, eye_local + aim_in_local * 240.0, laser_col, 2.0)
+			
+			# Dual autocannon muzzle flashes when firing
+			if state == DroneState.FIRE_BURST:
+				for mx in [-12.0, 0.0]:
+					draw_circle(Vector2(mx, 8.0), 6.0, Color(1.0, 0.85, 0.2, 0.9))
+					draw_circle(Vector2(mx, 8.0), 3.0, Color.WHITE)
+			
+			draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+			return
 	
 	draw_set_transform(Vector2.ZERO, bank_tilt, Vector2.ONE)
 	

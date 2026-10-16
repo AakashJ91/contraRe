@@ -25,9 +25,12 @@ signal weapon_changed(new_weapon: WeaponType)
 signal screen_shake_requested(intensity: float, duration: float)
 signal boss_health_changed(current: float, max_val: float)
 signal boss_defeated()
+signal mini_boss_defeated()
 signal map_toggled(is_open: bool)
 signal maker_mode_toggled(is_open: bool)
 signal stage_started(stage_idx: int)
+
+var active_boss_name: String = ""
 
 var is_map_open: bool = false
 var is_maker_mode: bool = false
@@ -140,6 +143,8 @@ func get_stage_full_title(stage_idx: int = -1) -> String:
 	return get_stage_name(stage_idx)
 
 func get_boss_name(stage_idx: int = -1) -> String:
+	if active_boss_name != "":
+		return active_boss_name
 	var idx := (current_stage if stage_idx <= 0 else stage_idx) - 1
 	if idx >= 0 and idx < BOSS_NAMES.size():
 		return BOSS_NAMES[idx]

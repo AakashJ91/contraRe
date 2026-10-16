@@ -24,6 +24,27 @@ var death_explosions_left: int = 16
 var left_part_hp: float = 12.0
 var right_part_hp: float = 12.0
 var boss_texture: Texture2D = null
+var core_textures: Array[Texture2D] = []
+var death_textures: Array[Texture2D] = []
+var death_frame_index: int = 0
+var muzzle_flash_left: float = 0.0
+var muzzle_flash_right: float = 0.0
+var muzzle_flash_top: float = 0.0
+
+# Stage 1 Machineguns State
+var mg_burst_active: bool = false
+var mg_burst_gun: int = 0 # 0: Mid-Left, 1: Top-Left, 2: Top-Right
+var mg_burst_count: int = 0
+var mg_burst_timer: float = 0.0
+
+var recoil_mid: float = 0.0
+var recoil_tl: float = 0.0
+var recoil_tr: float = 0.0
+var heat_mid: float = 0.0
+var heat_tl: float = 0.0
+var heat_tr: float = 0.0
+
+var shell_casings: Array[Dictionary] = []
 
 func _ready() -> void:
 	_init_boss_stats()
@@ -31,8 +52,25 @@ func _ready() -> void:
 	core_area.area_entered.connect(_on_core_hit)
 	left_cannon.area_entered.connect(_on_left_part_hit)
 	right_cannon.area_entered.connect(_on_right_part_hit)
-	if Global.current_stage == 1 and ResourceLoader.exists("res://assets/enemies/boss_wall.png"):
-		boss_texture = load("res://assets/enemies/boss_wall.png")
+	if Global.current_stage == 1:
+		core_textures.clear()
+		for i in range(4):
+			var cp := "res://assets/enemies/boss_fortress/movement/core_%d.png" % i
+			if ResourceLoader.exists(cp):
+				core_textures.append(load(cp))
+		
+		death_textures.clear()
+		for i in range(4):
+			var dp := "res://assets/enemies/boss_fortress/death/destroy_%d.png" % i
+			if ResourceLoader.exists(dp):
+				death_textures.append(load(dp))
+		
+		if ResourceLoader.exists("res://assets/enemies/boss_fortress/boss_fortress.png"):
+			boss_texture = load("res://assets/enemies/boss_fortress/boss_fortress.png")
+		elif ResourceLoader.exists("res://assets/enemies/boss_fortress.png"):
+			boss_texture = load("res://assets/enemies/boss_fortress.png")
+		elif ResourceLoader.exists("res://assets/enemies/boss_wall.png"):
+			boss_texture = load("res://assets/enemies/boss_wall.png")
 	queue_redraw()
 
 func _init_boss_stats() -> void:
@@ -74,6 +112,7 @@ func _init_boss_stats() -> void:
 func activate() -> void:
 	if not is_active and not is_dead:
 		is_active = true
+		Global.active_boss_name = "MAIN BOSS: " + Global.get_boss_name(Global.current_stage)
 		Global.play_sfx("boss_alarm")
 		Global.shake_screen(8.0, 0.45)
 		Global.boss_health_changed.emit(current_health, max_health)
@@ -92,6 +131,42 @@ func _physics_process(delta: float) -> void:
 	
 	if core_flash_timer > 0.0:
 		core_flash_timer -= delta
+	if muzzle_flash_left > 0.0:
+		muzzle_flash_left -= delta
+	if muzzle_flash_right > 0.0:
+		muzzle_flash_right -= delta
+	if muzzle_flash_top > 0.0:
+		muzzle_flash_top -= delta
+	
+	# Machinegun dynamic recoil recovery
+	recoil_mid = maxf(0.0, recoil_mid - delta * 30.0)
+	recoil_tl = maxf(0.0, recoil_tl - delta * 30.0)
+	recoil_tr = maxf(0.0, recoil_tr - delta * 30.0)
+	
+	# Machinegun barrel heat cooldown
+	heat_mid = maxf(0.0, heat_mid - delta * 0.75)
+	heat_tl = maxf(0.0, heat_tl - delta * 0.75)
+	heat_tr = maxf(0.0, heat_tr - delta * 0.75)
+	
+	# Process active machinegun burst sequence
+	if mg_burst_active:
+		mg_burst_timer -= delta
+		if mg_burst_timer <= 0.0:
+			mg_burst_timer = 0.09 # 90ms cadence between shots
+			_fire_next_machinegun_shot()
+	
+	# Update spent shell casings physics
+	var sc_idx := shell_casings.size() - 1
+	while sc_idx >= 0:
+		var sc: Dictionary = shell_casings[sc_idx]
+		sc["lifetime"] -= delta
+		if sc["lifetime"] <= 0.0:
+			shell_casings.remove_at(sc_idx)
+		else:
+			sc["vel"].y += 650.0 * delta # gravity
+			sc["pos"] += sc["vel"] * delta
+			sc["rot"] += sc["rot_speed"] * delta
+		sc_idx -= 1
 	
 	# Attack Pattern 1: Primary side weapons
 	attack_timer_1 -= delta
@@ -117,8 +192,8 @@ func _execute_attack_1() -> void:
 		return
 	
 	match Global.current_stage:
-		1: # Dual vulcan cannons
-			_fire_straight_cannons(player_node, 280.0)
+		1: # Multi-gatling machinegun salvo
+			_trigger_stage1_machinegun_burst(player_node)
 		2: # Triple hydro spray
 			_fire_spread_cannons(player_node, 300.0, 3)
 		3: # Toxic bio-needle bursts
@@ -134,6 +209,94 @@ func _execute_attack_1() -> void:
 		8: # Optic drone dual laser streams
 			_fire_spread_cannons(player_node, 330.0, 5)
 
+func _trigger_stage1_machinegun_burst(player_node: Node2D) -> void:
+	if is_dead:
+		return
+	
+	var available_guns: Array[int] = []
+	if left_part_hp > 0.0:
+		available_guns.append(0) # Mid-Left Gatling
+	if right_part_hp > 0.0:
+		available_guns.append(1) # Top-Left Gatling
+	
+	# If both are destroyed or as an occasional heavy barrage, Top-Right Gun also fires
+	if available_guns.size() == 0 or randf() < 0.35:
+		available_guns.append(2) # Top-Right Gatling
+	
+	if available_guns.size() == 0:
+		return
+	
+	var chosen_gun: int = available_guns[randi() % available_guns.size()]
+	mg_burst_gun = chosen_gun
+	mg_burst_count = randi_range(3, 4) # 3-4 round burst!
+	mg_burst_active = true
+	mg_burst_timer = 0.0 # Fire first shot immediately
+
+func _fire_next_machinegun_shot() -> void:
+	if is_dead or mg_burst_count <= 0:
+		mg_burst_active = false
+		return
+	
+	mg_burst_count -= 1
+	var player_node: Node2D = get_tree().get_first_node_in_group("player") as Node2D
+	var player_pos: Vector2 = player_node.global_position if (player_node != null and is_instance_valid(player_node)) else (global_position + Vector2(-300.0, 50.0))
+	
+	var muzzle_offset: Vector2 = Vector2.ZERO
+	var shell_port: Vector2 = Vector2.ZERO
+	var bullet_speed: float = 320.0
+	
+	match mg_burst_gun:
+		0: # Middle-Left Lower Gatling
+			if left_part_hp <= 0.0:
+				mg_burst_active = false
+				return
+			muzzle_offset = Vector2(-161.0, 25.0)
+			shell_port = Vector2(-100.0, 16.0)
+			recoil_mid = 5.0
+			heat_mid = minf(1.0, heat_mid + 0.35)
+			muzzle_flash_left = 0.10
+			bullet_speed = 320.0
+		1: # Top-Left Upper Gatling
+			if right_part_hp <= 0.0:
+				mg_burst_active = false
+				return
+			muzzle_offset = Vector2(-116.0, -95.0)
+			shell_port = Vector2(-68.0, -98.0)
+			recoil_tl = 5.0
+			heat_tl = minf(1.0, heat_tl + 0.35)
+			muzzle_flash_top = 0.10
+			bullet_speed = 300.0
+		2: # Top-Right Upper Gatling
+			muzzle_offset = Vector2(-2.0, -85.0)
+			shell_port = Vector2(65.0, -98.0)
+			recoil_tr = 5.0
+			heat_tr = minf(1.0, heat_tr + 0.35)
+			muzzle_flash_right = 0.10
+			bullet_speed = 330.0
+	
+	var spawn_pos: Vector2 = global_position + muzzle_offset
+	var aim_dir: Vector2 = (player_pos - spawn_pos).normalized()
+	# Slight authentic spread dispersion
+	var dispersion: float = randf_range(-0.06, 0.06)
+	var final_dir: Vector2 = aim_dir.rotated(dispersion)
+	
+	_spawn_bullet(spawn_pos, final_dir, bullet_speed)
+	Global.play_sfx("shoot")
+	Global.shake_screen(2.0, 0.08)
+	
+	# Spawn ejecting brass shell casing
+	var shell := {
+		"pos": global_position + shell_port,
+		"vel": Vector2(randf_range(50.0, 110.0), randf_range(-140.0, -220.0)),
+		"rot": randf_range(0.0, TAU),
+		"rot_speed": randf_range(12.0, 24.0),
+		"lifetime": 0.75
+	}
+	shell_casings.append(shell)
+	
+	if mg_burst_count <= 0:
+		mg_burst_active = false
+
 func _execute_attack_2() -> void:
 	if bullet_scene == null:
 		return
@@ -145,8 +308,10 @@ func _execute_attack_2() -> void:
 	
 	match Global.current_stage:
 		1: # Top bunker twin rocket hatch
+			muzzle_flash_top = 0.16
 			for angle in [-0.22, 0.22]:
-				_spawn_bullet(global_position + Vector2(0.0, -50.0), dir.rotated(angle), 290.0)
+				var rocket_spawn := global_position + Vector2(-30.0, -35.0) if angle < 0 else global_position + Vector2(30.0, -35.0)
+				_spawn_bullet(rocket_spawn, dir.rotated(angle), 290.0)
 		2: # Core hydro-plasma surge
 			for angle in [-0.30, 0.0, 0.30]:
 				_spawn_bullet(global_position + Vector2(0.0, 8.0), dir.rotated(angle), 310.0)
@@ -172,10 +337,12 @@ func _execute_attack_2() -> void:
 
 func _fire_straight_cannons(player_node: Node2D, spd: float) -> void:
 	if left_part_hp > 0.0:
+		muzzle_flash_left = 0.12
 		var p1 := global_position + Vector2(-60.0, 40.0)
 		var d1 := (player_node.global_position - p1).normalized()
 		_spawn_bullet(p1, d1, spd)
 	if right_part_hp > 0.0:
+		muzzle_flash_right = 0.12
 		var p2 := global_position + Vector2(60.0, 40.0)
 		var d2 := (player_node.global_position - p2).normalized()
 		_spawn_bullet(p2, d2, spd)
@@ -211,6 +378,12 @@ func _on_core_hit(area: Area2D) -> void:
 	if area.is_in_group("bullet") or area.has_method("_handle_hit"):
 		var dmg: float = area.get("damage") if area.get("damage") != null else 1.0
 		take_damage(dmg)
+		if area.get("pierce_count") != null:
+			area.pierce_count -= 1
+			if area.pierce_count <= 0:
+				area.queue_free()
+		else:
+			area.queue_free()
 
 func _on_left_part_hit(area: Area2D) -> void:
 	if left_part_hp <= 0.0:
@@ -218,8 +391,15 @@ func _on_left_part_hit(area: Area2D) -> void:
 	var dmg: float = area.get("damage") if area.get("damage") != null else 1.0
 	left_part_hp -= dmg
 	Global.play_sfx("hit")
+	if area.get("pierce_count") != null:
+		area.pierce_count -= 1
+		if area.pierce_count <= 0:
+			area.queue_free()
+	else:
+		area.queue_free()
 	if left_part_hp <= 0.0:
-		_destroy_sub_part(global_position + Vector2(-60.0, 40.0))
+		var d_offset := Vector2(-120.0, 25.0) if Global.current_stage == 1 else Vector2(-60.0, 40.0)
+		_destroy_sub_part(global_position + d_offset)
 
 func _on_right_part_hit(area: Area2D) -> void:
 	if right_part_hp <= 0.0:
@@ -227,8 +407,15 @@ func _on_right_part_hit(area: Area2D) -> void:
 	var dmg: float = area.get("damage") if area.get("damage") != null else 1.0
 	right_part_hp -= dmg
 	Global.play_sfx("hit")
+	if area.get("pierce_count") != null:
+		area.pierce_count -= 1
+		if area.pierce_count <= 0:
+			area.queue_free()
+	else:
+		area.queue_free()
 	if right_part_hp <= 0.0:
-		_destroy_sub_part(global_position + Vector2(60.0, 40.0))
+		var d_offset := Vector2(-74.0, -87.0) if Global.current_stage == 1 else Vector2(60.0, 40.0)
+		_destroy_sub_part(global_position + d_offset)
 
 func _destroy_sub_part(pos: Vector2) -> void:
 	Global.add_score(1500)
@@ -264,6 +451,7 @@ func _process_death_sequence(delta: float) -> void:
 	if death_chain_timer <= 0.0 and death_explosions_left > 0:
 		death_chain_timer = 0.12
 		death_explosions_left -= 1
+		death_frame_index = clampi(int((18 - death_explosions_left) / 4), 0, 3)
 		Global.shake_screen(10.0, 0.25)
 		if explosion_scene != null:
 			var offset := Vector2(randf_range(-90.0, 90.0), randf_range(-70.0, 70.0))
@@ -286,17 +474,115 @@ func _draw() -> void:
 # BOSS 1: WALL DEFENSE FORTRESS
 # -----------------------------------------------------------------------------
 func _draw_boss_1_wall() -> void:
-	if boss_texture != null:
-		var wall_w: float = 230.0
-		var wall_h: float = 190.0
-		var col: Color = Color(1.8, 0.4, 0.4) if core_flash_timer > 0.0 else Color.WHITE
-		if is_dead:
-			col = Color(0.4, 0.4, 0.45)
-		draw_texture_rect(boss_texture, Rect2(-wall_w * 0.5, -95.0, wall_w, wall_h), false, col)
+	var wall_w: float = 270.0
+	var wall_h: float = 230.0
+	var draw_rect := Rect2(-161.0, -120.0, wall_w, wall_h)
+	
+	if is_dead and death_textures.size() > 0:
+		var tex: Texture2D = death_textures[clampi(death_frame_index, 0, death_textures.size() - 1)]
+		if tex != null:
+			draw_texture_rect(tex, draw_rect, false, Color.WHITE)
+	elif not is_dead and core_textures.size() > 0:
+		var speed_mult := 1.5 if current_health < max_health * 0.35 else 1.0
+		if mg_burst_active:
+			speed_mult *= 3.0 # Frantic high-speed barrel spin during firing burst!
+		var tex_idx := int(anim_timer * 7.5 * speed_mult) % core_textures.size()
+		var col: Color = Color(2.0, 0.4, 0.4) if core_flash_timer > 0.0 else Color.WHITE
+		draw_texture_rect(core_textures[tex_idx], draw_rect, false, col)
+	elif boss_texture != null:
+		var col: Color = Color(2.0, 0.4, 0.4) if core_flash_timer > 0.0 else Color.WHITE
+		draw_texture_rect(boss_texture, draw_rect, false, col)
 	else:
-		draw_rect(Rect2(-110.0, -90.0, 220.0, 180.0), Color(0.16, 0.18, 0.22))
-		draw_rect(Rect2(-100.0, -80.0, 200.0, 160.0), Color(0.24, 0.27, 0.32))
-	_draw_cannons_and_core(Color(0.2, 0.8, 1.0))
+		draw_rect(Rect2(-120.0, -110.0, 240.0, 210.0), Color(0.16, 0.18, 0.22))
+		draw_rect(Rect2(-110.0, -100.0, 220.0, 190.0), Color(0.24, 0.27, 0.32))
+
+	if is_dead:
+		return
+	
+	# Active cyan plasma lightning arcs in core containment chamber
+	if is_active:
+		var core_pos := Vector2(0.0, 8.0)
+		var is_low_hp := (current_health < max_health * 0.35)
+		var arc_count := 6 if is_low_hp else 3
+		var arc_speed := 12.0 if is_low_hp else 6.5
+		for i in range(arc_count):
+			var a := float(i) * (TAU / float(arc_count)) + anim_timer * arc_speed
+			var arc_p := core_pos + Vector2(cos(a) * 22.0, sin(a) * 16.0)
+			var a_col := Color(1.0, 0.3, 0.3, 0.85) if is_low_hp else Color(0.25, 1.0, 0.85, 0.70)
+			draw_line(core_pos, arc_p, a_col, 2.0)
+		
+		# Low Health Alarm Beacons flashing on towers
+		if is_low_hp and sin(anim_timer * 14.0) > 0.0:
+			draw_circle(Vector2(-68.0, -85.0), 6.0, Color(1.0, 0.1, 0.1, 0.9))
+			draw_circle(Vector2(61.0, -91.0), 6.0, Color(1.0, 0.1, 0.1, 0.9))
+
+	# Machinegun Barrel Heat Dissipation Glows
+	if heat_mid > 0.05:
+		draw_circle(Vector2(-158.0 + recoil_mid, 25.0), 5.0, Color(1.0, 0.4, 0.1, heat_mid * 0.75))
+		draw_circle(Vector2(-158.0 + recoil_mid, 25.0), 2.5, Color(1.0, 0.8, 0.2, heat_mid * 0.9))
+	if heat_tl > 0.05:
+		draw_circle(Vector2(-114.0 + recoil_tl, -95.0), 5.0, Color(1.0, 0.4, 0.1, heat_tl * 0.75))
+		draw_circle(Vector2(-114.0 + recoil_tl, -95.0), 2.5, Color(1.0, 0.8, 0.2, heat_tl * 0.9))
+	if heat_tr > 0.05:
+		draw_circle(Vector2(-2.0 + recoil_tr, -85.0), 5.0, Color(1.0, 0.4, 0.1, heat_tr * 0.75))
+		draw_circle(Vector2(-2.0 + recoil_tr, -85.0), 2.5, Color(1.0, 0.8, 0.2, heat_tr * 0.9))
+
+	# Dynamic Multi-Point Muzzle Flashes at exact gun tips
+	if muzzle_flash_left > 0.0:
+		var mfp := Vector2(-161.0 + recoil_mid, 25.0)
+		var s := muzzle_flash_left / 0.10
+		draw_circle(mfp, 16.0 * s, Color(1.0, 0.8, 0.2, 0.9))
+		draw_circle(mfp, 9.0 * s, Color(1.0, 1.0, 0.9))
+		for k in range(5):
+			var a := float(k) * (TAU / 5.0) + anim_timer * 12.0
+			draw_line(mfp, mfp + Vector2(cos(a) * 22.0 * s, sin(a) * 22.0 * s), Color(1.0, 0.5, 0.1), 2.5)
+
+	if muzzle_flash_top > 0.0:
+		var mfp := Vector2(-116.0 + recoil_tl, -95.0)
+		var s := muzzle_flash_top / 0.10
+		draw_circle(mfp, 16.0 * s, Color(1.0, 0.8, 0.2, 0.9))
+		draw_circle(mfp, 9.0 * s, Color(1.0, 1.0, 0.9))
+		for k in range(5):
+			var a := float(k) * (TAU / 5.0) + anim_timer * 12.0
+			draw_line(mfp, mfp + Vector2(cos(a) * 22.0 * s, sin(a) * 22.0 * s), Color(1.0, 0.5, 0.1), 2.5)
+
+	if muzzle_flash_right > 0.0:
+		var mfp := Vector2(-2.0 + recoil_tr, -85.0)
+		var s := muzzle_flash_right / 0.10
+		draw_circle(mfp, 16.0 * s, Color(1.0, 0.8, 0.2, 0.9))
+		draw_circle(mfp, 9.0 * s, Color(1.0, 1.0, 0.9))
+		for k in range(5):
+			var a := float(k) * (TAU / 5.0) + anim_timer * 12.0
+			draw_line(mfp, mfp + Vector2(cos(a) * 22.0 * s, sin(a) * 22.0 * s), Color(1.0, 0.5, 0.1), 2.5)
+
+	# Spent Brass Shell Casings
+	for sc in shell_casings:
+		var lp: Vector2 = sc["pos"] - global_position
+		var a: float = sc["rot"]
+		var w_sc: float = 3.5
+		var h_sc: float = 2.0
+		var p1 := lp + Vector2(-w_sc, -h_sc).rotated(a)
+		var p2 := lp + Vector2(w_sc, -h_sc).rotated(a)
+		var p3 := lp + Vector2(w_sc, h_sc).rotated(a)
+		var p4 := lp + Vector2(-w_sc, h_sc).rotated(a)
+		draw_colored_polygon(PackedVector2Array([p1, p2, p3, p4]), Color(1.0, 0.82, 0.25))
+		draw_line(p1, p2, Color(1.0, 0.95, 0.6), 1.0)
+		draw_line(p4, p3, Color(0.65, 0.45, 0.1), 1.0)
+
+	# Destroyed side cannon damage states (smoke + sparks)
+	if left_part_hp <= 0.0:
+		var d_pos := Vector2(-120.0, 25.0)
+		draw_circle(d_pos, 14.0, Color(0.10, 0.10, 0.12, 0.95))
+		if sin(anim_timer * 18.0) > 0.3:
+			draw_circle(d_pos + Vector2(randf_range(-6, 6), randf_range(-6, 6)), 4.0, Color(1.0, 0.7, 0.2))
+		draw_circle(d_pos + Vector2(0.0, -10.0 - fmod(anim_timer * 20.0, 18.0)), 7.0, Color(0.2, 0.2, 0.25, 0.6))
+
+	if right_part_hp <= 0.0:
+		var d_pos := Vector2(-74.0, -87.0)
+		draw_circle(d_pos, 14.0, Color(0.10, 0.10, 0.12, 0.95))
+		if sin(anim_timer * 18.0 + 1.0) > 0.3:
+			draw_circle(d_pos + Vector2(randf_range(-6, 6), randf_range(-6, 6)), 4.0, Color(1.0, 0.7, 0.2))
+		draw_circle(d_pos + Vector2(0.0, -10.0 - fmod(anim_timer * 20.0, 18.0)), 7.0, Color(0.2, 0.2, 0.25, 0.6))
 
 # -----------------------------------------------------------------------------
 # BOSS 2: HYDRO-GOLIATH MECH

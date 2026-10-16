@@ -7,7 +7,7 @@
 script = ExtResource("1_data")
 enemy_name = "Heavy Mortar Grenadier"
 max_health = 3.5
-move_speed = 45.0
+move_speed = 0.0
 score_reward = 500
 contact_damage = 1.0
 sprite_texture = ExtResource("2_tex")

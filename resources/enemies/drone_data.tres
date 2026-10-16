@@ -11,6 +11,6 @@ move_speed = 110.0
 score_reward = 350
 contact_damage = 1.0
 sprite_texture = ExtResource("2_tex")
-sprite_size = Vector2(44, 22)
+sprite_size = Vector2(52, 24)
 attack_interval_min = 2.0
 attack_interval_max = 3.5

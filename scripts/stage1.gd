@@ -29,6 +29,7 @@ var anim_timer: float = 0.0
 
 # Dynamic Stage Hazard States
 var rope_bridge_states: Array[Dictionary] = []
+var drop_platform_states: Array[Dictionary] = []
 var hydraulic_lifts: Array[Dictionary] = []
 var falling_icicles: Array[Dictionary] = []
 var flame_vents: Array[Dictionary] = []
@@ -37,9 +38,16 @@ var security_tripwires: Array[Dictionary] = []
 var psychic_pulse_timer: float = 8.5
 var psychic_pulse_active: float = 0.0
 
+@onready var mini_boss: Node2D = get_node_or_null("MiniBoss")
+
 const LEVEL_MIN_X: float = 0.0
 const LEVEL_MAX_X: float = 6700.0
+const MINI_BOSS_TRIGGER_X: float = 3320.0
+const MINI_BOSS_LOCK_X: float = 3450.0
 const BOSS_TRIGGER_X: float = 5800.0
+
+var is_mini_boss_active: bool = false
+var is_mini_boss_defeated: bool = false
 
 var bg_texture: Texture2D = null
 var ground_tile_texture: Texture2D = null
@@ -47,6 +55,12 @@ var ground_textures_by_stage: Dictionary = {}
 var platform_girder_texture: Texture2D = null
 var platform_bridge_texture: Texture2D = null
 var platform_turf_texture: Texture2D = null
+var platform_turf_small_texture: Texture2D = null
+var platform_turf_wide_texture: Texture2D = null
+var platform_turf_crag_texture: Texture2D = null
+var platform_turf_thin_texture: Texture2D = null
+var platform_turf_wedge_left_texture: Texture2D = null
+var platform_turf_wedge_right_texture: Texture2D = null
 var platform_tech_texture: Texture2D = null
 var platform_chain_texture: Texture2D = null
 var platform_chain_hook_texture: Texture2D = null
@@ -75,6 +89,7 @@ var platforms: Array[Dictionary] = []
 func _ready() -> void:
 	Global.screen_shake_requested.connect(_on_screen_shake)
 	Global.maker_mode_toggled.connect(_on_maker_mode_toggled)
+	Global.mini_boss_defeated.connect(_on_mini_boss_defeated)
 	_load_textures()
 	_init_stage_geometry()
 	_setup_background()
@@ -98,6 +113,10 @@ func _ready() -> void:
 		var p_x: float = player.global_position.x if (player != null and is_instance_valid(player)) else 100.0
 		var p_y: float = player.global_position.y if (player != null and is_instance_valid(player)) else 410.0
 		camera.global_position = Vector2(clampf(p_x + 80.0, cur_half_w, 5800.0), clampf(p_y - 30.0, cur_half_h, 540.0 - cur_half_h))
+	
+	if Global.current_stage != 1 and mini_boss != null and is_instance_valid(mini_boss):
+		mini_boss.queue_free()
+		mini_boss = null
 	
 	queue_redraw()
 
@@ -126,6 +145,18 @@ func _load_textures() -> void:
 		platform_bridge_texture = load("res://assets/tiles/platform_bridge.png")
 	if ResourceLoader.exists("res://assets/tiles/platform_turf.png"):
 		platform_turf_texture = load("res://assets/tiles/platform_turf.png")
+	if ResourceLoader.exists("res://assets/tiles/platform_turf_small.png"):
+		platform_turf_small_texture = load("res://assets/tiles/platform_turf_small.png")
+	if ResourceLoader.exists("res://assets/tiles/platform_turf_wide.png"):
+		platform_turf_wide_texture = load("res://assets/tiles/platform_turf_wide.png")
+	if ResourceLoader.exists("res://assets/tiles/platform_turf_crag.png"):
+		platform_turf_crag_texture = load("res://assets/tiles/platform_turf_crag.png")
+	if ResourceLoader.exists("res://assets/tiles/platform_turf_thin.png"):
+		platform_turf_thin_texture = load("res://assets/tiles/platform_turf_thin.png")
+	if ResourceLoader.exists("res://assets/tiles/platform_turf_wedge_left.png"):
+		platform_turf_wedge_left_texture = load("res://assets/tiles/platform_turf_wedge_left.png")
+	if ResourceLoader.exists("res://assets/tiles/platform_turf_wedge_right.png"):
+		platform_turf_wedge_right_texture = load("res://assets/tiles/platform_turf_wedge_right.png")
 	if ResourceLoader.exists("res://assets/tiles/platform_tech.png"):
 		platform_tech_texture = load("res://assets/tiles/platform_tech.png")
 	if ResourceLoader.exists("res://assets/tiles/platform_chain.png"):
@@ -183,6 +214,7 @@ func _init_stage_geometry() -> void:
 
 func _init_stage_hazards() -> void:
 	rope_bridge_states.clear()
+	drop_platform_states.clear()
 	hydraulic_lifts.clear()
 	falling_icicles.clear()
 	flame_vents.clear()
@@ -190,6 +222,28 @@ func _init_stage_hazards() -> void:
 	security_tripwires.clear()
 	psychic_pulse_timer = 8.5
 	psychic_pulse_active = 0.0
+	
+	# Register any dynamic drop platforms
+	for i in range(platforms.size()):
+		var p: Dictionary = platforms[i]
+		if p.get("is_drop", false):
+			var r: Rect2 = p["rect"]
+			drop_platform_states.append({
+				"platform_index": i,
+				"base_rect": r,
+				"current_y": r.position.y,
+				"drop_velocity": 0.0,
+				"state": 0, # 0=IDLE, 1=TREMBLING, 2=DROPPING, 3=RESPAWNING
+				"timer": 0.0,
+				"shake_offset_x": 0.0,
+				"shake_offset_y": 0.0,
+				"alpha": 1.0,
+				"drop_delay": float(p.get("drop_delay", 0.85)),
+				"respawn_time": float(p.get("respawn_time", 2.8)),
+				"is_timed": bool(p.get("is_timed", false)),
+				"cycle_timer": float(p.get("cycle_offset", 0.0)),
+				"cycle_interval": float(p.get("cycle_interval", 4.0))
+			})
 	
 	match Global.current_stage:
 		1: # JUNGLE: Track rope bridges for collapsing mechanic
@@ -434,7 +488,20 @@ func _physics_process(delta: float) -> void:
 		else:
 			camera.zoom = target_zoom
 			var half_w: float = (960.0 / camera.zoom.x) * 0.5
-			var target_cam_x := clampf(player.global_position.x + 120.0, half_w, 5800.0)
+			var max_scroll_x := 5800.0
+			
+			# Mini-Boss arena encounter in Sector 4
+			if Global.current_stage == 1 and not is_mini_boss_defeated and mini_boss != null and is_instance_valid(mini_boss):
+				if player.global_position.x >= MINI_BOSS_TRIGGER_X or is_mini_boss_active:
+					if not is_mini_boss_active:
+						is_mini_boss_active = true
+						mini_boss.activate()
+					max_scroll_x = MINI_BOSS_LOCK_X
+					# Keep player within battle arena while mini-boss is alive
+					if player.global_position.x > 3700.0:
+						player.global_position.x = 3700.0
+			
+			var target_cam_x := clampf(player.global_position.x + 120.0, half_w, max_scroll_x)
 			camera.global_position.x = maxf(camera.global_position.x, target_cam_x)
 			camera.global_position.y = 280.0 if is_mob else 270.0
 		
@@ -443,7 +510,7 @@ func _physics_process(delta: float) -> void:
 	
 	_process_stage_mechanics(delta)
 	
-	if camera.global_position.x < BOSS_TRIGGER_X:
+	if camera.global_position.x < BOSS_TRIGGER_X and not is_mini_boss_active:
 		soldier_spawn_timer -= delta
 		if soldier_spawn_timer <= 0.0:
 			var min_interval := maxf(2.6, 4.2 - float(Global.current_stage) * 0.2)
@@ -469,6 +536,133 @@ func _process_stage_mechanics(delta: float) -> void:
 	var p_pos := player.global_position
 	var p_on_floor := player.is_on_floor()
 	var cur_stage := Global.current_stage
+
+	# Universal Drop Platform Physics & Stepping Dynamics
+	for dp in drop_platform_states:
+		var p_idx: int = dp["platform_index"]
+		if p_idx >= platforms.size():
+			continue
+		var p: Dictionary = platforms[p_idx]
+		var r: Rect2 = dp["base_rect"]
+		var col: CollisionShape2D = p.get("collider", null)
+		
+		match dp["state"]:
+			0: # IDLE
+				dp["alpha"] = 1.0
+				dp["shake_offset_x"] = 0.0
+				dp["shake_offset_y"] = 0.0
+				dp["current_y"] = r.position.y
+				if col != null:
+					col.position = Vector2(r.position.x + r.size.x * 0.5, r.position.y + r.size.y * 0.5)
+					col.disabled = false
+				
+				# Timed drop cycle (if flagged)
+				if dp["is_timed"]:
+					dp["cycle_timer"] += delta
+					if dp["cycle_timer"] >= dp["cycle_interval"]:
+						dp["cycle_timer"] = 0.0
+						dp["state"] = 1 # TREMBLING
+						dp["timer"] = dp["drop_delay"]
+						Global.play_sfx("hit")
+				
+				# Step detection: player stands on or lands on this platform
+				if p_pos.x >= r.position.x - 6.0 and p_pos.x <= r.end.x + 6.0:
+					if absf(p_pos.y - r.position.y) < 18.0 and player.velocity.y >= -20.0:
+						dp["state"] = 1 # TREMBLING
+						dp["timer"] = dp["drop_delay"]
+						Global.play_sfx("hit")
+						VFX.spawn_dust_puff(Vector2(p_pos.x, r.position.y), 4, Color(0.65, 0.50, 0.35, 0.8))
+			
+			1: # TREMBLING (warning shake before slow descent)
+				dp["timer"] -= delta
+				dp["shake_offset_x"] = sin(dp["timer"] * 45.0) * 2.5
+				dp["shake_offset_y"] = cos(dp["timer"] * 30.0) * 1.5
+				if col != null:
+					col.position.y = (r.position.y + r.size.y * 0.5) + dp["shake_offset_y"]
+				
+				# Keep player aligned and preserve jump responsiveness during warning tremble
+				if p_pos.x >= r.position.x - 6.0 and p_pos.x <= r.end.x + 6.0:
+					if absf(p_pos.y - r.position.y) < 20.0 and player.velocity.y >= -20.0:
+						if "coyote_timer" in player:
+							player.coyote_timer = 0.20
+				
+				if randf() < 0.20:
+					var dust_x := r.position.x + randf() * r.size.x
+					VFX.spawn_dust_puff(Vector2(dust_x, r.position.y + 8.0), 2, Color(0.60, 0.45, 0.30, 0.6))
+				
+				if dp["timer"] <= 0.0:
+					# Begin smooth slow fall!
+					dp["state"] = 2 # DROPPING (slow descent)
+					dp["drop_velocity"] = 50.0
+					dp["shake_offset_x"] = 0.0
+					dp["shake_offset_y"] = 0.0
+					Global.play_sfx("hit")
+					VFX.spawn_dust_puff(Vector2(r.position.x + r.size.x * 0.5, r.position.y + 6.0), 5, Color(0.65, 0.50, 0.35, 0.8))
+			
+			2: # DROPPING (falling slowly with active shake effect)
+				# Slow controlled descent (gradually speeds up slightly from 50 to 80 px/s, giving 2.5 - 3.5s of ride time)
+				dp["drop_velocity"] = minf(dp["drop_velocity"] + 25.0 * delta, 80.0)
+				var dy: float = dp["drop_velocity"] * delta
+				dp["current_y"] += dy
+				
+				# Active shake effect while falling!
+				dp["shake_offset_x"] = sin(anim_timer * 36.0 + float(p_idx) * 2.3) * 2.2
+				dp["shake_offset_y"] = cos(anim_timer * 26.0 + float(p_idx) * 2.3) * 1.2
+				
+				# Collider remains active throughout the entire slow descent and follows shake!
+				if col != null:
+					col.position.x = (r.position.x + r.size.x * 0.5) + dp["shake_offset_x"]
+					col.position.y = (dp["current_y"] + r.size.y * 0.5) + dp["shake_offset_y"]
+					col.disabled = false
+				
+				# Player tracking: if player is riding this descending platform, glide downward smoothly
+				if player != null and is_instance_valid(player) and player.state != player.PlayerState.DEAD:
+					var p_x: float = player.global_position.x
+					var p_y: float = player.global_position.y
+					if p_x >= r.position.x - 6.0 and p_x <= r.end.x + 6.0:
+						if absf(p_y - dp["current_y"]) < 18.0 and player.velocity.y >= -20.0:
+							player.global_position.y = dp["current_y"] + dp["shake_offset_y"]
+							player.velocity.y = dp["drop_velocity"]
+							if "coyote_timer" in player:
+								player.coyote_timer = 0.20
+				
+				# Spawn subtle moss/dust flakes while gliding downward
+				if randf() < 0.12:
+					var flake_x := r.position.x + randf() * r.size.x
+					VFX.spawn_dust_puff(Vector2(flake_x, dp["current_y"] + 6.0), 1, Color(0.55, 0.70, 0.40, 0.5))
+				
+				# Fade out only when sinking into the deep bottom river gorge (past y = 490)
+				if dp["current_y"] > 490.0:
+					dp["alpha"] = clampf(1.0 - ((dp["current_y"] - 490.0) / 50.0), 0.0, 1.0)
+				else:
+					dp["alpha"] = 1.0
+				
+				# Sinks completely below screen hazard line (540px)
+				if dp["current_y"] > 540.0:
+					dp["state"] = 3 # RESPAWNING
+					dp["timer"] = dp["respawn_time"]
+					if col != null:
+						col.disabled = true
+			
+			3: # RESPAWNING (reforming at top)
+				dp["timer"] -= delta
+				dp["current_y"] = r.position.y
+				if dp["timer"] <= 0.6:
+					dp["alpha"] = 0.35 + 0.30 * sin(dp["timer"] * 24.0)
+				else:
+					dp["alpha"] = 0.0
+				
+				if dp["timer"] <= 0.0:
+					dp["state"] = 0 # IDLE
+					dp["alpha"] = 1.0
+					dp["drop_velocity"] = 0.0
+					dp["current_y"] = r.position.y
+					dp["shake_offset_x"] = 0.0
+					dp["shake_offset_y"] = 0.0
+					if col != null:
+						col.position = Vector2(r.position.x + r.size.x * 0.5, r.position.y + r.size.y * 0.5)
+						col.disabled = false
+					VFX.spawn_dust_puff(Vector2(r.position.x + r.size.x * 0.5, r.position.y), 6, Color(0.70, 0.85, 0.65, 0.7))
 
 	match cur_stage:
 		1: # JUNGLE: Collapsing rope bridges
@@ -683,19 +877,24 @@ func _on_maker_mode_toggled(is_maker: bool) -> void:
 		else:
 			contra_maker.close_editor()
 
+func _on_mini_boss_defeated() -> void:
+	is_mini_boss_defeated = true
+	is_mini_boss_active = false
+	Global.screen_shake_requested.emit(8.0, 1.0)
+
 func _setup_static_enemies() -> void:
 	match Global.current_stage:
 		1: # JUNGLE PERIMETER
 			# Classic fortified bunkers, high lookouts & river gorge bridges
-			_spawn_turrets([Vector2(720.0, 435.0), Vector2(1380.0, 435.0), Vector2(2650.0, 435.0), Vector2(3480.0, 280.0), Vector2(4750.0, 435.0), Vector2(5420.0, 435.0)])
-			_spawn_snipers([Vector2(530.0, 270.0), Vector2(890.0, 330.0), Vector2(1550.0, 215.0), Vector2(1890.0, 320.0), Vector2(2930.0, 330.0), Vector2(3750.0, 200.0), Vector2(4710.0, 205.0)])
-			_spawn_grenadiers([Vector2(3620.0, 275.0), Vector2(5640.0, 250.0)])
-			_spawn_crawlers([Vector2(2220.0, 420.0), Vector2(2440.0, 420.0), Vector2(4380.0, 420.0)])
+			_spawn_turrets([Vector2(720.0, 435.0), Vector2(1380.0, 435.0), Vector2(2650.0, 435.0), Vector2(3180.0, 355.0), Vector2(5320.0, 435.0), Vector2(5580.0, 435.0)])
+			_spawn_snipers([Vector2(530.0, 270.0), Vector2(890.0, 330.0), Vector2(1550.0, 215.0), Vector2(1890.0, 320.0), Vector2(2930.0, 330.0), Vector2(3480.0, 275.0), Vector2(5220.0, 330.0)])
+			_spawn_grenadiers([Vector2(5260.0, 330.0), Vector2(5640.0, 250.0)])
+			_spawn_crawlers([Vector2(2220.0, 420.0), Vector2(2440.0, 420.0), Vector2(5380.0, 420.0)])
 			_spawn_sensors([
 				{"pos": Vector2(330.0, 370.0), "weapon": Global.WeaponType.SPREAD},
 				{"pos": Vector2(1280.0, 295.0), "weapon": Global.WeaponType.MACHINE},
 				{"pos": Vector2(2380.0, 275.0), "weapon": Global.WeaponType.LASER},
-				{"pos": Vector2(4480.0, 285.0), "weapon": Global.WeaponType.SPREAD}
+				{"pos": Vector2(4510.0, 260.0), "weapon": Global.WeaponType.SPREAD}
 			])
 
 		2: # WATERFALL FORTRESS
@@ -795,12 +994,31 @@ func _spawn_turrets(positions: Array[Vector2]) -> void:
 			t.global_position = pos
 			add_child(t)
 
+func _get_ground_or_platform_y(pos_x: float, default_y: float) -> float:
+	var best_y: float = default_y
+	var min_gap: float = 99999.0
+	for p in platforms:
+		var pr: Rect2 = p.get("rect", Rect2())
+		if pos_x >= pr.position.x - 10.0 and pos_x <= pr.position.x + pr.size.x + 10.0:
+			var gap: float = absf(pr.position.y - default_y)
+			if gap < min_gap:
+				min_gap = gap
+				best_y = pr.position.y - 10.0
+	for g in ground_segments:
+		if pos_x >= g.position.x - 10.0 and pos_x <= g.position.x + g.size.x + 10.0:
+			var gap: float = absf(g.position.y - default_y)
+			if gap < min_gap:
+				min_gap = gap
+				best_y = g.position.y - 10.0
+	return best_y
+
 func _spawn_snipers(positions: Array[Vector2]) -> void:
 	if sniper_scene == null: return
 	for pos in positions:
 		if pos.x < BOSS_TRIGGER_X - 100.0:
 			var s = sniper_scene.instantiate()
-			s.global_position = pos
+			var valid_y := _get_ground_or_platform_y(pos.x, pos.y)
+			s.global_position = Vector2(pos.x, valid_y)
 			add_child(s)
 
 func _spawn_grenadiers(positions: Array[Vector2]) -> void:
@@ -879,7 +1097,7 @@ func _setup_animated_bg_props() -> void:
 		
 		match stage_num:
 			1: # Jungle Military Outpost
-				if p_type == PlatformType.HIGH_PERCH and res_radar != null and i % 2 == 0:
+				if (p_type == PlatformType.HIGH_PERCH or (p_type == PlatformType.TURF and p_rect.position.y < 290.0)) and res_radar != null and i % 2 == 0:
 					chosen_data = res_radar
 				elif res_beacon != null and i % 3 == 1:
 					chosen_data = res_beacon
@@ -918,6 +1136,8 @@ func _setup_animated_bg_props() -> void:
 
 
 func get_safe_respawn_position(target_x: float) -> Vector2:
+	if Global.current_stage == 1 and target_x >= 3880.0 and target_x <= 5140.0:
+		return Vector2(3820.0, 360.0)
 	for g in ground_segments:
 		if target_x >= g.position.x + 40.0 and target_x <= g.end.x - 40.0:
 			return Vector2(target_x, 80.0)
@@ -946,6 +1166,12 @@ func _spawn_soldier_wave() -> void:
 	if soldier_scene == null or camera == null or player == null or not is_instance_valid(player):
 		return
 	
+	# Prevent running soldiers from spawning into the abyss during platform sequence
+	var player_x := player.global_position.x
+	if Global.current_stage == 1 and player_x > 3880.0 and player_x < 5140.0:
+		soldier_spawn_timer = 2.0
+		return
+	
 	# Cap maximum simultaneous active foot soldiers to 4
 	var active_soldiers: int = 0
 	for node in get_tree().get_nodes_in_group("foot_soldiers"):
@@ -956,7 +1182,6 @@ func _spawn_soldier_wave() -> void:
 		return
 	
 	var cam_x := camera.global_position.x
-	var player_x := player.global_position.x
 	if ground_segments.is_empty():
 		return
 	var cur_seg: Rect2 = ground_segments[0]
@@ -1287,23 +1512,98 @@ func _draw_platforms(view_left: float, view_right: float) -> void:
 			draw_texture_rect(active_edge_right_tex, right_rect, false, right_tint)
 
 	# Elevated Platforms
-	for p in platforms:
+	for p_idx in range(platforms.size()):
+		var p: Dictionary = platforms[p_idx]
 		var b: Rect2 = p["rect"]
 		var ptype: int = p["type"]
+		
+		# Check if this is an active drop platform
+		var is_drop_plat: bool = false
+		var dp_shake_x: float = 0.0
+		var dp_shake_y: float = 0.0
+		var dp_current_y: float = b.position.y
+		var dp_alpha: float = 1.0
+		var dp_state: int = 0
+		
+		for dp in drop_platform_states:
+			if dp["platform_index"] == p_idx:
+				is_drop_plat = true
+				dp_shake_x = dp["shake_offset_x"]
+				dp_shake_y = dp["shake_offset_y"]
+				dp_current_y = dp["current_y"]
+				dp_alpha = dp["alpha"]
+				dp_state = dp["state"]
+				break
+		
+		if is_drop_plat and dp_alpha <= 0.001:
+			continue
+		
+		if is_drop_plat:
+			b = Rect2(Vector2(b.position.x + dp_shake_x, dp_current_y + dp_shake_y), b.size)
+		
 		if b.end.x < view_left - 50.0 or b.position.x > view_right + 50.0:
 			continue
 		
+		var active_p_tint := Color(p_tint.r, p_tint.g, p_tint.b, p_tint.a * dp_alpha)
+		
 		match ptype:
 			PlatformType.TURF:
-				if platform_turf_texture != null:
-					draw_texture_rect(platform_turf_texture, Rect2(b.position.x, b.position.y - 6.0, b.size.x, 46.0), false, p_tint)
+				var turf_tex: Texture2D = platform_turf_texture
+				var draw_h: float = 46.0
+				var v_name: String = str(p.get("variant", ""))
+				
+				# Auto-select appropriate turf variant if none specified
+				if v_name == "" or v_name == "default":
+					if b.size.x <= 190.0 and platform_turf_small_texture != null:
+						v_name = "small"
+					elif b.size.x >= 260.0 and platform_turf_wide_texture != null:
+						v_name = "wide"
+				
+				match v_name:
+					"small":
+						if platform_turf_small_texture != null:
+							turf_tex = platform_turf_small_texture
+							draw_h = 46.0
+					"wide":
+						if platform_turf_wide_texture != null:
+							turf_tex = platform_turf_wide_texture
+							draw_h = 50.0
+					"crag":
+						if platform_turf_crag_texture != null:
+							turf_tex = platform_turf_crag_texture
+							draw_h = 82.0
+					"thin":
+						if platform_turf_thin_texture != null:
+							turf_tex = platform_turf_thin_texture
+							draw_h = 44.0
+					"wedge_left":
+						if platform_turf_wedge_left_texture != null:
+							turf_tex = platform_turf_wedge_left_texture
+							draw_h = 80.0
+					"wedge_right":
+						if platform_turf_wedge_right_texture != null:
+							turf_tex = platform_turf_wedge_right_texture
+							draw_h = 80.0
+					_:
+						turf_tex = platform_turf_texture
+						draw_h = 46.0
+				
+				if turf_tex != null:
+					draw_texture_rect(turf_tex, Rect2(b.position.x, b.position.y - 6.0, b.size.x, draw_h), false, active_p_tint)
 				else:
-					draw_rect(b, col_dirt)
-					draw_rect(Rect2(b.position.x, b.position.y - 3.0, b.size.x, 6.0), col_top)
+					draw_rect(b, col_dirt * active_p_tint)
+					draw_rect(Rect2(b.position.x, b.position.y - 3.0, b.size.x, 6.0), col_top * active_p_tint)
 				# Grass blades top fringe
 				for g in range(int(b.size.x / 14.0)):
 					var gx := b.position.x + float(g) * 14.0 + 4.0
-					draw_line(Vector2(gx, b.position.y - 1.0), Vector2(gx + 2.0, b.position.y - 5.0), col_top, 1.5)
+					draw_line(Vector2(gx, b.position.y - 1.0), Vector2(gx + 2.0, b.position.y - 5.0), col_top * active_p_tint, 1.5)
+				
+				# Drop platform visual indicators (natural hanging roots without any yellow border)
+				if is_drop_plat:
+					var root_col := Color(0.35, 0.22, 0.12, active_p_tint.a * 0.9)
+					for r_i in range(3):
+						var rx := b.position.x + b.size.x * (0.25 + float(r_i) * 0.25)
+						draw_line(Vector2(rx, b.position.y + 12.0), Vector2(rx + sin(float(r_i) * 3.0) * 4.0, b.position.y + 22.0), root_col, 2.0)
 			PlatformType.GIRDER:
 				var chain_lx: float = b.position.x + 16.0
 				var chain_rx: float = b.end.x - 20.0

@@ -22,6 +22,7 @@ func _ready() -> void:
 	Global.weapon_changed.connect(_on_weapon_changed)
 	Global.boss_health_changed.connect(_on_boss_health_changed)
 	Global.boss_defeated.connect(_on_boss_defeated)
+	Global.mini_boss_defeated.connect(_on_mini_boss_defeated)
 	Global.stage_started.connect(_on_stage_started)
 	_update_hud()
 	queue_redraw()
@@ -74,9 +75,16 @@ func _on_weapon_changed(wtype: Global.WeaponType) -> void:
 	queue_redraw()
 
 func _on_boss_health_changed(current: float, max_val: float) -> void:
-	show_boss_bar = true
-	boss_health = current
-	boss_max_health = max_val
+	if max_val <= 0.0 or current <= 0.0:
+		show_boss_bar = false
+	else:
+		show_boss_bar = true
+		boss_health = current
+		boss_max_health = max_val
+	queue_redraw()
+
+func _on_mini_boss_defeated() -> void:
+	show_boss_bar = false
 	queue_redraw()
 
 func _on_boss_defeated() -> void:

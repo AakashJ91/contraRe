@@ -3,6 +3,7 @@
 [ext_resource type="Script" path="res://scripts/stage1.gd" id="1_stage"]
 [ext_resource type="PackedScene" path="res://scenes/player.tscn" id="2_player"]
 [ext_resource type="PackedScene" path="res://scenes/boss.tscn" id="3_boss"]
+[ext_resource type="PackedScene" path="res://scenes/mini_boss.tscn" id="4_miniboss"]
 
 [sub_resource type="RectangleShape2D" id="Rect_wall_left"]
 size = Vector2(40, 600)
@@ -26,6 +27,9 @@ shape = SubResource("Rect_wall_left")
 
 [node name="Player" parent="." groups=["player"] instance=ExtResource("2_player")]
 position = Vector2(100, 410)
+
+[node name="MiniBoss" parent="." instance=ExtResource("4_miniboss")]
+position = Vector2(3620, 440)
 
 [node name="Boss" parent="." instance=ExtResource("3_boss")]
 position = Vector2(6150, 360)

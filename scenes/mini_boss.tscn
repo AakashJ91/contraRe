@@ -1,0 +1,17 @@
+[gd_scene format=3 uid="uid://dc1tvdbar6e4o"]
+
+[ext_resource type="Script" path="res://scripts/mini_boss.gd" id="1_mini_boss"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_torso"]
+size = Vector2(68, 124)
+
+[node name="MiniBoss" type="Node2D" groups=["enemy"]]
+script = ExtResource("1_mini_boss")
+
+[node name="Hurtbox" type="Area2D" parent="."]
+position = Vector2(0, -62)
+collision_layer = 4
+collision_mask = 8
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Hurtbox"]
+shape = SubResource("RectangleShape2D_torso")

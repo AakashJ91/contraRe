@@ -50,6 +50,7 @@ var stage_gravity_scale: float = 1.0
 var conveyor_push: float = 0.0
 var is_on_ice: bool = false
 var in_updraft: bool = false
+var coyote_timer: float = 0.0
 
 @onready var collision_shape: CollisionShape2D = $CollisionShape2D
 
@@ -152,6 +153,7 @@ func _physics_process(delta: float) -> void:
 	
 	# Gravity & Stage Physics
 	if not is_on_floor():
+		coyote_timer = maxf(0.0, coyote_timer - delta)
 		var eff_gravity: float = GRAVITY * stage_gravity_scale
 		if in_updraft and velocity.y > -260.0:
 			# Buoyant thermal mist updraft
@@ -161,6 +163,7 @@ func _physics_process(delta: float) -> void:
 		state = PlayerState.JUMP
 		somersault_angle += 14.0 * delta * facing_dir
 	else:
+		coyote_timer = 0.18
 		somersault_angle = 0.0
 	
 	# Input handling
@@ -170,14 +173,17 @@ func _physics_process(delta: float) -> void:
 	var is_shooting: bool = Input.is_action_pressed("shoot")
 	
 	# Handle drop through one-way platforms (Down + Jump)
-	if is_on_floor() and input_y > 0.5 and is_jumping:
+	var can_jump: bool = is_on_floor() or coyote_timer > 0.0
+	if can_jump and input_y > 0.5 and is_jumping:
 		position.y += 3.0
 		velocity.y = 80.0
 		is_jumping = false
-	elif is_on_floor() and is_jumping:
+		coyote_timer = 0.0
+	elif can_jump and is_jumping:
 		var jump_boost: float = 1.10 if stage_gravity_scale < 0.9 else 1.0
 		velocity.y = JUMP_VELOCITY * jump_boost
 		state = PlayerState.JUMP
+		coyote_timer = 0.0
 		Global.play_sfx("jump")
 	
 	# Determine facing direction

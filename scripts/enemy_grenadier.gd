@@ -4,25 +4,29 @@ extends CharacterBody2D
 @export var explosion_scene: PackedScene = preload("res://scenes/explosion.tscn")
 @export var enemy_data: EnemyData = preload("res://resources/enemies/grenadier_data.tres")
 
-const SPEED: float = 45.0
+const SPEED: float = 0.0
 const GRAVITY: float = 950.0
 
 var health: float = 3.5
 var flash_timer: float = 0.0
 var facing_dir: int = -1
-var patrol_timer: float = 2.0
-var shoot_timer: float = 2.6
+var shoot_timer: float = 2.4
 var anim_timer: float = 0.0
 var grenadier_texture: Texture2D = null
+var attack_textures: Array[Texture2D] = []
+var death_textures: Array[Texture2D] = []
+var is_dying: bool = false
+var death_frame: int = 0
+var death_timer: float = 0.0
 
 enum GrenadierState {
-	PATROL,
+	READY,
 	AIM_MORTAR,
 	FIRE_MORTAR,
 	RELOAD
 }
 
-var state: GrenadierState = GrenadierState.PATROL
+var state: GrenadierState = GrenadierState.READY
 var state_timer: float = 0.0
 var recoil_offset: float = 0.0
 var muzzle_flash_timer: float = 0.0
@@ -31,22 +35,56 @@ func _ready() -> void:
 	collision_layer = 1 << 2 # Layer 3: Enemies
 	collision_mask = 1 << 1 # Layer 2: World
 	
-	if enemy_data != null:
-		health = enemy_data.max_health
+	attack_textures.clear()
+	for i in range(4):
+		var p := "res://assets/enemies/grenadier/movement/attack_%d.png" % i
+		if ResourceLoader.exists(p):
+			attack_textures.append(load(p))
+		else:
+			var p_walk := "res://assets/enemies/grenadier/movement/walk_%d.png" % i
+			if ResourceLoader.exists(p_walk):
+				attack_textures.append(load(p_walk))
+	
+	death_textures.clear()
+	for i in range(4):
+		var p := "res://assets/enemies/grenadier/death/death_%d.png" % i
+		if ResourceLoader.exists(p):
+			death_textures.append(load(p))
+	
+	if ResourceLoader.exists("res://assets/enemies/grenadier/grenadier.png"):
+		grenadier_texture = load("res://assets/enemies/grenadier/grenadier.png")
+	elif enemy_data != null and enemy_data.sprite_texture != null:
 		grenadier_texture = enemy_data.sprite_texture
 	elif ResourceLoader.exists("res://assets/enemies/enemy_grenadier.png"):
 		grenadier_texture = load("res://assets/enemies/enemy_grenadier.png")
 	
-	shoot_timer = randf_range(2.0, 3.5)
+	if enemy_data != null:
+		health = enemy_data.max_health
+	
+	shoot_timer = randf_range(1.8, 3.2)
 	queue_redraw()
 
 func _physics_process(delta: float) -> void:
+	if is_dying:
+		death_timer += delta
+		death_frame = clampi(int(death_timer * 6.5), 0, 3)
+		velocity.x = move_toward(velocity.x, 0.0, 120.0 * delta)
+		if not is_on_floor():
+			velocity.y += GRAVITY * delta
+		move_and_slide()
+		if death_timer >= 0.65:
+			queue_free()
+		queue_redraw()
+		return
+	
 	anim_timer += delta
 	if flash_timer > 0.0:
 		flash_timer -= delta
 	if muzzle_flash_timer > 0.0:
 		muzzle_flash_timer -= delta
 	
+	# Fixed position - strictly stationary with zero horizontal velocity
+	velocity.x = 0.0
 	if not is_on_floor():
 		velocity.y += GRAVITY * delta
 	
@@ -54,69 +92,48 @@ func _physics_process(delta: float) -> void:
 	var has_player: bool = (player_node != null and is_instance_valid(player_node))
 	
 	if has_player:
+		# Track player direction horizontally from fixed entrenched position
+		var diff_x := player_node.global_position.x - global_position.x
+		if absf(diff_x) > 4.0:
+			facing_dir = 1 if diff_x > 0.0 else -1
+		
 		# Contact damage check
 		if global_position.distance_to(player_node.global_position) < 22.0:
 			if player_node.has_method("take_damage"):
 				player_node.take_damage(1.0)
 	
+	recoil_offset = lerpf(recoil_offset, 0.0, delta * 8.0)
+	
 	match state:
-		GrenadierState.PATROL:
-			recoil_offset = lerpf(recoil_offset, 0.0, delta * 8.0)
+		GrenadierState.READY:
 			shoot_timer -= delta
-			patrol_timer -= delta
-			
-			if has_player:
-				# Face toward player
-				var diff_x := player_node.global_position.x - global_position.x
-				facing_dir = 1 if diff_x > 0.0 else -1
-				
-				# Check if ready to launch mortar
+			if has_player and shoot_timer <= 0.0:
 				var dist := global_position.distance_to(player_node.global_position)
-				if shoot_timer <= 0.0 and dist < 580.0 and dist > 40.0:
+				if dist < 580.0 and dist > 35.0:
 					state = GrenadierState.AIM_MORTAR
-					state_timer = 0.6 # Aiming / shoulder mount charge
-					velocity.x = 0.0
-			
-			if state == GrenadierState.PATROL:
-				if patrol_timer <= 0.0:
-					patrol_timer = randf_range(1.5, 3.0)
-				
-				# Ledge detection to avoid falling off platform
-				var probe_pos := global_position + Vector2(facing_dir * 18.0, 0.0)
-				var space_state := get_world_2d().direct_space_state
-				if space_state != null and is_on_floor():
-					var query := PhysicsRayQueryParameters2D.create(probe_pos, probe_pos + Vector2(0.0, 36.0), collision_mask)
-					var res := space_state.intersect_ray(query)
-					if res.is_empty() or is_on_wall():
-						# Turn around at platform edges or walls
-						facing_dir = -facing_dir
-				
-				velocity.x = facing_dir * SPEED
+					state_timer = 0.65
 		
 		GrenadierState.AIM_MORTAR:
-			velocity.x = 0.0
 			state_timer -= delta
-			if has_player:
-				facing_dir = 1 if player_node.global_position.x > global_position.x else -1
-			
 			if state_timer <= 0.0:
 				state = GrenadierState.FIRE_MORTAR
-				state_timer = 0.3
+				state_timer = 0.35
 				_fire_mortar()
 		
 		GrenadierState.FIRE_MORTAR:
 			state_timer -= delta
-			velocity.x = 0.0
 			if state_timer <= 0.0:
 				state = GrenadierState.RELOAD
-				state_timer = 0.5
+				state_timer = 0.60
 		
 		GrenadierState.RELOAD:
 			state_timer -= delta
-			velocity.x = 0.0
 			if state_timer <= 0.0:
-				state = GrenadierState.PATROL
-				shoot_timer = randf_range(2.6, 4.0)
+				state = GrenadierState.READY
+				if enemy_data != null:
+					shoot_timer = randf_range(enemy_data.attack_interval_min, enemy_data.attack_interval_max)
+				else:
+					shoot_timer = randf_range(2.4, 3.8)
 	
 	move_and_slide()
 	
@@ -159,6 +176,8 @@ func _fire_mortar() -> void:
 	get_parent().add_child(grenade)
 
 func take_damage(dmg: float = 1.0) -> void:
+	if is_dying:
+		return
 	health -= dmg
 	flash_timer = 0.08
 	Global.play_sfx("hit")
@@ -166,36 +185,67 @@ func take_damage(dmg: float = 1.0) -> void:
 		_die()
 
 func _die() -> void:
+	if is_dying:
+		return
+	is_dying = true
+	collision_layer = 0
+	velocity = Vector2(-facing_dir * 55.0, -125.0)
 	var reward: int = enemy_data.score_reward if enemy_data != null else 500
 	Global.add_score(reward)
-	if explosion_scene != null:
-		var exp_node = explosion_scene.instantiate()
-		exp_node.global_position = global_position
-		get_parent().add_child(exp_node)
-	queue_free()
+	Global.shake_screen(7.0, 0.25)
+	Global.play_sfx("explosion")
 
 func _draw() -> void:
 	var flash_col := Color(1.8, 0.4, 0.4) if flash_timer > 0.0 else Color.WHITE
 	var dir_f := float(facing_dir)
-	var is_kneeling: bool = (state != GrenadierState.PATROL)
+	var scale_x: float = 1.0 if facing_dir > 0 else -1.0
 	
-	if grenadier_texture != null:
-		var spr_w: float = 38.0
-		var spr_h: float = 40.0
-		var scale_x: float = 1.0 if facing_dir > 0 else -1.0
-		var base_y_tex: float = 2.0 if is_kneeling else -2.0
-		draw_set_transform(Vector2(recoil_offset, base_y_tex), 0.0, Vector2(scale_x, 1.0))
-		draw_texture_rect(grenadier_texture, Rect2(-spr_w * 0.5, -spr_h * 0.5 - 2.0, spr_w, spr_h), false, flash_col)
+	if is_dying:
+		var d_tex: Texture2D = death_textures[death_frame] if death_frame < death_textures.size() else null
+		if d_tex != null:
+			var spr_w: float = 42.0
+			var spr_h: float = 42.0
+			var alpha: float = 1.0 - clampf((death_timer - 0.45) / 0.20, 0.0, 1.0)
+			var d_col := Color(flash_col.r, flash_col.g, flash_col.b, alpha)
+			draw_set_transform(Vector2.ZERO, 0.0, Vector2(scale_x, 1.0))
+			draw_texture_rect(d_tex, Rect2(-spr_w * 0.5, -spr_h * 0.5 - 2.0, spr_w, spr_h), false, d_col)
+			draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+			return
+	
+	# Determine current attack frame based on state
+	var cur_tex: Texture2D = grenadier_texture
+	var frame_idx: int = 0
+	match state:
+		GrenadierState.READY:
+			frame_idx = 0
+		GrenadierState.AIM_MORTAR:
+			frame_idx = 1
+		GrenadierState.FIRE_MORTAR:
+			frame_idx = 2
+		GrenadierState.RELOAD:
+			frame_idx = 3
+	
+	if attack_textures.size() > frame_idx and attack_textures[frame_idx] != null:
+		cur_tex = attack_textures[frame_idx]
+	elif attack_textures.size() > 0 and attack_textures[0] != null:
+		cur_tex = attack_textures[0]
+	
+	if cur_tex != null:
+		var spr_w: float = 40.0
+		var spr_h: float = 42.0
+		draw_set_transform(Vector2(recoil_offset, 0.0), 0.0, Vector2(scale_x, 1.0))
+		draw_texture_rect(cur_tex, Rect2(-spr_w * 0.5, -spr_h * 0.5 - 2.0, spr_w, spr_h), false, flash_col)
 		
 		# Overlay aiming laser when preparing mortar
 		if state == GrenadierState.AIM_MORTAR:
-			var aim_alpha := (sin(anim_timer * 15.0) + 1.0) * 0.4 + 0.2
-			draw_line(Vector2(spr_w * 0.4, -spr_h * 0.25), Vector2(spr_w * 0.4 + 170.0, -spr_h * 0.25 - 65.0), Color(1.0, 0.2, 0.1, aim_alpha), 2.0)
+			var aim_alpha := (sin(anim_timer * 16.0) + 1.0) * 0.4 + 0.2
+			draw_line(Vector2(spr_w * 0.35, -spr_h * 0.28), Vector2(spr_w * 0.35 + 175.0, -spr_h * 0.28 - 70.0), Color(1.0, 0.2, 0.1, aim_alpha), 2.0)
+			draw_circle(Vector2(spr_w * 0.35 + 175.0, -spr_h * 0.28 - 70.0), 3.0, Color(1.0, 0.3, 0.2, aim_alpha))
 		
-		# Overlay muzzle blast
+		# Overlay muzzle blast if firing
 		if muzzle_flash_timer > 0.0:
-			draw_circle(Vector2(spr_w * 0.4, -spr_h * 0.25), 10.0, Color(1.0, 0.9, 0.3))
-			draw_circle(Vector2(spr_w * 0.4, -spr_h * 0.25), 6.0, Color.WHITE)
+			draw_circle(Vector2(spr_w * 0.45, -spr_h * 0.32), 12.0, Color(1.0, 0.9, 0.3))
+			draw_circle(Vector2(spr_w * 0.45, -spr_h * 0.32), 7.0, Color.WHITE)
 		
 		draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
 		return
@@ -213,19 +263,12 @@ func _draw() -> void:
 	elif Global.current_stage == 5:
 		col_armor = Color(0.35, 0.18, 0.15) * flash_col # Volcanic forge
 	
-	var base_y: float = 0.0 if not is_kneeling else 5.0
+	var base_y: float = 4.0
 	var offset_x: float = recoil_offset
 	
-	# 1. Heavy Armored Boots and Legs
-	if is_kneeling:
-		# Kneeling pose
-		draw_rect(Rect2(offset_x - 8.0, base_y + 4.0, 16.0, 6.0), col_armor)
-		draw_circle(Vector2(offset_x + dir_f * 6.0, base_y + 8.0), 4.0, col_cannon)
-	else:
-		# Walking pose
-		var walk_leg := sin(anim_timer * 6.0) * 4.0
-		draw_line(Vector2(offset_x - 3.0, 0.0), Vector2(offset_x - 5.0 - walk_leg, 11.0), col_armor, 5.0)
-		draw_line(Vector2(offset_x + 3.0, 0.0), Vector2(offset_x + 5.0 + walk_leg, 11.0), col_armor, 5.0)
+	# 1. Heavy Armored Boots and Entrenched Kneeling Base
+	draw_rect(Rect2(offset_x - 8.0, base_y + 4.0, 16.0, 6.0), col_armor)
+	draw_circle(Vector2(offset_x + dir_f * 6.0, base_y + 8.0), 4.0, col_cannon)
 	
 	# 2. Heavy Torso Armor Plate & Ammo Backpack
 	draw_rect(Rect2(offset_x - 7.0, base_y - 12.0, 14.0, 13.0), col_armor)
@@ -243,7 +286,7 @@ func _draw() -> void:
 	
 	# 4. Shoulder-Mounted Heavy Mortar Cannon
 	var cannon_pivot := Vector2(offset_x + dir_f * 2.0, base_y - 12.0)
-	var angle_f: float = -0.65 * dir_f if is_kneeling else -0.35 * dir_f
+	var angle_f: float = -0.65 * dir_f if state != GrenadierState.READY else -0.40 * dir_f
 	var barrel_len := 22.0
 	var barrel_end := cannon_pivot + Vector2(cos(angle_f), sin(angle_f)) * barrel_len
 	

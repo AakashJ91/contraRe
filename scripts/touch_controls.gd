@@ -63,17 +63,17 @@ func _ready() -> void:
 		btn_restart_radius = 22.0
 	
 	style_menu_btn = StyleBoxFlat.new()
-	style_menu_btn.bg_color = Color(0.06, 0.09, 0.14, 0.60)
-	style_menu_btn.border_color = Color(0.35, 0.65, 0.95, 0.35)
+	style_menu_btn.bg_color = Color(0.06, 0.12, 0.22, 0.38)
+	style_menu_btn.border_color = Color(0.45, 0.80, 1.0, 0.40)
 	style_menu_btn.set_border_width_all(1)
-	style_menu_btn.set_corner_radius_all(6)
+	style_menu_btn.set_corner_radius_all(8)
 	style_menu_btn.anti_aliasing = true
 
 	style_restart_btn = StyleBoxFlat.new()
-	style_restart_btn.bg_color = Color(0.08, 0.07, 0.06, 0.60)
-	style_restart_btn.border_color = Color(0.95, 0.70, 0.25, 0.35)
+	style_restart_btn.bg_color = Color(0.18, 0.12, 0.06, 0.38)
+	style_restart_btn.border_color = Color(1.0, 0.75, 0.35, 0.40)
 	style_restart_btn.set_border_width_all(1)
-	style_restart_btn.set_corner_radius_all(6)
+	style_restart_btn.set_corner_radius_all(8)
 	style_restart_btn.anti_aliasing = true
 
 	_update_layout_positions()
@@ -316,38 +316,73 @@ func _release_all_dpad_actions() -> void:
 			last_actions[action] = false
 			Input.action_release(action)
 
+func _draw_glass_disc(pos: Vector2, radius: float, is_active: bool, base_tint: Color, glow_tint: Color, border_tint: Color, pulse_radius: float = 0.0) -> void:
+	# 1. Soft elevation ambient shadow
+	draw_circle(pos + Vector2(0.0, 4.0), radius * 0.98, Color(0.0, 0.0, 0.0, 0.28))
+	
+	# 2. Translucent frosted glass tint fill
+	draw_circle(pos, radius, base_tint)
+	
+	# 3. Soft internal refraction glow
+	var glow_a: float = 0.24 if is_active else 0.06
+	draw_circle(pos, radius * 0.82, Color(glow_tint.r, glow_tint.g, glow_tint.b, glow_a))
+	
+	# 4. Off-center specular surface sheen / light reflection (top-left glare)
+	var sheen_offset := Vector2(-radius * 0.24, -radius * 0.26)
+	draw_circle(pos + sheen_offset, radius * 0.44, Color(1.0, 1.0, 1.0, 0.09 if is_active else 0.05))
+	
+	# 5. Inner refraction bevel ring (depth to the glass lens)
+	var inner_rim_col := Color(border_tint.r, border_tint.g, border_tint.b, 0.28 if is_active else 0.16)
+	draw_arc(pos, radius - 3.5, 0.0, TAU, 36, inner_rim_col, 1.2)
+	
+	# 6. Outer polished glass perimeter ring
+	draw_arc(pos, radius, 0.0, TAU, 36, border_tint, 2.4 if is_active else 1.8)
+	
+	# 7. Upper rim specular highlight arc (light catching curved glass edge)
+	var spec_col := Color(1.0, 1.0, 1.0, 0.65 if is_active else 0.42)
+	draw_arc(pos, radius - 1.2, -PI * 0.82, -PI * 0.18, 28, spec_col, 1.8)
+	
+	# 8. Counter-reflection ambient bounce on lower rim
+	var bounce_col := Color(border_tint.r, border_tint.g, border_tint.b, 0.25 if is_active else 0.12)
+	draw_arc(pos, radius - 2.0, PI * 0.28, PI * 0.72, 24, bounce_col, 1.2)
+	
+	# 9. Bright specular point glint on top-left edge
+	var glint_pos := pos + Vector2(-radius * 0.48, -radius * 0.48)
+	draw_circle(glint_pos, 2.5, Color(1.0, 1.0, 1.0, 0.75 if is_active else 0.45))
+	
+	# 10. Active dynamic pulse ring
+	if is_active and pulse_radius > 0.0:
+		draw_arc(pos, pulse_radius, 0.0, TAU, 36, Color(glow_tint.r, glow_tint.g, glow_tint.b, 0.35), 1.6)
+
 func _draw() -> void:
 	if Global.is_maker_mode:
 		return
 	
 	_update_layout_positions()
-	var bg_alpha := 0.28
-	var fg_alpha := 0.65
 	
 	# --- DYNAMIC JOYSTICK BASE (LEFT SIDE) ---
-	var base_ring_col := Color(0.2, 0.7, 1.0, 0.85) if dpad_active else Color(0.8, 0.85, 0.95, 0.35)
-	var base_bg_col := Color(0.04, 0.1, 0.2, 0.5) if dpad_active else Color(0.06, 0.08, 0.12, bg_alpha)
+	var base_fill := Color(0.06, 0.14, 0.26, 0.34) if dpad_active else Color(0.04, 0.08, 0.14, 0.14)
+	var base_glow := Color(0.20, 0.75, 1.0)
+	var base_border := Color(0.40, 0.85, 1.0, 0.80) if dpad_active else Color(0.65, 0.80, 0.95, 0.30)
+	var base_pulse := dpad_radius + sin(pulse_time) * 4.0 if dpad_active else 0.0
+	_draw_glass_disc(dpad_center, dpad_radius, dpad_active, base_fill, base_glow, base_border, base_pulse)
 	
-	# Outer Area Fill & Ring
-	draw_circle(dpad_center, dpad_radius, base_bg_col)
-	draw_arc(dpad_center, dpad_radius, 0.0, TAU, 36, base_ring_col, 2.5)
-	
-	# Dynamic Pulse Ring when active
+	# Glowing tether line from center to thumb
 	if dpad_active:
-		var pulse_radius := dpad_radius + sin(pulse_time) * 4.0
-		draw_arc(dpad_center, pulse_radius, 0.0, TAU, 32, Color(0.3, 0.8, 1.0, 0.35), 1.5)
-		# Tether line from center to thumb
-		draw_line(dpad_center, current_thumb_pos, Color(0.4, 0.8, 1.0, 0.6), 3.0)
+		draw_line(dpad_center, current_thumb_pos, Color(0.2, 0.7, 1.0, 0.35), 4.5)
+		draw_line(dpad_center, current_thumb_pos, Color(0.5, 0.9, 1.0, 0.80), 2.2)
+		draw_line(dpad_center, current_thumb_pos, Color(1.0, 1.0, 1.0, 0.95), 1.0)
 	
-	# Center anchor pip
-	draw_circle(dpad_center, 6.0, Color(0.4, 0.8, 1.0, 0.5 if dpad_active else 0.25))
+	# Center anchor glass pip
+	draw_circle(dpad_center, 6.5, Color(0.3, 0.8, 1.0, 0.55 if dpad_active else 0.22))
+	draw_circle(dpad_center, 3.0, Color.WHITE if dpad_active else Color(0.8, 0.9, 1.0, 0.4))
 	
-	# 8-Way Directional Notches & Indicators
+	# 8-Way Directional Notches & Indicators (Etched Glass Grooves)
 	for i in range(8):
 		var a := float(i) * (TAU / 8.0)
 		var dir := Vector2(cos(a), sin(a))
 		var notch_start := dpad_center + dir * (dpad_radius - 12.0)
-		var notch_end := dpad_center + dir * dpad_radius
+		var notch_end := dpad_center + dir * (dpad_radius - 2.0)
 		var is_highlighted := false
 		
 		# Check if this notch is currently active
@@ -356,19 +391,39 @@ func _draw() -> void:
 			if angle_diff < PI / 8.0:
 				is_highlighted = true
 		
-		var notch_col := Color(1.0, 0.85, 0.2, 0.95) if is_highlighted else Color(0.7, 0.8, 0.9, 0.3)
-		draw_line(notch_start, notch_end, notch_col, 3.5 if is_highlighted else 2.0)
+		var notch_col := Color(1.0, 0.88, 0.30, 0.95) if is_highlighted else Color(0.75, 0.88, 1.0, 0.28)
+		# Subtle etched groove shadow
+		draw_line(notch_start + Vector2(0.5, 1.0), notch_end + Vector2(0.5, 1.0), Color(0.0, 0.0, 0.0, 0.25), 2.0)
+		draw_line(notch_start, notch_end, notch_col, 3.2 if is_highlighted else 1.8)
 		if is_highlighted:
 			var arrow_pt := dpad_center + dir * (dpad_radius + 8.0)
-			draw_circle(arrow_pt, 4.0, Color(1.0, 0.85, 0.2))
+			draw_circle(arrow_pt + Vector2(0.0, 1.0), 4.5, Color(0.0, 0.0, 0.0, 0.35))
+			draw_circle(arrow_pt, 4.0, Color(1.0, 0.88, 0.30))
+			draw_circle(arrow_pt, 2.0, Color.WHITE)
 	
-	# Thumb Knob
+	# --- THUMB KNOB (FLOATING GLASS ORB / LENS) ---
 	var knob_radius: float = 32.0 if Global.is_mobile_device() else 26.0
-	var knob_bg := Color(0.1, 0.45, 0.9, 0.9) if dpad_active else Color(0.45, 0.5, 0.6, 0.5)
-	draw_circle(current_thumb_pos, knob_radius, Color(0.02, 0.05, 0.1, 0.6))
-	draw_circle(current_thumb_pos, knob_radius * 0.85, knob_bg)
-	draw_arc(current_thumb_pos, knob_radius * 0.85, 0.0, TAU, 24, Color(0.8, 0.95, 1.0, 0.8), 2.2 if Global.is_mobile_device() else 2.0)
-	draw_circle(current_thumb_pos, 10.0 if Global.is_mobile_device() else 8.0, Color.WHITE)
+	# 1. Soft floating drop shadow
+	draw_circle(current_thumb_pos + Vector2(0.0, 4.5), knob_radius * 0.95, Color(0.0, 0.0, 0.0, 0.38))
+	# 2. Translucent crystal body
+	var knob_core_col := Color(0.12, 0.40, 0.85, 0.65) if dpad_active else Color(0.14, 0.20, 0.30, 0.38)
+	draw_circle(current_thumb_pos, knob_radius * 0.88, knob_core_col)
+	# 3. Glass dome specular curved reflection
+	var knob_sheen_pos := current_thumb_pos + Vector2(-knob_radius * 0.24, -knob_radius * 0.26)
+	draw_circle(knob_sheen_pos, knob_radius * 0.40, Color(1.0, 1.0, 1.0, 0.18 if dpad_active else 0.10))
+	# 4. Outer polished crystal bezel ring
+	var knob_bezel_col := Color(0.85, 0.95, 1.0, 0.85 if dpad_active else 0.50)
+	draw_arc(current_thumb_pos, knob_radius * 0.88, 0.0, TAU, 28, knob_bezel_col, 2.0 if Global.is_mobile_device() else 1.8)
+	# 5. Upper rim specular arc
+	draw_arc(current_thumb_pos, knob_radius * 0.88 - 1.2, -PI * 0.80, -PI * 0.20, 20, Color(1.0, 1.0, 1.0, 0.80), 1.6)
+	# 6. Center glowing crystal iris
+	var iris_radius: float = 7.5 if Global.is_mobile_device() else 6.0
+	draw_circle(current_thumb_pos, iris_radius + 2.0, Color(0.2, 0.7, 1.0, 0.3 if dpad_active else 0.1))
+	draw_circle(current_thumb_pos, iris_radius, Color(0.40, 0.92, 1.0, 0.95) if dpad_active else Color(1.0, 1.0, 1.0, 0.45))
+	draw_circle(current_thumb_pos, iris_radius * 0.45, Color.WHITE)
+	# 7. Bright specular point shine
+	var knob_glint_pos := current_thumb_pos + Vector2(-knob_radius * 0.36, -knob_radius * 0.36)
+	draw_circle(knob_glint_pos, 2.2, Color(1.0, 1.0, 1.0, 0.90))
 	
 	# --- JUMP TAP SHOCKWAVE / RIPPLE FEEDBACK (ANYWHERE ON RIGHT SIDE) ---
 	if jump_tap_anim > 0.0 and last_jump_tap_pos != Vector2.ZERO:
@@ -380,45 +435,61 @@ func _draw() -> void:
 
 	# --- JUMP BUTTON (A / JUMP) ---
 	if show_jump_button:
-		var jump_bg := Color(0.20, 0.65, 1.0, 0.22) if jump_active else Color(0.15, 0.50, 0.95, 0.08)
-		var jump_border_col := Color(0.40, 0.92, 1.0, 0.85) if jump_active else Color(0.35, 0.75, 1.0, 0.38)
+		var jump_base := Color(0.08, 0.24, 0.48, 0.38) if jump_active else Color(0.04, 0.14, 0.30, 0.16)
+		var jump_glow := Color(0.20, 0.75, 1.0)
+		var jump_border := Color(0.50, 0.92, 1.0, 0.85) if jump_active else Color(0.40, 0.78, 1.0, 0.42)
+		var jump_pulse := btn_jump_radius + 4.0 + sin(pulse_time * 2.0) * 2.5 if jump_active else 0.0
+		_draw_glass_disc(btn_jump_pos, btn_jump_radius, jump_active, jump_base, jump_glow, jump_border, jump_pulse)
 		
-		# Transparent glassmorphic circle fill
-		draw_circle(btn_jump_pos, btn_jump_radius, jump_bg)
-		# Translucent perimeter ring
-		draw_arc(btn_jump_pos, btn_jump_radius, 0.0, TAU, 36, jump_border_col, 2.6 if jump_active else 1.8)
+		# Letter 'A' (Etched Glass Typography with Soft Shadow)
+		var a_shadow := Vector2(1.2, 1.5)
+		draw_line(btn_jump_pos + a_shadow + Vector2(-12.0, 14.0), btn_jump_pos + a_shadow + Vector2(0.0, -14.0), Color(0.0, 0.0, 0.0, 0.35), 3.6)
+		draw_line(btn_jump_pos + a_shadow + Vector2(12.0, 14.0), btn_jump_pos + a_shadow + Vector2(0.0, -14.0), Color(0.0, 0.0, 0.0, 0.35), 3.6)
+		draw_line(btn_jump_pos + a_shadow + Vector2(-7.5, 2.0), btn_jump_pos + a_shadow + Vector2(7.5, 2.0), Color(0.0, 0.0, 0.0, 0.35), 3.0)
 		
 		if jump_active:
-			var jpulse := btn_jump_radius + 4.0 + sin(pulse_time * 2.0) * 2.5
-			draw_arc(btn_jump_pos, jpulse, 0.0, TAU, 32, Color(0.30, 0.85, 1.0, 0.35), 1.5)
+			# Electric cyan neon underglow
+			draw_line(btn_jump_pos + Vector2(-12.0, 14.0), btn_jump_pos + Vector2(0.0, -14.0), Color(0.3, 0.85, 1.0, 0.45), 6.0)
+			draw_line(btn_jump_pos + Vector2(12.0, 14.0), btn_jump_pos + Vector2(0.0, -14.0), Color(0.3, 0.85, 1.0, 0.45), 6.0)
+			draw_line(btn_jump_pos + Vector2(-7.5, 2.0), btn_jump_pos + Vector2(7.5, 2.0), Color(0.3, 0.85, 1.0, 0.45), 5.0)
 		
-		# Jump Letter 'A' (Translucent white, perfectly centered)
-		var a_col := Color(1.0, 1.0, 1.0, 0.95 if jump_active else 0.55)
+		var a_col := Color(1.0, 1.0, 1.0, 0.95 if jump_active else 0.65)
 		draw_line(btn_jump_pos + Vector2(-12.0, 14.0), btn_jump_pos + Vector2(0.0, -14.0), a_col, 3.6)
 		draw_line(btn_jump_pos + Vector2(12.0, 14.0), btn_jump_pos + Vector2(0.0, -14.0), a_col, 3.6)
 		draw_line(btn_jump_pos + Vector2(-7.5, 2.0), btn_jump_pos + Vector2(7.5, 2.0), a_col, 3.0)
 
 	# --- SHOOT BUTTON (B / FIRE) ---
-	var shoot_bg := Color(1.0, 0.25, 0.20, 0.24) if shoot_active else Color(0.85, 0.18, 0.16, 0.08)
-	var shoot_border_col := Color(1.0, 0.65, 0.45, 0.85) if shoot_active else Color(1.0, 0.45, 0.35, 0.38)
+	var shoot_base := Color(0.45, 0.10, 0.14, 0.38) if shoot_active else Color(0.22, 0.06, 0.08, 0.16)
+	var shoot_glow := Color(1.0, 0.35, 0.30)
+	var shoot_border := Color(1.0, 0.65, 0.55, 0.85) if shoot_active else Color(1.0, 0.45, 0.40, 0.42)
+	var shoot_pulse := btn_shoot_radius + 4.0 + sin(pulse_time * 2.0) * 2.5 if shoot_active else 0.0
+	_draw_glass_disc(btn_shoot_pos, btn_shoot_radius, shoot_active, shoot_base, shoot_glow, shoot_border, shoot_pulse)
 	
-	# Transparent glassmorphic circle fill
-	draw_circle(btn_shoot_pos, btn_shoot_radius, shoot_bg)
-	# Translucent perimeter ring
-	draw_arc(btn_shoot_pos, btn_shoot_radius, 0.0, TAU, 36, shoot_border_col, 2.6 if shoot_active else 1.8)
-	
-	if shoot_active:
-		var spulse := btn_shoot_radius + 4.0 + sin(pulse_time * 2.0) * 2.5
-		draw_arc(btn_shoot_pos, spulse, 0.0, TAU, 36, Color(1.0, 0.50, 0.30, 0.35), 1.5)
-	
-	# Reticle tick marks on B perimeter
+	# Reticle etched tick marks on B perimeter
 	for rdir in [Vector2.UP, Vector2.DOWN, Vector2.LEFT, Vector2.RIGHT]:
-		var tick_col := Color(1.0, 0.65, 0.45, 0.70 if shoot_active else 0.26)
+		var tick_col := Color(1.0, 0.70, 0.60, 0.75 if shoot_active else 0.30)
 		draw_line(btn_shoot_pos + rdir * (btn_shoot_radius - 7.0), btn_shoot_pos + rdir * (btn_shoot_radius + 4.0), tick_col, 1.8)
 
-	# Scaled Letter 'B' (Translucent white, perfectly centered)
-	var b_col := Color(1.0, 1.0, 1.0, 0.95 if shoot_active else 0.55)
+	# Letter 'B' (Etched Glass Typography with Soft Shadow)
 	var b_offset := Vector2(3.0, 0.0)
+	var b_shadow := b_offset + Vector2(1.2, 1.5)
+	draw_line(btn_shoot_pos + b_shadow + Vector2(-12.0, -15.0), btn_shoot_pos + b_shadow + Vector2(-12.0, 15.0), Color(0.0, 0.0, 0.0, 0.35), 4.0)
+	draw_line(btn_shoot_pos + b_shadow + Vector2(-12.0, -15.0), btn_shoot_pos + b_shadow + Vector2(-2.0, -15.0), Color(0.0, 0.0, 0.0, 0.35), 4.0)
+	draw_line(btn_shoot_pos + b_shadow + Vector2(-12.0, 0.0), btn_shoot_pos + b_shadow + Vector2(-2.0, 0.0), Color(0.0, 0.0, 0.0, 0.35), 3.4)
+	draw_line(btn_shoot_pos + b_shadow + Vector2(-12.0, 15.0), btn_shoot_pos + b_shadow + Vector2(-2.0, 15.0), Color(0.0, 0.0, 0.0, 0.35), 4.0)
+	draw_arc(btn_shoot_pos + b_shadow + Vector2(-2.0, -7.5), 7.5, -PI*0.5, PI*0.5, 14, Color(0.0, 0.0, 0.0, 0.35), 3.4)
+	draw_arc(btn_shoot_pos + b_shadow + Vector2(-2.0, 7.5), 7.5, -PI*0.5, PI*0.5, 14, Color(0.0, 0.0, 0.0, 0.35), 3.4)
+	
+	if shoot_active:
+		# Crimson ruby neon underglow
+		draw_line(btn_shoot_pos + b_offset + Vector2(-12.0, -15.0), btn_shoot_pos + b_offset + Vector2(-12.0, 15.0), Color(1.0, 0.3, 0.25, 0.45), 6.5)
+		draw_line(btn_shoot_pos + b_offset + Vector2(-12.0, -15.0), btn_shoot_pos + b_offset + Vector2(-2.0, -15.0), Color(1.0, 0.3, 0.25, 0.45), 6.5)
+		draw_line(btn_shoot_pos + b_offset + Vector2(-12.0, 0.0), btn_shoot_pos + b_offset + Vector2(-2.0, 0.0), Color(1.0, 0.3, 0.25, 0.45), 5.5)
+		draw_line(btn_shoot_pos + b_offset + Vector2(-12.0, 15.0), btn_shoot_pos + b_offset + Vector2(-2.0, 15.0), Color(1.0, 0.3, 0.25, 0.45), 6.5)
+		draw_arc(btn_shoot_pos + b_offset + Vector2(-2.0, -7.5), 7.5, -PI*0.5, PI*0.5, 14, Color(1.0, 0.3, 0.25, 0.45), 5.5)
+		draw_arc(btn_shoot_pos + b_offset + Vector2(-2.0, 7.5), 7.5, -PI*0.5, PI*0.5, 14, Color(1.0, 0.3, 0.25, 0.45), 5.5)
+	
+	var b_col := Color(1.0, 1.0, 1.0, 0.95 if shoot_active else 0.65)
 	draw_line(btn_shoot_pos + b_offset + Vector2(-12.0, -15.0), btn_shoot_pos + b_offset + Vector2(-12.0, 15.0), b_col, 4.0)
 	draw_line(btn_shoot_pos + b_offset + Vector2(-12.0, -15.0), btn_shoot_pos + b_offset + Vector2(-2.0, -15.0), b_col, 4.0)
 	draw_line(btn_shoot_pos + b_offset + Vector2(-12.0, 0.0), btn_shoot_pos + b_offset + Vector2(-2.0, 0.0), b_col, 3.4)
@@ -426,12 +497,16 @@ func _draw() -> void:
 	draw_arc(btn_shoot_pos + b_offset + Vector2(-2.0, -7.5), 7.5, -PI*0.5, PI*0.5, 14, b_col, 3.4)
 	draw_arc(btn_shoot_pos + b_offset + Vector2(-2.0, 7.5), 7.5, -PI*0.5, PI*0.5, 14, b_col, 3.4)
 	
-	# --- SLEEK FLAT LEVEL SELECTOR (MENU) BUTTON (HEADER) ---
+	# --- SLEEK GLASS LEVEL SELECTOR (MENU) BUTTON (HEADER) ---
 	var menu_rect := Rect2(btn_menu_pos.x - btn_menu_size.x * 0.5, btn_menu_pos.y - btn_menu_size.y * 0.5, btn_menu_size.x, btn_menu_size.y)
+	# Soft elevation drop shadow
+	draw_rect(Rect2(menu_rect.position.x, menu_rect.position.y + 2.0, menu_rect.size.x, menu_rect.size.y), Color(0.0, 0.0, 0.0, 0.25))
 	draw_style_box(style_menu_btn, menu_rect)
+	# Upper glass specular edge line
+	draw_line(Vector2(menu_rect.position.x + 3.0, menu_rect.position.y + 1.2), Vector2(menu_rect.end.x - 3.0, menu_rect.position.y + 1.2), Color(1.0, 1.0, 1.0, 0.45), 1.0)
 	
 	var is_mob: bool = Global.is_mobile_device()
-	var grid_col := Color(0.92, 0.95, 1.0, 0.90)
+	var grid_col := Color(0.92, 0.96, 1.0, 0.90)
 	var tile_sz: float = 4.4 if is_mob else 3.5
 	var tile_gap: float = 3.0 if is_mob else 2.5
 	var hg: float = tile_sz + tile_gap * 0.5
@@ -440,9 +515,13 @@ func _draw() -> void:
 	draw_rect(Rect2(btn_menu_pos.x - hg, btn_menu_pos.y + tile_gap * 0.5, tile_sz, tile_sz), grid_col)
 	draw_rect(Rect2(btn_menu_pos.x + tile_gap * 0.5, btn_menu_pos.y + tile_gap * 0.5, tile_sz, tile_sz), grid_col)
 	
-	# --- SLEEK FLAT RESTART BUTTON (HEADER) ---
+	# --- SLEEK GLASS RESTART BUTTON (HEADER) ---
 	var restart_rect := Rect2(btn_restart_pos.x - btn_restart_size.x * 0.5, btn_restart_pos.y - btn_restart_size.y * 0.5, btn_restart_size.x, btn_restart_size.y)
+	# Soft elevation drop shadow
+	draw_rect(Rect2(restart_rect.position.x, restart_rect.position.y + 2.0, restart_rect.size.x, restart_rect.size.y), Color(0.0, 0.0, 0.0, 0.25))
 	draw_style_box(style_restart_btn, restart_rect)
+	# Upper glass specular edge line
+	draw_line(Vector2(restart_rect.position.x + 3.0, restart_rect.position.y + 1.2), Vector2(restart_rect.end.x - 3.0, restart_rect.position.y + 1.2), Color(1.0, 1.0, 1.0, 0.45), 1.0)
 	
 	var restart_col := Color(1.0, 0.92, 0.75, 0.90)
 	var r_rad: float = 7.0 if is_mob else 5.5

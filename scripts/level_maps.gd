@@ -45,58 +45,84 @@ static func get_map_data(stage_id: int) -> Dictionary:
 			data["theme"] = "TROPICAL CANOPY & RIVERBANK"
 			data["diff"] = "NORMAL"
 			data["boss"] = "WALL DEFENSE CORE"
-			data["hazard"] = "RIVER CHASMS & TIMBER BRIDGES"
-			data["intel"] = "Infiltrate perimeter via coastline sandbars. Cross natural chasms using suspended rope bridges and eliminate outer fortress turrets."
+			data["hazard"] = "RIVER CHASMS & JUNGLE TURF CRAGS"
+			data["intel"] = "Infiltrate perimeter via coastline sandbars. Leap across river chasms using floating turf ledges and eliminate outer fortress turrets."
 			data["primary_color"] = Color(0.25, 0.75, 0.35)
 			data["accent_color"] = Color(0.95, 0.85, 0.20)
 			data["ground_segments"] = [
 				Rect2(0.0, 440.0, 820.0, 200.0),       # Sector 1: Landing Beach (0 - 820)
 				Rect2(960.0, 440.0, 860.0, 200.0),     # Sector 2: Outer Fortress Perimeter (960 - 1820)
 				Rect2(1960.0, 440.0, 900.0, 200.0),    # Sector 3: Jungle Ravine & Catwalks (1960 - 2860)
-				Rect2(3000.0, 440.0, 920.0, 200.0),    # Sector 4: Heavy Fortress Battery (3000 - 3920)
-				Rect2(4060.0, 440.0, 920.0, 200.0),    # Sector 5: Waterfall Ambush Ridge (4060 - 4980)
-				Rect2(5120.0, 440.0, 1580.0, 200.0)    # Sector 6 & 7: Fortress Approach & Boss Arena (5120 - 6700)
+				Rect2(3000.0, 440.0, 880.0, 200.0),    # Sector 4: Heavy Fortress Battery & Mini-Boss Arena (3000 - 3880)
+				# SECTOR 5 IS A PURE BOTTOMLESS ABYSS (3880 - 5140): NO GROUND!
+				Rect2(5140.0, 440.0, 1560.0, 200.0)    # Sector 6 & 7: Fortress Approach & Boss Arena (5140 - 6700)
 			]
 			data["platforms"] = [
 				# Sector 1: Landing Beach (0 - 820)
-				{"rect": Rect2(240.0, 370.0, 200.0, 16.0), "type": PlatformType.TURF},
-				{"rect": Rect2(460.0, 280.0, 180.0, 16.0), "type": PlatformType.HIGH_PERCH},
-				# Chasm 1 (820 - 960): River Gorge Bridge
-				{"rect": Rect2(800.0, 340.0, 200.0, 16.0), "type": PlatformType.ROPE_BRIDGE},
+				{"rect": Rect2(240.0, 370.0, 200.0, 16.0), "type": PlatformType.TURF, "variant": "default"},
+				{"rect": Rect2(460.0, 280.0, 180.0, 16.0), "type": PlatformType.TURF, "variant": "small"},
+				# Chasm 1 (820 - 960): River Gorge Chasm Turf Crag
+				{"rect": Rect2(800.0, 340.0, 200.0, 16.0), "type": PlatformType.TURF, "variant": "crag"},
 				
 				# Sector 2: Outer Fortress Perimeter (960 - 1820)
-				{"rect": Rect2(1060.0, 370.0, 240.0, 16.0), "type": PlatformType.GIRDER},
-				{"rect": Rect2(1240.0, 295.0, 260.0, 16.0), "type": PlatformType.GIRDER},
-				{"rect": Rect2(1460.0, 225.0, 180.0, 16.0), "type": PlatformType.HIGH_PERCH},
+				{"rect": Rect2(1060.0, 370.0, 240.0, 16.0), "type": PlatformType.TURF, "variant": "wedge_left"},
+				{"rect": Rect2(1240.0, 295.0, 260.0, 16.0), "type": PlatformType.TURF, "variant": "wide"},
+				{"rect": Rect2(1460.0, 225.0, 180.0, 16.0), "type": PlatformType.TURF, "variant": "thin"},
 				# Chasm 2 (1820 - 1960): Deep River Canyon
-				{"rect": Rect2(1800.0, 330.0, 200.0, 16.0), "type": PlatformType.ROPE_BRIDGE},
+				{"rect": Rect2(1800.0, 330.0, 200.0, 16.0), "type": PlatformType.TURF, "variant": "crag"},
 				
 				# Sector 3: Jungle Ravine & Catwalks (1960 - 2860)
-				{"rect": Rect2(2060.0, 350.0, 240.0, 16.0), "type": PlatformType.TURF},
-				{"rect": Rect2(2300.0, 275.0, 240.0, 16.0), "type": PlatformType.TURF},
-				{"rect": Rect2(2520.0, 210.0, 200.0, 16.0), "type": PlatformType.HIGH_PERCH},
+				{"rect": Rect2(2060.0, 350.0, 240.0, 16.0), "type": PlatformType.TURF, "variant": "wedge_right"},
+				{"rect": Rect2(2300.0, 275.0, 240.0, 16.0), "type": PlatformType.TURF, "variant": "default"},
+				{"rect": Rect2(2520.0, 210.0, 200.0, 16.0), "type": PlatformType.TURF, "variant": "small"},
 				# Chasm 3 (2860 - 3000): River Crossing
-				{"rect": Rect2(2840.0, 340.0, 200.0, 16.0), "type": PlatformType.ROPE_BRIDGE},
+				{"rect": Rect2(2840.0, 340.0, 200.0, 16.0), "type": PlatformType.TURF, "variant": "crag"},
 				
-				# Sector 4: Heavy Fortress Battery (3000 - 3920)
-				{"rect": Rect2(3100.0, 360.0, 260.0, 16.0), "type": PlatformType.GIRDER},
-				{"rect": Rect2(3340.0, 285.0, 300.0, 16.0), "type": PlatformType.GIRDER},
-				{"rect": Rect2(3660.0, 210.0, 180.0, 16.0), "type": PlatformType.HIGH_PERCH},
-				# Chasm 4 (3920 - 4060): River Ravine
-				{"rect": Rect2(3900.0, 330.0, 200.0, 16.0), "type": PlatformType.ROPE_BRIDGE},
+				# Sector 4: Heavy Fortress Battery & Mini-Boss Arena (3000 - 3880)
+				{"rect": Rect2(3100.0, 360.0, 260.0, 16.0), "type": PlatformType.TURF, "variant": "wedge_left"},
+				{"rect": Rect2(3340.0, 285.0, 300.0, 16.0), "type": PlatformType.TURF, "variant": "wide"},
+				{"rect": Rect2(3660.0, 210.0, 180.0, 16.0), "type": PlatformType.TURF, "variant": "thin"},
 				
-				# Sector 5: Waterfall Ambush Ridge (4060 - 4980)
-				{"rect": Rect2(4160.0, 360.0, 240.0, 16.0), "type": PlatformType.TURF},
-				{"rect": Rect2(4380.0, 285.0, 260.0, 16.0), "type": PlatformType.TURF},
-				{"rect": Rect2(4620.0, 215.0, 200.0, 16.0), "type": PlatformType.HIGH_PERCH},
-				# Chasm 5 (4980 - 5120): Fortress Moat
-				{"rect": Rect2(4960.0, 340.0, 200.0, 16.0), "type": PlatformType.ROPE_BRIDGE},
+				# =====================================================================
+				# POST-MINI-BOSS FALLING PLATFORM SEQUENCE (3880 - 5140)
+				# PURE BOTTOMLESS ABYSS - NO GROUND!
+				# Player must hop across slowly descending platforms to reach the Fortress Gate!
+				# =====================================================================
 				
-				# Sector 6 & 7: Fortress Approach & Boss Arena (5120 - 6700)
-				{"rect": Rect2(5220.0, 340.0, 260.0, 16.0), "type": PlatformType.GIRDER},
-				{"rect": Rect2(5460.0, 260.0, 240.0, 16.0), "type": PlatformType.HIGH_PERCH},
-				{"rect": Rect2(5900.0, 340.0, 280.0, 16.0), "type": PlatformType.GIRDER},
-				{"rect": Rect2(6200.0, 270.0, 240.0, 16.0), "type": PlatformType.HIGH_PERCH}
+				# Abyss Threshold Stepping Stone
+				{"rect": Rect2(3910.0, 360.0, 130.0, 16.0), "type": PlatformType.TURF, "variant": "thin", "is_drop": true, "drop_delay": 0.45, "respawn_time": 2.8},
+				
+				# LEVEL 1: High Skyway Route (y = 190 - 270)
+				{"rect": Rect2(4070.0, 270.0, 130.0, 16.0), "type": PlatformType.TURF, "variant": "small", "is_drop": true, "drop_delay": 0.45, "respawn_time": 2.8},
+				{"rect": Rect2(4240.0, 215.0, 140.0, 16.0), "type": PlatformType.TURF, "variant": "thin", "is_drop": true, "drop_delay": 0.45, "respawn_time": 2.8},
+				{"rect": Rect2(4410.0, 190.0, 140.0, 16.0), "type": PlatformType.TURF, "variant": "wide", "is_drop": true, "drop_delay": 0.45, "respawn_time": 2.8},
+				{"rect": Rect2(4590.0, 210.0, 140.0, 16.0), "type": PlatformType.TURF, "variant": "small", "is_drop": true, "drop_delay": 0.45, "respawn_time": 2.8},
+				{"rect": Rect2(4760.0, 250.0, 140.0, 16.0), "type": PlatformType.TURF, "variant": "wedge_right", "is_drop": true, "drop_delay": 0.45, "respawn_time": 2.8},
+				{"rect": Rect2(4930.0, 290.0, 130.0, 16.0), "type": PlatformType.TURF, "variant": "thin", "is_drop": true, "drop_delay": 0.45, "respawn_time": 2.8},
+				
+				# LEVEL 2: Mid Terrace Route (y = 300 - 330)
+				{"rect": Rect2(4150.0, 330.0, 130.0, 16.0), "type": PlatformType.TURF, "variant": "default", "is_drop": true, "drop_delay": 0.50, "respawn_time": 2.8},
+				{"rect": Rect2(4330.0, 310.0, 140.0, 16.0), "type": PlatformType.TURF, "variant": "wide", "is_drop": true, "drop_delay": 0.50, "respawn_time": 2.8},
+				{"rect": Rect2(4510.0, 300.0, 140.0, 16.0), "type": PlatformType.TURF, "variant": "default", "is_drop": true, "drop_delay": 0.50, "respawn_time": 2.8},
+				{"rect": Rect2(4690.0, 310.0, 140.0, 16.0), "type": PlatformType.TURF, "variant": "wedge_left", "is_drop": true, "drop_delay": 0.50, "respawn_time": 2.8},
+				{"rect": Rect2(4870.0, 330.0, 130.0, 16.0), "type": PlatformType.TURF, "variant": "default", "is_drop": true, "drop_delay": 0.50, "respawn_time": 2.8},
+				
+				# LEVEL 3: Lower River Crag Route (y = 385 - 395)
+				{"rect": Rect2(4050.0, 395.0, 130.0, 16.0), "type": PlatformType.TURF, "variant": "crag", "is_drop": true, "drop_delay": 0.55, "respawn_time": 2.8},
+				{"rect": Rect2(4230.0, 390.0, 130.0, 16.0), "type": PlatformType.TURF, "variant": "crag", "is_drop": true, "drop_delay": 0.55, "respawn_time": 2.8},
+				{"rect": Rect2(4410.0, 390.0, 130.0, 16.0), "type": PlatformType.TURF, "variant": "crag", "is_drop": true, "drop_delay": 0.55, "respawn_time": 2.8},
+				{"rect": Rect2(4590.0, 395.0, 130.0, 16.0), "type": PlatformType.TURF, "variant": "crag", "is_drop": true, "drop_delay": 0.55, "respawn_time": 2.8},
+				{"rect": Rect2(4770.0, 390.0, 130.0, 16.0), "type": PlatformType.TURF, "variant": "crag", "is_drop": true, "drop_delay": 0.55, "respawn_time": 2.8},
+				{"rect": Rect2(4950.0, 390.0, 130.0, 16.0), "type": PlatformType.TURF, "variant": "crag", "is_drop": true, "drop_delay": 0.55, "respawn_time": 2.8},
+				
+				# Final Leap Threshold Platform into Fortress Gate
+				{"rect": Rect2(5050.0, 360.0, 120.0, 16.0), "type": PlatformType.TURF, "variant": "small", "is_drop": true, "drop_delay": 0.50, "respawn_time": 2.8},
+				
+				# Sector 6 & 7: Fortress Approach & Boss Arena (5140 - 6700)
+				{"rect": Rect2(5220.0, 340.0, 260.0, 16.0), "type": PlatformType.TURF, "variant": "wedge_left"},
+				{"rect": Rect2(5460.0, 260.0, 240.0, 16.0), "type": PlatformType.TURF, "variant": "thin"},
+				{"rect": Rect2(5900.0, 340.0, 280.0, 16.0), "type": PlatformType.TURF, "variant": "wide"},
+				{"rect": Rect2(6200.0, 270.0, 240.0, 16.0), "type": PlatformType.TURF, "variant": "small"}
 			]
 		2:
 			data["name"] = "WATERFALL FORTRESS"
