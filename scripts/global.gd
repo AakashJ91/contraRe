@@ -26,6 +26,8 @@ signal screen_shake_requested(intensity: float, duration: float)
 signal boss_health_changed(current: float, max_val: float)
 signal boss_defeated()
 signal mini_boss_defeated()
+signal boss_cutscene_started(boss_name: String, subtitle: String)
+signal boss_cutscene_ended()
 signal map_toggled(is_open: bool)
 signal maker_mode_toggled(is_open: bool)
 signal stage_started(stage_idx: int)
@@ -37,11 +39,30 @@ var is_maker_mode: bool = false
 const STAGE_INTRO_DURATION: float = 3.2
 var stage_intro_timer: float = 3.2
 
+var is_boss_cutscene_active: bool = false
+var boss_cutscene_timer: float = 0.0
+const BOSS_CUTSCENE_DURATION: float = 3.2
+var boss_cutscene_name: String = ""
+var boss_cutscene_subtitle: String = ""
+
 func is_stage_intro_active() -> bool:
 	return stage_intro_timer > 0.0
 
 func start_stage_intro() -> void:
 	stage_intro_timer = STAGE_INTRO_DURATION
+
+func start_boss_cutscene(b_name: String = "", b_sub: String = "") -> void:
+	is_boss_cutscene_active = true
+	boss_cutscene_timer = BOSS_CUTSCENE_DURATION
+	boss_cutscene_name = b_name if b_name != "" else get_boss_name()
+	boss_cutscene_subtitle = b_sub if b_sub != "" else get_stage_full_title()
+	boss_cutscene_started.emit(boss_cutscene_name, boss_cutscene_subtitle)
+
+func skip_boss_cutscene() -> void:
+	if is_boss_cutscene_active:
+		is_boss_cutscene_active = false
+		boss_cutscene_timer = 0.0
+		boss_cutscene_ended.emit()
 
 func toggle_map() -> void:
 	is_map_open = not is_map_open
@@ -76,7 +97,7 @@ const STAGE_FULL_TITLES: Array[String] = [
 ]
 
 const BOSS_NAMES: Array[String] = [
-	"WALL CORE",
+	"RED FALCON DEFENSE WALL",
 	"HYDRO MECH",
 	"BIO-HEART",
 	"SIEGE TANK",
@@ -96,6 +117,11 @@ func _ready() -> void:
 func _process(delta: float) -> void:
 	if stage_intro_timer > 0.0:
 		stage_intro_timer = maxf(0.0, stage_intro_timer - delta)
+	if is_boss_cutscene_active:
+		boss_cutscene_timer = maxf(0.0, boss_cutscene_timer - delta)
+		if boss_cutscene_timer <= 0.0:
+			is_boss_cutscene_active = false
+			boss_cutscene_ended.emit()
 
 func _notification(what: int) -> void:
 	if what == NOTIFICATION_APPLICATION_RESUMED or what == NOTIFICATION_WM_WINDOW_FOCUS_IN:
@@ -190,6 +216,8 @@ func reset_game() -> void:
 	is_game_over = false
 	is_victory = false
 	is_map_open = false
+	is_boss_cutscene_active = false
+	boss_cutscene_timer = 0.0
 	start_stage_intro()
 	score_changed.emit(score)
 	lives_changed.emit(lives)
@@ -218,3 +246,6 @@ func go_to_title() -> void:
 
 func go_to_level_select() -> void:
 	get_tree().change_scene_to_file("res://scenes/level_select.tscn")
+
+func go_to_prologue() -> void:
+	get_tree().change_scene_to_file("res://scenes/prologue.tscn")

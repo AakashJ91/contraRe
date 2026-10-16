@@ -61,22 +61,16 @@ static func get_map_data(stage_id: int) -> Dictionary:
 				# Sector 1: Landing Beach (0 - 820)
 				{"rect": Rect2(240.0, 370.0, 200.0, 16.0), "type": PlatformType.TURF, "variant": "default"},
 				{"rect": Rect2(460.0, 280.0, 180.0, 16.0), "type": PlatformType.TURF, "variant": "small"},
-				# Chasm 1 (820 - 960): River Gorge Chasm Turf Crag
-				{"rect": Rect2(800.0, 340.0, 200.0, 16.0), "type": PlatformType.TURF, "variant": "crag"},
 				
 				# Sector 2: Outer Fortress Perimeter (960 - 1820)
 				{"rect": Rect2(1060.0, 370.0, 240.0, 16.0), "type": PlatformType.TURF, "variant": "wedge_left"},
 				{"rect": Rect2(1240.0, 295.0, 260.0, 16.0), "type": PlatformType.TURF, "variant": "wide"},
 				{"rect": Rect2(1460.0, 225.0, 180.0, 16.0), "type": PlatformType.TURF, "variant": "thin"},
-				# Chasm 2 (1820 - 1960): Deep River Canyon
-				{"rect": Rect2(1800.0, 330.0, 200.0, 16.0), "type": PlatformType.TURF, "variant": "crag"},
 				
 				# Sector 3: Jungle Ravine & Catwalks (1960 - 2860)
 				{"rect": Rect2(2060.0, 350.0, 240.0, 16.0), "type": PlatformType.TURF, "variant": "wedge_right"},
 				{"rect": Rect2(2300.0, 275.0, 240.0, 16.0), "type": PlatformType.TURF, "variant": "default"},
 				{"rect": Rect2(2520.0, 210.0, 200.0, 16.0), "type": PlatformType.TURF, "variant": "small"},
-				# Chasm 3 (2860 - 3000): River Crossing
-				{"rect": Rect2(2840.0, 340.0, 200.0, 16.0), "type": PlatformType.TURF, "variant": "crag"},
 				
 				# Sector 4: Heavy Fortress Battery & Mini-Boss Arena (3000 - 3880)
 				{"rect": Rect2(3100.0, 360.0, 260.0, 16.0), "type": PlatformType.TURF, "variant": "wedge_left"},
@@ -121,8 +115,7 @@ static func get_map_data(stage_id: int) -> Dictionary:
 				# Sector 6 & 7: Fortress Approach & Boss Arena (5140 - 6700)
 				{"rect": Rect2(5220.0, 340.0, 260.0, 16.0), "type": PlatformType.TURF, "variant": "wedge_left"},
 				{"rect": Rect2(5460.0, 260.0, 240.0, 16.0), "type": PlatformType.TURF, "variant": "thin"},
-				{"rect": Rect2(5900.0, 340.0, 280.0, 16.0), "type": PlatformType.TURF, "variant": "wide"},
-				{"rect": Rect2(6200.0, 270.0, 240.0, 16.0), "type": PlatformType.TURF, "variant": "small"}
+				{"rect": Rect2(5900.0, 340.0, 170.0, 16.0), "type": PlatformType.TURF, "variant": "wide"}
 			]
 		2:
 			data["name"] = "WATERFALL FORTRESS"
@@ -390,6 +383,28 @@ static func get_map_data(stage_id: int) -> Dictionary:
 				{"rect": Rect2(5420.0, 330.0, 220.0, 16.0), "type": PlatformType.BIO_RIB}
 			]
 	
+	# Platform rule: If a pit between floor tiles can be crossed by jump, don't add any platform above it
+	const MAX_JUMP_GAP: float = 200.0 # Player standard jump distance is ~170-202px
+	var grounds: Array = data.get("ground_segments", [])
+	var filtered_platforms: Array[Dictionary] = []
+	for p in data.get("platforms", []):
+		var pr: Rect2 = p.get("rect", Rect2())
+		var is_above_jumpable_pit: bool = false
+		for i in range(grounds.size() - 1):
+			var pit_l: float = grounds[i].end.x
+			var pit_r: float = grounds[i + 1].position.x
+			var pit_w: float = pit_r - pit_l
+			if pit_w > 0.0 and pit_w <= MAX_JUMP_GAP:
+				var overlap_l: float = maxf(pr.position.x, pit_l)
+				var overlap_r: float = minf(pr.end.x, pit_r)
+				var overlap_w: float = overlap_r - overlap_l
+				if overlap_w >= pit_w * 0.4:
+					is_above_jumpable_pit = true
+					break
+		if not is_above_jumpable_pit:
+			filtered_platforms.append(p)
+	data["platforms"] = filtered_platforms
+
 	return data
 
 # =============================================================================

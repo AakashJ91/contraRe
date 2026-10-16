@@ -10,18 +10,18 @@
 [resource]
 script = ExtResource("1_script")
 item_id = "industrial_fan"
-display_name = "Industrial Ventilator Fan"
+display_name = "Industrial Turbine Fan"
 category = "Industrial"
 frames = [ExtResource("2_f0"), ExtResource("3_f1"), ExtResource("4_f2"), ExtResource("5_f3")]
 spritesheet = ExtResource("6_strip")
 frame_count = 4
-fps = 12.0
+fps = 14.0
 loop = true
-size = Vector2(32, 32)
-offset = Vector2(0, -16)
+size = Vector2(48, 48)
+offset = Vector2(0, -24)
 color_tint = Color(1, 1, 1, 1)
 has_light_glow = false
 light_color = Color(0.8, 0.7, 0.2, 0.2)
 light_radius = 16.0
-vfx_type = "none"
-vfx_interval = 0.0
+vfx_type = "steam"
+vfx_interval = 2.2

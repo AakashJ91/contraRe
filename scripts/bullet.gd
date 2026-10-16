@@ -26,6 +26,7 @@ func _ready() -> void:
 		speed = 260.0
 		damage = 1.0
 	
+	z_index = 5
 	area_entered.connect(_on_area_entered)
 	body_entered.connect(_on_body_entered)
 	queue_redraw()

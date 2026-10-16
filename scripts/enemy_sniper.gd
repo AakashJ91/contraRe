@@ -52,7 +52,47 @@ func _ready() -> void:
 		shoot_timer = randf_range(2.0, 3.2)
 	
 	_snap_to_ground()
+	_update_platform_floor_overlap()
 	queue_redraw()
+
+func _update_platform_floor_overlap() -> void:
+	if is_dying:
+		show_behind_parent = false
+		z_index = 2
+		return
+	
+	var is_overlapping := false
+	var parent_node = get_parent()
+	if parent_node != null:
+		var spr_w: float = 36.0
+		var spr_h: float = 30.0
+		var sniper_box := Rect2(global_position.x - spr_w * 0.5, global_position.y - spr_h * 0.5 - 2.0, spr_w, spr_h)
+		
+		# Check overlap with platforms
+		if "platforms" in parent_node:
+			for p in parent_node.platforms:
+				var pr: Rect2 = p.get("rect", Rect2())
+				var visual_pr := Rect2(pr.position.x - 2.0, pr.position.y - 6.0, pr.size.x + 4.0, pr.size.y + 12.0)
+				if sniper_box.intersects(visual_pr):
+					is_overlapping = true
+					break
+		
+		# Check overlap with ground segments (tile floors)
+		if not is_overlapping and "ground_segments" in parent_node:
+			for g in parent_node.ground_segments:
+				var visual_gr := Rect2(g.position.x, g.position.y - 30.0, g.size.x, g.size.y + 30.0)
+				if sniper_box.intersects(visual_gr):
+					is_overlapping = true
+					break
+	else:
+		is_overlapping = true
+	
+	if is_overlapping:
+		show_behind_parent = true
+		z_index = -1
+	else:
+		show_behind_parent = false
+		z_index = 0
 
 func _snap_to_ground() -> void:
 	var space_state := get_world_2d().direct_space_state
@@ -63,13 +103,16 @@ func _snap_to_ground() -> void:
 	var query := PhysicsRayQueryParameters2D.create(from_pos, to_pos, collision_mask)
 	var hit := space_state.intersect_ray(query)
 	if not hit.is_empty():
-		global_position.y = hit.position.y - 10.0
+		global_position.y = hit.position.y - 5.0
 		velocity.y = 0.0
 		has_grounded = true
+		_update_platform_floor_overlap()
 
 func _physics_process(delta: float) -> void:
 	if not has_grounded:
 		_snap_to_ground()
+	
+	_update_platform_floor_overlap()
 	
 	if is_dying:
 		death_timer += delta
@@ -122,6 +165,7 @@ func _shoot(target_pos: Vector2) -> void:
 	b.bullet_owner = b.BulletOwner.ENEMY
 	b.direction = dir
 	b.speed = 300.0
+	b.z_index = 5
 	b.global_position = global_position + dir * 18.0
 	get_parent().add_child(b)
 
@@ -138,6 +182,8 @@ func _die() -> void:
 	if is_dying:
 		return
 	is_dying = true
+	show_behind_parent = false
+	z_index = 2
 	var reward: int = enemy_data.score_reward if enemy_data != null else 300
 	Global.add_score(reward)
 	collision_layer = 0

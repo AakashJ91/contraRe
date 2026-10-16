@@ -13,7 +13,7 @@ extends Node2D
 @export var bio_eye_script: GDScript = preload("res://scripts/hazard_bio_eye.gd")
 
 @onready var camera: Camera2D = $Camera2D
-@onready var player: CharacterBody2D = $Player
+@onready var player: Player = $Player
 @onready var boss: Node2D = $Boss
 @onready var world_colliders: StaticBody2D = $WorldColliders
 
@@ -48,9 +48,11 @@ const BOSS_TRIGGER_X: float = 5800.0
 
 var is_mini_boss_active: bool = false
 var is_mini_boss_defeated: bool = false
+var is_boss_cutscene_triggered: bool = false
 
 var bg_texture: Texture2D = null
 var ground_tile_texture: Texture2D = null
+var boss_ground_texture: Texture2D = null
 var ground_textures_by_stage: Dictionary = {}
 var platform_girder_texture: Texture2D = null
 var platform_bridge_texture: Texture2D = null
@@ -68,6 +70,9 @@ var ground_edge_right_texture: Texture2D = null
 var ground_edge_left_texture: Texture2D = null
 var ground_edge_left_textures_by_stage: Dictionary = {}
 var ground_edge_right_textures_by_stage: Dictionary = {}
+var ground_frames_by_stage: Dictionary = {}
+var ground_edge_left_frames_by_stage: Dictionary = {}
+var ground_edge_right_frames_by_stage: Dictionary = {}
 var water_surface_frames: Array[Texture2D] = []
 var water_deep_texture: Texture2D = null
 
@@ -90,6 +95,7 @@ func _ready() -> void:
 	Global.screen_shake_requested.connect(_on_screen_shake)
 	Global.maker_mode_toggled.connect(_on_maker_mode_toggled)
 	Global.mini_boss_defeated.connect(_on_mini_boss_defeated)
+	Global.boss_cutscene_ended.connect(_on_boss_cutscene_ended)
 	_load_textures()
 	_init_stage_geometry()
 	_setup_background()
@@ -123,6 +129,8 @@ func _ready() -> void:
 func _load_textures() -> void:
 	if ResourceLoader.exists("res://assets/tiles/ground_tile.png"):
 		ground_tile_texture = load("res://assets/tiles/ground_tile.png")
+	if ResourceLoader.exists("res://assets/tiles/ground_boss_fortress.png"):
+		boss_ground_texture = load("res://assets/tiles/ground_boss_fortress.png")
 	
 	ground_textures_by_stage.clear()
 	ground_textures_by_stage[1] = ground_tile_texture
@@ -137,6 +145,15 @@ func _load_textures() -> void:
 		ground_textures_by_stage[5] = load("res://assets/tiles/ground_refinery.png")
 	if ResourceLoader.exists("res://assets/tiles/ground_dynamo.png"):
 		ground_textures_by_stage[6] = load("res://assets/tiles/ground_dynamo.png")
+	
+	ground_frames_by_stage.clear()
+	var dynamo_frames: Array[Texture2D] = []
+	for i in range(4):
+		var dp := "res://assets/tiles/ground_dynamo_%d.png" % i
+		if ResourceLoader.exists(dp):
+			dynamo_frames.append(load(dp))
+	if not dynamo_frames.is_empty():
+		ground_frames_by_stage[6] = dynamo_frames
 	if ResourceLoader.exists("res://assets/tiles/ground_hangar.png"):
 		ground_textures_by_stage[7] = load("res://assets/tiles/ground_hangar.png")
 	if ResourceLoader.exists("res://assets/tiles/platform_girder.png"):
@@ -193,6 +210,22 @@ func _load_textures() -> void:
 		ground_edge_left_textures_by_stage[8] = ground_edge_left_textures_by_stage[3]
 	if ground_edge_right_textures_by_stage.has(3):
 		ground_edge_right_textures_by_stage[8] = ground_edge_right_textures_by_stage[3]
+	
+	ground_edge_left_frames_by_stage.clear()
+	ground_edge_right_frames_by_stage.clear()
+	var dynamo_elf: Array[Texture2D] = []
+	var dynamo_erf: Array[Texture2D] = []
+	for i in range(4):
+		var elp := "res://assets/tiles/ground_dynamo_edge_left_%d.png" % i
+		var erp := "res://assets/tiles/ground_dynamo_edge_right_%d.png" % i
+		if ResourceLoader.exists(elp):
+			dynamo_elf.append(load(elp))
+		if ResourceLoader.exists(erp):
+			dynamo_erf.append(load(erp))
+	if not dynamo_elf.is_empty():
+		ground_edge_left_frames_by_stage[6] = dynamo_elf
+	if not dynamo_erf.is_empty():
+		ground_edge_right_frames_by_stage[6] = dynamo_erf
 	
 	water_surface_frames.clear()
 	for i in range(4):
@@ -505,12 +538,29 @@ func _physics_process(delta: float) -> void:
 			camera.global_position.x = maxf(camera.global_position.x, target_cam_x)
 			camera.global_position.y = 280.0 if is_mob else 270.0
 		
+		# Boss arena player containment (Player must never pass behind the boss)
+		if boss != null and is_instance_valid(boss):
+			var boss_wall_x: float = boss.global_position.x - 70.0
+			if player.global_position.x > boss_wall_x:
+				player.global_position.x = boss_wall_x
+				player.velocity.x = minf(player.velocity.x, 0.0)
+		
 		if camera.global_position.x >= BOSS_TRIGGER_X and boss != null and is_instance_valid(boss):
-			boss.activate()
+			if not is_boss_cutscene_triggered:
+				is_boss_cutscene_triggered = true
+				Global.start_boss_cutscene(Global.get_boss_name(), Global.get_stage_full_title())
+				Global.play_sfx("boss_alarm")
+				Global.shake_screen(8.0, 0.45)
+				_clear_ambient_enemies_near_boss()
+		
+		if Global.is_boss_cutscene_active:
+			var arena_cam_x := 5800.0
+			camera.global_position.x = lerpf(camera.global_position.x, arena_cam_x, delta * 3.5)
+			camera.global_position.y = lerpf(camera.global_position.y, (280.0 if is_mob else 270.0), delta * 3.5)
 	
 	_process_stage_mechanics(delta)
 	
-	if camera.global_position.x < BOSS_TRIGGER_X and not is_mini_boss_active:
+	if camera.global_position.x < BOSS_TRIGGER_X and not is_mini_boss_active and not Global.is_boss_cutscene_active:
 		soldier_spawn_timer -= delta
 		if soldier_spawn_timer <= 0.0:
 			var min_interval := maxf(2.6, 4.2 - float(Global.current_stage) * 0.2)
@@ -530,7 +580,7 @@ func _physics_process(delta: float) -> void:
 			_spawn_flying_blimp()
 
 func _process_stage_mechanics(delta: float) -> void:
-	if player == null or not is_instance_valid(player) or player.state == player.PlayerState.DEAD:
+	if player == null or not is_instance_valid(player) or player.state == Player.PlayerState.DEAD:
 		return
 	
 	var p_pos := player.global_position
@@ -882,12 +932,24 @@ func _on_mini_boss_defeated() -> void:
 	is_mini_boss_active = false
 	Global.screen_shake_requested.emit(8.0, 1.0)
 
+func _on_boss_cutscene_ended() -> void:
+	if boss != null and is_instance_valid(boss) and not boss.is_dead:
+		boss.activate()
+
+func _clear_ambient_enemies_near_boss() -> void:
+	for c in get_children():
+		if c == null or not is_instance_valid(c):
+			continue
+		if c.is_in_group("enemies") or c.name.begins_with("EnemySoldier") or c.name.begins_with("EnemyDrone"):
+			if c.global_position.x > 5000.0:
+				c.queue_free()
+
 func _setup_static_enemies() -> void:
 	match Global.current_stage:
 		1: # JUNGLE PERIMETER
 			# Classic fortified bunkers, high lookouts & river gorge bridges
 			_spawn_turrets([Vector2(720.0, 435.0), Vector2(1380.0, 435.0), Vector2(2650.0, 435.0), Vector2(3180.0, 355.0), Vector2(5320.0, 435.0), Vector2(5580.0, 435.0)])
-			_spawn_snipers([Vector2(530.0, 270.0), Vector2(890.0, 330.0), Vector2(1550.0, 215.0), Vector2(1890.0, 320.0), Vector2(2930.0, 330.0), Vector2(3480.0, 275.0), Vector2(5220.0, 330.0)])
+			_spawn_snipers([Vector2(530.0, 270.0), Vector2(1080.0, 360.0), Vector2(1550.0, 215.0), Vector2(2080.0, 340.0), Vector2(3120.0, 350.0), Vector2(3480.0, 275.0), Vector2(5220.0, 330.0)])
 			_spawn_grenadiers([Vector2(5260.0, 330.0), Vector2(5640.0, 250.0)])
 			_spawn_crawlers([Vector2(2220.0, 420.0), Vector2(2440.0, 420.0), Vector2(5380.0, 420.0)])
 			_spawn_sensors([
@@ -986,10 +1048,20 @@ func _setup_static_enemies() -> void:
 				{"pos": Vector2(5200.0, 250.0), "weapon": Global.WeaponType.LASER}
 			])
 
+func _is_over_ground_or_platform(pos_x: float) -> bool:
+	for g in ground_segments:
+		if pos_x >= g.position.x - 12.0 and pos_x <= g.end.x + 12.0:
+			return true
+	for p in platforms:
+		var pr: Rect2 = p.get("rect", Rect2())
+		if pos_x >= pr.position.x - 12.0 and pos_x <= pr.end.x + 12.0:
+			return true
+	return false
+
 func _spawn_turrets(positions: Array[Vector2]) -> void:
 	if turret_scene == null: return
 	for pos in positions:
-		if pos.x < BOSS_TRIGGER_X - 100.0:
+		if pos.x < BOSS_TRIGGER_X - 100.0 and _is_over_ground_or_platform(pos.x):
 			var t = turret_scene.instantiate()
 			t.global_position = pos
 			add_child(t)
@@ -1015,7 +1087,7 @@ func _get_ground_or_platform_y(pos_x: float, default_y: float) -> float:
 func _spawn_snipers(positions: Array[Vector2]) -> void:
 	if sniper_scene == null: return
 	for pos in positions:
-		if pos.x < BOSS_TRIGGER_X - 100.0:
+		if pos.x < BOSS_TRIGGER_X - 100.0 and _is_over_ground_or_platform(pos.x):
 			var s = sniper_scene.instantiate()
 			var valid_y := _get_ground_or_platform_y(pos.x, pos.y)
 			s.global_position = Vector2(pos.x, valid_y)
@@ -1024,7 +1096,7 @@ func _spawn_snipers(positions: Array[Vector2]) -> void:
 func _spawn_grenadiers(positions: Array[Vector2]) -> void:
 	if grenadier_scene == null: return
 	for pos in positions:
-		if pos.x < BOSS_TRIGGER_X - 120.0:
+		if pos.x < BOSS_TRIGGER_X - 120.0 and _is_over_ground_or_platform(pos.x):
 			var gr = grenadier_scene.instantiate()
 			gr.global_position = pos
 			add_child(gr)
@@ -1032,7 +1104,7 @@ func _spawn_grenadiers(positions: Array[Vector2]) -> void:
 func _spawn_crawlers(positions: Array[Vector2]) -> void:
 	if crawler_scene == null: return
 	for pos in positions:
-		if pos.x < BOSS_TRIGGER_X - 150.0:
+		if pos.x < BOSS_TRIGGER_X - 150.0 and _is_over_ground_or_platform(pos.x):
 			var cr = crawler_scene.instantiate()
 			cr.global_position = pos
 			add_child(cr)
@@ -1040,7 +1112,7 @@ func _spawn_crawlers(positions: Array[Vector2]) -> void:
 func _spawn_sensors(sensor_pods: Array[Dictionary]) -> void:
 	if sensor_scene == null: return
 	for pod_info in sensor_pods:
-		if pod_info["pos"].x < BOSS_TRIGGER_X - 150.0:
+		if pod_info["pos"].x < BOSS_TRIGGER_X - 150.0 and _is_over_ground_or_platform(pod_info["pos"].x):
 			var pod = sensor_scene.instantiate()
 			pod.global_position = pod_info["pos"]
 			pod.weapon_type = pod_info["weapon"]
@@ -1049,7 +1121,7 @@ func _spawn_sensors(sensor_pods: Array[Dictionary]) -> void:
 func _spawn_spore_pods(positions: Array[Vector2]) -> void:
 	if spore_pod_script == null: return
 	for pos in positions:
-		if pos.x < BOSS_TRIGGER_X - 120.0:
+		if pos.x < BOSS_TRIGGER_X - 120.0 and _is_over_ground_or_platform(pos.x):
 			var pod = spore_pod_script.new()
 			pod.global_position = pos
 			add_child(pod)
@@ -1057,7 +1129,7 @@ func _spawn_spore_pods(positions: Array[Vector2]) -> void:
 func _spawn_bio_eyes(positions: Array[Vector2]) -> void:
 	if bio_eye_script == null: return
 	for pos in positions:
-		if pos.x < BOSS_TRIGGER_X - 120.0:
+		if pos.x < BOSS_TRIGGER_X - 120.0 and _is_over_ground_or_platform(pos.x):
 			var eye = bio_eye_script.new()
 			eye.global_position = pos
 			add_child(eye)
@@ -1469,7 +1541,19 @@ func _draw_platforms(view_left: float, view_right: float) -> void:
 		var has_left_edge: bool = (g.position.x > 0.0)
 		var has_right_edge: bool = (g.end.x < LEVEL_MAX_X)
 		var active_edge_left_tex: Texture2D = ground_edge_left_textures_by_stage.get(Global.current_stage, ground_edge_left_texture)
+		if ground_edge_left_frames_by_stage.has(Global.current_stage):
+			var elf: Array = ground_edge_left_frames_by_stage[Global.current_stage]
+			if not elf.is_empty():
+				var el_idx: int = int(fmod(anim_timer * 6.0, float(elf.size())))
+				active_edge_left_tex = elf[el_idx]
+
 		var active_edge_right_tex: Texture2D = ground_edge_right_textures_by_stage.get(Global.current_stage, ground_edge_right_texture)
+		if ground_edge_right_frames_by_stage.has(Global.current_stage):
+			var erf: Array = ground_edge_right_frames_by_stage[Global.current_stage]
+			if not erf.is_empty():
+				var er_idx: int = int(fmod(anim_timer * 6.0, float(erf.size())))
+				active_edge_right_tex = erf[er_idx]
+
 		var actual_left_w: float = edge_w if (has_left_edge and active_edge_left_tex != null) else 0.0
 		var actual_right_w: float = edge_w if (has_right_edge and active_edge_right_tex != null) else 0.0
 		
@@ -1480,23 +1564,72 @@ func _draw_platforms(view_left: float, view_right: float) -> void:
 		var ground_draw_h: float = g.size.y + 30.0
 		
 		var active_ground_tex: Texture2D = ground_textures_by_stage.get(Global.current_stage, ground_tile_texture)
+		if ground_frames_by_stage.has(Global.current_stage):
+			var gf: Array = ground_frames_by_stage[Global.current_stage]
+			if not gf.is_empty():
+				var f_idx: int = int(fmod(anim_timer * 6.0, float(gf.size())))
+				active_ground_tex = gf[f_idx]
 		if active_ground_tex == null:
 			active_ground_tex = ground_tile_texture
 
 		if active_ground_tex != null:
-			var gw: float = float(active_ground_tex.get_width())
-			var gh: float = float(active_ground_tex.get_height())
-			var tile_w: float = 128.0 if gh > 100.0 else gw
-			var num_tiles: int = int(ceil(mid_width / tile_w))
-			
-			for j in range(num_tiles):
-				var tx: float = mid_start_x + float(j) * tile_w
-				var tw: float = minf(tile_w, mid_end_x - tx)
-				var ratio_w: float = tw / tile_w
-				var trect := Rect2(tx, ground_draw_y, tw, ground_draw_h)
-				var src_partial := Rect2(0.0, 0.0, gw * ratio_w, gh)
-				var draw_tint := Color.WHITE if active_ground_tex != ground_tile_texture else g_tint
-				draw_texture_rect_region(active_ground_tex, trect, src_partial, draw_tint)
+			if Global.current_stage == 1 and g.end.x >= 5800.0 and boss_ground_texture != null:
+				var boss_floor_start_x: float = 5780.0
+				
+				# 1. Approach Jungle Ground (mid_start_x to boss_floor_start_x)
+				var jungle_w: float = maxf(0.0, minf(mid_end_x, boss_floor_start_x) - mid_start_x)
+				if jungle_w > 0.0:
+					var gw: float = float(active_ground_tex.get_width())
+					var gh: float = float(active_ground_tex.get_height())
+					var tile_w: float = 128.0 if gh > 100.0 else gw
+					var num_tiles: int = int(ceil(jungle_w / tile_w))
+					for j in range(num_tiles):
+						var tx: float = mid_start_x + float(j) * tile_w
+						var tw: float = minf(tile_w, boss_floor_start_x - tx)
+						var ratio_w: float = tw / tile_w
+						var trect := Rect2(tx, ground_draw_y, tw, ground_draw_h)
+						var src_partial := Rect2(0.0, 0.0, gw * ratio_w, gh)
+						var draw_tint := Color.WHITE if active_ground_tex != ground_tile_texture else g_tint
+						draw_texture_rect_region(active_ground_tex, trect, src_partial, draw_tint)
+				
+				# 2. Fortress Blast Deck Flooring for Boss Arena (boss_floor_start_x to mid_end_x)
+				var boss_deck_w: float = maxf(0.0, mid_end_x - boss_floor_start_x)
+				if boss_deck_w > 0.0:
+					var bgw: float = float(boss_ground_texture.get_width())
+					var bgh: float = float(boss_ground_texture.get_height())
+					var btile_w: float = 128.0 if bgh > 100.0 else bgw
+					var num_tiles: int = int(ceil(boss_deck_w / btile_w))
+					for j in range(num_tiles):
+						var tx: float = boss_floor_start_x + float(j) * btile_w
+						var tw: float = minf(btile_w, mid_end_x - tx)
+						var ratio_w: float = tw / btile_w
+						var trect := Rect2(tx, ground_draw_y, tw, ground_draw_h)
+						var src_partial := Rect2(0.0, 0.0, bgw * ratio_w, bgh)
+						draw_texture_rect_region(boss_ground_texture, trect, src_partial, Color.WHITE)
+				
+				# 3. Transition Threshold Plate at the boundary (x = 5780.0)
+				var plate_rect := Rect2(boss_floor_start_x - 10.0, g.position.y - 4.0, 20.0, 14.0)
+				draw_rect(plate_rect, Color(0.12, 0.14, 0.18, 0.95))
+				draw_rect(plate_rect, Color(0.95, 0.82, 0.20, 0.9), false, 1.5)
+				draw_line(Vector2(boss_floor_start_x, g.position.y - 4.0), Vector2(boss_floor_start_x, g.position.y + 10.0), Color(0.05, 0.06, 0.08), 2.5)
+				for h in range(4):
+					var hy: float = g.position.y - 2.0 + float(h) * 3.5
+					draw_circle(Vector2(boss_floor_start_x - 5.0, hy), 1.2, Color(0.8, 0.85, 0.9))
+					draw_circle(Vector2(boss_floor_start_x + 5.0, hy), 1.2, Color(0.8, 0.85, 0.9))
+			else:
+				var gw: float = float(active_ground_tex.get_width())
+				var gh: float = float(active_ground_tex.get_height())
+				var tile_w: float = 128.0 if gh > 100.0 else gw
+				var num_tiles: int = int(ceil(mid_width / tile_w))
+				
+				for j in range(num_tiles):
+					var tx: float = mid_start_x + float(j) * tile_w
+					var tw: float = minf(tile_w, mid_end_x - tx)
+					var ratio_w: float = tw / tile_w
+					var trect := Rect2(tx, ground_draw_y, tw, ground_draw_h)
+					var src_partial := Rect2(0.0, 0.0, gw * ratio_w, gh)
+					var draw_tint := Color.WHITE if active_ground_tex != ground_tile_texture else g_tint
+					draw_texture_rect_region(active_ground_tex, trect, src_partial, draw_tint)
 		else:
 			draw_rect(Rect2(mid_start_x, g.position.y, mid_width, g.size.y), col_dirt)
 			draw_rect(Rect2(mid_start_x, g.position.y, mid_width, 8.0), col_top)

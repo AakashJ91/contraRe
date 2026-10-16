@@ -157,6 +157,9 @@ func _input(event: InputEvent) -> void:
 		_handle_touch_drag(99, event.position)
 
 func _handle_touch_down(idx: int, pos: Vector2) -> void:
+	if Global.is_boss_cutscene_active:
+		Global.skip_boss_cutscene()
+		return
 	_update_layout_positions()
 	var w := _get_screen_w()
 	var half_w := w * 0.5
@@ -355,7 +358,7 @@ func _draw_glass_disc(pos: Vector2, radius: float, is_active: bool, base_tint: C
 		draw_arc(pos, pulse_radius, 0.0, TAU, 36, Color(glow_tint.r, glow_tint.g, glow_tint.b, 0.35), 1.6)
 
 func _draw() -> void:
-	if Global.is_maker_mode:
+	if Global.is_maker_mode or Global.is_boss_cutscene_active:
 		return
 	
 	_update_layout_positions()

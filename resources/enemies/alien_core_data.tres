@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="EnemyData" format=3 uid="uid://c21ld3r0v6nkq"]
+
+[ext_resource type="Script" path="res://scripts/enemy_data.gd" id="1_data"]
+[ext_resource type="Texture2D" path="res://assets/enemies/alien_core.png" id="2_tex"]
+
+[resource]
+script = ExtResource("1_data")
+enemy_name = "Wall Defense Alien Core"
+max_health = 35.0
+move_speed = 0.0
+score_reward = 10000
+contact_damage = 2.0
+sprite_texture = ExtResource("2_tex")
+sprite_size = Vector2(56, 56)
+attack_interval_min = 1.6
+attack_interval_max = 2.4

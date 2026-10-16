@@ -2,6 +2,7 @@ extends Node2D
 
 @export var bullet_scene: PackedScene = preload("res://scenes/bullet.tscn")
 @export var explosion_scene: PackedScene = preload("res://scenes/explosion.tscn")
+@export var enemy_data: EnemyData = preload("res://resources/enemies/alien_core_data.tres")
 
 var max_health: float = 35.0
 var current_health: float = 35.0
@@ -20,6 +21,7 @@ var death_explosions_left: int = 16
 @onready var core_area: Area2D = $CoreArea
 @onready var left_cannon: Area2D = $LeftCannon
 @onready var right_cannon: Area2D = $RightCannon
+@onready var solid_barrier: StaticBody2D = get_node_or_null("SolidBarrier")
 
 var left_part_hp: float = 12.0
 var right_part_hp: float = 12.0
@@ -48,6 +50,7 @@ var shell_casings: Array[Dictionary] = []
 
 func _ready() -> void:
 	_init_boss_stats()
+	_setup_solid_barrier()
 	Global.boss_health_changed.emit(current_health, max_health)
 	core_area.area_entered.connect(_on_core_hit)
 	left_cannon.area_entered.connect(_on_left_part_hit)
@@ -76,7 +79,10 @@ func _ready() -> void:
 func _init_boss_stats() -> void:
 	match Global.current_stage:
 		1: # Wall Defense Fortress
-			max_health = 35.0
+			if enemy_data != null:
+				max_health = enemy_data.max_health
+			else:
+				max_health = 35.0
 			left_part_hp = 12.0
 			right_part_hp = 12.0
 		2: # Hydro-Goliath Mech
@@ -109,6 +115,22 @@ func _init_boss_stats() -> void:
 			right_part_hp = 22.0
 	current_health = max_health
 
+func _setup_solid_barrier() -> void:
+	if solid_barrier == null:
+		solid_barrier = get_node_or_null("SolidBarrier")
+	if solid_barrier == null:
+		solid_barrier = StaticBody2D.new()
+		solid_barrier.name = "SolidBarrier"
+		solid_barrier.collision_layer = 2 # Layer 2: World
+		solid_barrier.collision_mask = 0
+		var col := CollisionShape2D.new()
+		var rect_shape := RectangleShape2D.new()
+		rect_shape.size = Vector2(320.0, 1000.0)
+		col.shape = rect_shape
+		col.position = Vector2(90.0, -100.0)
+		solid_barrier.add_child(col)
+		add_child(solid_barrier)
+
 func activate() -> void:
 	if not is_active and not is_dead:
 		is_active = true
@@ -127,6 +149,14 @@ func _physics_process(delta: float) -> void:
 		return
 	
 	if not is_active:
+		if Global.is_boss_cutscene_active:
+			core_pulse += delta * 12.0
+			if fmod(anim_timer * 8.0, 1.0) < 0.25:
+				core_flash_timer = 0.08
+				recoil_mid = 1.5
+				recoil_tl = 1.5
+				recoil_tr = 1.5
+			queue_redraw()
 		return
 	
 	if core_flash_timer > 0.0:
@@ -437,7 +467,8 @@ func take_damage(dmg: float = 1.0) -> void:
 
 func _trigger_death() -> void:
 	is_dead = true
-	var bonus_score := 10000 + Global.current_stage * 2000
+	var base_score := enemy_data.score_reward if (enemy_data != null and Global.current_stage == 1) else 10000
+	var bonus_score := base_score + (Global.current_stage - 1) * 2000
 	Global.add_score(bonus_score)
 	Global.is_victory = true
 	Global.boss_defeated.emit()
@@ -496,9 +527,34 @@ func _draw_boss_1_wall() -> void:
 		draw_rect(Rect2(-120.0, -110.0, 240.0, 210.0), Color(0.16, 0.18, 0.22))
 		draw_rect(Rect2(-110.0, -100.0, 220.0, 190.0), Color(0.24, 0.27, 0.32))
 
+	# Structural Foundation Plinth (anchoring wall fortress to floor at y = 110)
+	var base_w: float = 274.0
+	var base_h: float = 8.0
+	var base_rect := Rect2(-163.0, 106.0, base_w, base_h)
+	draw_rect(base_rect, Color(0.12, 0.14, 0.18, 0.95))
+	draw_rect(base_rect, Color(0.40, 0.46, 0.52, 0.85), false, 1.2)
+	draw_line(Vector2(-163.0, 106.0), Vector2(-163.0 + base_w, 106.0), Color(0.75, 0.82, 0.90, 0.65), 1.0)
+	for b in range(12):
+		var bx := -155.0 + float(b) * 23.5
+		draw_circle(Vector2(bx, 110.0), 2.0, Color(0.06, 0.08, 0.10))
+		draw_circle(Vector2(bx, 109.5), 1.2, Color(0.60, 0.68, 0.75))
+
 	if is_dead:
 		return
 	
+	# Boss Cutscene Awakening Energy Charging
+	if Global.is_boss_cutscene_active:
+		var cp := Vector2(0.0, 8.0)
+		var flare_r := 22.0 + 8.0 * sin(anim_timer * 18.0)
+		draw_circle(cp, flare_r, Color(1.0, 0.2, 0.2, 0.55))
+		draw_circle(cp, flare_r * 0.55, Color(1.0, 0.9, 0.3, 0.85))
+		draw_circle(cp, 4.0, Color.WHITE)
+		for a in range(5):
+			var ang := anim_timer * 15.0 + float(a) * (TAU / 5.0)
+			var p1 := cp + Vector2(cos(ang) * 10.0, sin(ang) * 10.0)
+			var p2 := cp + Vector2(cos(ang + 0.4) * 44.0, sin(ang + 0.4) * 44.0)
+			draw_line(p1, p2, Color(0.3, 0.9, 1.0, 0.85), 2.0)
+
 	# Active cyan plasma lightning arcs in core containment chamber
 	if is_active:
 		var core_pos := Vector2(0.0, 8.0)

@@ -212,6 +212,12 @@ func _draw() -> void:
 		_draw_stage_intro_splash(screen_w)
 	
 	# =========================================================================
+	# BOSS ENCOUNTER CINEMATIC CUTSCENE (LETTERBOX BARS, WARNING, DOSSIER CARD)
+	# =========================================================================
+	if Global.is_boss_cutscene_active:
+		_draw_boss_cutscene(screen_w)
+	
+	# =========================================================================
 	# GAME OVER & VICTORY OVERLAYS
 	# =========================================================================
 	if Global.is_game_over:
@@ -236,6 +242,9 @@ func _draw() -> void:
 			_draw_pixel_text("[ TAP SCREEN / MENU TO RETURN TO TITLE ]", Vector2(screen_w * 0.5 - 165.0, 318.0), Color(0.30, 0.85, 1.0), 12)
 
 func _unhandled_input(event: InputEvent) -> void:
+	if Global.is_boss_cutscene_active and event.is_pressed():
+		Global.skip_boss_cutscene()
+		return
 	if event is InputEventKey and event.pressed:
 		if event.keycode == KEY_F1:
 			Global.toggle_maker_mode()
@@ -249,6 +258,9 @@ func _gui_input(event: InputEvent) -> void:
 		_handle_touch(event.position)
 
 func _handle_touch(pos: Vector2) -> void:
+	if Global.is_boss_cutscene_active:
+		Global.skip_boss_cutscene()
+		return
 	# Tap on MAKER button
 	var screen_w: float = maxf(960.0, get_viewport_rect().size.x)
 	var maker_tap_rect := Rect2(screen_w - 114.0, 4.0, 106.0, 32.0)
@@ -530,3 +542,171 @@ func _draw_transformed_pixel_text(text: String, center: Vector2, scale_vec: Vect
 	draw_string(font, local_pos + Vector2(3.0, 3.0), text, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size, Color(0.0, 0.0, 0.0, col.a * 0.85))
 	draw_string(font, local_pos, text, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size, col)
 	draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+
+func _draw_boss_cutscene(screen_w: float) -> void:
+	var screen_h: float = maxf(540.0, get_viewport_rect().size.y)
+	var is_mob: bool = Global.is_mobile_device()
+	var timer: float = Global.boss_cutscene_timer
+	var t_elapsed: float = Global.BOSS_CUTSCENE_DURATION - timer
+	
+	if timer <= 0.0 or timer > Global.BOSS_CUTSCENE_DURATION:
+		return
+	
+	var font := ThemeDB.fallback_font
+	
+	# -------------------------------------------------------------------------
+	# 1. WIDESCREEN CINEMATIC LETTERBOX BARS (TOP & BOTTOM)
+	# -------------------------------------------------------------------------
+	var max_bar_h: float = 64.0 if not is_mob else 54.0
+	var bar_in_t := clampf(t_elapsed / 0.35, 0.0, 1.0)
+	var bar_h := max_bar_h * clampf(_ease_out_back(bar_in_t), 0.0, 1.05)
+	
+	# Top letterbox bar
+	draw_rect(Rect2(0.0, 0.0, screen_w, bar_h), Color(0.02, 0.03, 0.05, 0.96))
+	# Bottom letterbox bar
+	draw_rect(Rect2(0.0, screen_h - bar_h, screen_w, bar_h), Color(0.02, 0.03, 0.05, 0.96))
+	
+	# Neon hazard border lines
+	var hazard_pulse := 0.75 + 0.25 * sin(anim_timer * 10.0)
+	var border_col := Color(1.0, 0.22, 0.22, 0.90 * hazard_pulse)
+	draw_line(Vector2(0.0, bar_h), Vector2(screen_w, bar_h), border_col, 2.0)
+	draw_line(Vector2(0.0, screen_h - bar_h), Vector2(screen_w, screen_h - bar_h), border_col, 2.0)
+	
+	# Tactical micro telemetry in letterbox bars
+	if bar_in_t >= 0.75:
+		var tech_pulse := 0.85 + 0.15 * sin(anim_timer * 6.0)
+		_draw_pixel_text("▶ COMBAT SENSORS // APEX SENSOR LOCK", Vector2(16.0, bar_h - 14.0), Color(0.35, 0.88, 1.0, tech_pulse), 11 if is_mob else 10)
+		var right_tag := "SECTOR " + str(Global.current_stage) + " // BOSS ENCOUNTER"
+		var rtag_w := font.get_string_size(right_tag, HORIZONTAL_ALIGNMENT_LEFT, -1, 10).x
+		_draw_pixel_text(right_tag, Vector2(screen_w - rtag_w - 16.0, bar_h - 14.0), Color(1.0, 0.85, 0.30, tech_pulse), 11 if is_mob else 10)
+		
+		# Skip instruction prompt in bottom bar
+		var skip_txt := "[ TAP SCREEN OR PRESS ANY BUTTON TO SKIP ]"
+		var skip_sz := 12 if is_mob else 11
+		var skip_w := font.get_string_size(skip_txt, HORIZONTAL_ALIGNMENT_LEFT, -1, skip_sz).x
+		var skip_col := Color(0.85, 0.92, 1.0, 0.65 + 0.35 * sin(anim_timer * 5.0))
+		_draw_pixel_text(skip_txt, Vector2((screen_w - skip_w) * 0.5, screen_h - (bar_h * 0.5) + 4.0), skip_col, skip_sz)
+	
+	# -------------------------------------------------------------------------
+	# 2. EMERGENCY RED KLAXON WASH (AMBIENT SIREN PULSE)
+	# -------------------------------------------------------------------------
+	if t_elapsed < 2.5:
+		var siren_f: float = 0.5 + 0.5 * sin(t_elapsed * 14.0)
+		draw_rect(Rect2(0.0, bar_h, screen_w, screen_h - 2.0 * bar_h), Color(0.95, 0.08, 0.08, 0.07 * siren_f))
+	
+	# -------------------------------------------------------------------------
+	# 3. TACTICAL HAZARD WARNING BANNER (UPPER THIRD)
+	# -------------------------------------------------------------------------
+	if t_elapsed >= 0.15:
+		var ban_t := clampf((t_elapsed - 0.15) / 0.30, 0.0, 1.0)
+		var ban_y := bar_h + (24.0 if not is_mob else 16.0)
+		var ban_h: float = 34.0 if not is_mob else 28.0
+		var max_ban_w := screen_w * 0.88
+		var ban_w := max_ban_w * clampf(_ease_out_back(ban_t), 0.0, 1.0)
+		var ban_x := (screen_w - ban_w) * 0.5
+		var ban_rect := Rect2(ban_x, ban_y, ban_w, ban_h)
+		
+		# Crimson warning banner fill & border
+		draw_rect(ban_rect, Color(0.35, 0.04, 0.04, 0.92))
+		draw_rect(ban_rect, Color(1.0, 0.82, 0.20, 0.90), false, 1.5)
+		
+		# Caution diagonal hazard stripes
+		if ban_t >= 0.7:
+			var stripe_spacing: float = 24.0
+			var stripe_count := int(ban_w / stripe_spacing)
+			for s in range(stripe_count):
+				var sx := ban_x + float(s) * stripe_spacing
+				draw_line(Vector2(sx, ban_y + ban_h), Vector2(sx + 12.0, ban_y), Color(1.0, 0.82, 0.20, 0.22), 1.5)
+		
+		# Flashing Warning Text
+		if ban_t >= 0.6:
+			var warn_pulse := fmod(anim_timer * 10.0, 1.0)
+			var warn_col := Color(1.0, 0.95, 0.30) if warn_pulse < 0.5 else Color(1.0, 0.25, 0.25)
+			var warn_txt := "▲ WARNING : CRITICAL THREAT LEVEL SSS DETECTED ▲"
+			var warn_fs: int = 15 if not is_mob else 13
+			var warn_w := font.get_string_size(warn_txt, HORIZONTAL_ALIGNMENT_LEFT, -1, warn_fs).x
+			_draw_pixel_text(warn_txt, Vector2((screen_w - warn_w) * 0.5, ban_y + (ban_h * 0.5) + 5.0), warn_col, warn_fs)
+	
+	# -------------------------------------------------------------------------
+	# 4. TARGET DOSSIER / BOSS IDENTIFICATION CARD (CENTER)
+	# -------------------------------------------------------------------------
+	if t_elapsed >= 0.45:
+		var card_t := clampf((t_elapsed - 0.45) / 0.35, 0.0, 1.0)
+		var card_w: float = minf(screen_w - 32.0, 580.0 if not is_mob else 480.0)
+		var card_h: float = 124.0 if not is_mob else 108.0
+		var card_cx := screen_w * 0.5
+		var card_cy := screen_h * 0.48
+		var card_scale := Vector2.ONE * _ease_out_back(card_t)
+		
+		draw_set_transform(Vector2(card_cx, card_cy), 0.0, card_scale)
+		
+		var lx := -card_w * 0.5
+		var ly := -card_h * 0.5
+		var card_rect := Rect2(lx, ly, card_w, card_h)
+		
+		# Dark glass panel fill
+		draw_rect(card_rect, Color(0.03, 0.06, 0.12, 0.90))
+		draw_rect(card_rect, Color(0.25, 0.75, 1.0, 0.70), false, 1.2)
+		
+		# Sci-Fi Corner Brackets
+		var bracket_len: float = 16.0
+		var bracket_col := Color(0.35, 0.95, 1.0, 0.95)
+		# Top-Left
+		draw_line(Vector2(lx, ly), Vector2(lx + bracket_len, ly), bracket_col, 2.5)
+		draw_line(Vector2(lx, ly), Vector2(lx, ly + bracket_len), bracket_col, 2.5)
+		# Top-Right
+		draw_line(Vector2(lx + card_w, ly), Vector2(lx + card_w - bracket_len, ly), bracket_col, 2.5)
+		draw_line(Vector2(lx + card_w, ly), Vector2(lx + card_w, ly + bracket_len), bracket_col, 2.5)
+		# Bottom-Left
+		draw_line(Vector2(lx, ly + card_h), Vector2(lx + bracket_len, ly + card_h), bracket_col, 2.5)
+		draw_line(Vector2(lx, ly + card_h), Vector2(lx, ly + card_h - bracket_len), bracket_col, 2.5)
+		# Bottom-Right
+		draw_line(Vector2(lx + card_w, ly + card_h), Vector2(lx + card_w - bracket_len, ly + card_h), bracket_col, 2.5)
+		draw_line(Vector2(lx + card_w, ly + card_h), Vector2(lx + card_w, ly + card_h - bracket_len), bracket_col, 2.5)
+		
+		# Internal horizontal tech grid lines
+		for g in range(1, 4):
+			var gy := ly + float(g) * (card_h / 4.0)
+			draw_line(Vector2(lx + 8.0, gy), Vector2(lx + card_w - 8.0, gy), Color(0.2, 0.5, 0.8, 0.12), 1.0)
+		
+		# Header Tag: [ APEX HOSTILE TARGET IDENTIFIED ]
+		var h_txt := "[ APEX HOSTILE TARGET IDENTIFIED ]"
+		var h_w := font.get_string_size(h_txt, HORIZONTAL_ALIGNMENT_LEFT, -1, 10).x
+		_draw_pixel_text(h_txt, Vector2(-h_w * 0.5, ly + 20.0), Color(0.35, 0.90, 1.0, 0.90), 10)
+		
+		# Boss Full Name: Golden / Amber title
+		var b_name := Global.boss_cutscene_name
+		if b_name.is_empty():
+			b_name = "RED FALCON DEFENSE WALL"
+		var b_size: int = 24 if not is_mob else 20
+		var b_w := font.get_string_size(b_name, HORIZONTAL_ALIGNMENT_LEFT, -1, b_size).x
+		var name_pulse := 0.90 + 0.10 * sin(anim_timer * 8.0)
+		var name_col := Color(1.0 * name_pulse, 0.85 * name_pulse, 0.25)
+		_draw_pixel_text(b_name, Vector2(-b_w * 0.5, ly + 54.0), name_col, b_size)
+		
+		# Sector / Subtitle
+		var sub_txt := Global.boss_cutscene_subtitle
+		if sub_txt.is_empty():
+			sub_txt = "STAGE " + str(Global.current_stage) + " // FORTIFIED DEFENSE CORE"
+		var sub_size: int = 12 if not is_mob else 11
+		var sub_w := font.get_string_size(sub_txt, HORIZONTAL_ALIGNMENT_LEFT, -1, sub_size).x
+		_draw_pixel_text(sub_txt, Vector2(-sub_w * 0.5, ly + 78.0), Color(0.85, 0.88, 0.95), sub_size)
+		
+		# Specs / Objective
+		var spec_txt := "STATUS: CHARGING WEAPONS • VULCAN GATLINGS ONLINE"
+		var spec_w := font.get_string_size(spec_txt, HORIZONTAL_ALIGNMENT_LEFT, -1, 10).x
+		_draw_pixel_text(spec_txt, Vector2(-spec_w * 0.5, ly + 100.0), Color(1.0, 0.40, 0.40), 10)
+		
+		draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+	
+	# -------------------------------------------------------------------------
+	# 5. PHASE 3 CLIMAX: "►►► ENGAGE! ◄◄◄" STROBE PROMPT
+	# -------------------------------------------------------------------------
+	if t_elapsed >= 2.2:
+		var engage_t := t_elapsed - 2.2
+		var pulse_scale := 1.0 + 0.12 * sin(engage_t * 22.0)
+		var engage_txt := "►►► ENGAGE! ◄◄◄"
+		var fs: int = 28 if not is_mob else 24
+		var engage_pos := Vector2(screen_w * 0.5, screen_h * 0.72)
+		var flash_col := Color.WHITE if fmod(anim_timer * 14.0, 1.0) < 0.5 else Color(1.0, 0.25, 0.25)
+		_draw_transformed_pixel_text(engage_txt, engage_pos, Vector2.ONE * pulse_scale, flash_col, fs)

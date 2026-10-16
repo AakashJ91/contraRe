@@ -47,7 +47,7 @@ func _emit_ambient_vfx() -> void:
 		"steam":
 			VFX.spawn_dust_puff(spawn_pos + Vector2(0.0, -12.0), 2, Color(0.9, 0.95, 1.0, 0.4))
 		"sparks":
-			var spk_col := Color(0.4, 0.85, 1.0) if prop_data.item_id == "electric_arc" else Color(1.0, 0.8, 0.3)
+			var spk_col := Color(0.35, 0.95, 1.0) if (prop_data.item_id == "electric_arc" or prop_data.item_id == "alien_core") else Color(1.0, 0.8, 0.3)
 			VFX.spawn_hit_sparks(spawn_pos, Vector2.UP, spk_col)
 		"spores":
 			VFX.spawn_blood_splatter(spawn_pos, Vector2.UP, true)
@@ -59,11 +59,13 @@ func _draw() -> void:
 		return
 	
 	# 1. Ambient lighting glow halo
-	if prop_data.has_light_glow:
-		var pulse: float = 0.85 + 0.15 * sin(anim_timer * 4.0)
-		var halo_col: Color = prop_data.light_color
-		halo_col.a *= pulse
-		draw_circle(prop_data.offset, prop_data.light_radius * pulse, halo_col)
+	if prop_data.has_light_glow and prop_data.light_color.a > 0.0:
+		var is_reddish := (prop_data.light_color.r > 0.5 and prop_data.light_color.g < 0.4)
+		if not is_reddish:
+			var pulse: float = 0.85 + 0.15 * sin(anim_timer * 4.0)
+			var halo_col: Color = prop_data.light_color
+			halo_col.a *= pulse
+			draw_circle(prop_data.offset, prop_data.light_radius * pulse, halo_col)
 	
 	# 2. Draw current frame texture
 	var cur_tex: Texture2D = null

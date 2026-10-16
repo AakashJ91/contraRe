@@ -1,3 +1,4 @@
+class_name Player
 extends CharacterBody2D
 
 const SPEED: float = 180.0
@@ -119,6 +120,17 @@ func _ready() -> void:
 
 func _physics_process(delta: float) -> void:
 	if state == PlayerState.DEAD:
+		return
+	
+	if Global.is_boss_cutscene_active:
+		velocity.x = move_toward(velocity.x, 0.0, SPEED * delta * 5.0)
+		if not is_on_floor():
+			velocity.y += GRAVITY * stage_gravity_scale * delta
+		else:
+			state = PlayerState.IDLE
+			facing_dir = 1
+		move_and_slide()
+		queue_redraw()
 		return
 	
 	if state == PlayerState.RESPAWNING:
@@ -575,3 +587,7 @@ func _draw() -> void:
 		var flash_pos := gun_end + aim_dir * 4.0
 		draw_circle(flash_pos, 7.0, Color(1.0, 0.9, 0.2))
 		draw_circle(flash_pos, 4.0, Color(1.0, 1.0, 1.0))
+
+func _unhandled_input(event: InputEvent) -> void:
+	if Global.is_boss_cutscene_active and event.is_pressed():
+		Global.skip_boss_cutscene()

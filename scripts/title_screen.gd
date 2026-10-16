@@ -3,6 +3,7 @@ extends Control
 var selected_index: int = 0
 var menu_items: Array[String] = [
 	"START MISSION",
+	"PROLOGUE",
 	"SELECT LEVEL",
 	"CONTRA MAKER",
 	"HOW TO PLAY",
@@ -67,10 +68,10 @@ func _handle_touch(pos: Vector2) -> void:
 	# Check menu item clicks
 	var is_mob: bool = Global.is_mobile_device()
 	var screen_w := _get_screen_w()
-	var start_y: float = 286.0 if is_mob else 296.0
-	var item_height: float = 43.0 if is_mob else 38.0
+	var start_y: float = 270.0 if is_mob else 278.0
+	var item_height: float = 38.0 if is_mob else 35.0
 	var card_w: float = 380.0 if is_mob else 340.0
-	var card_h: float = 36.0 if is_mob else 32.0
+	var card_h: float = 33.0 if is_mob else 30.0
 	var card_x: float = (screen_w - card_w) * 0.5
 	for i in range(menu_items.size()):
 		var item_y := start_y + float(i) * item_height
@@ -83,30 +84,34 @@ func _handle_touch(pos: Vector2) -> void:
 func _activate_menu_item(index: int) -> void:
 	match index:
 		0:
-			# START MISSION
+			# START MISSION -> Plays Prologue then begins Mission 1
 			Global.is_maker_mode = false
 			Global.play_sfx("menu_start")
-			get_tree().create_timer(0.4).timeout.connect(func(): Global.start_game(1))
+			get_tree().create_timer(0.3).timeout.connect(func(): Global.go_to_prologue())
 		1:
+			# PROLOGUE
+			Global.play_sfx("menu_start")
+			get_tree().create_timer(0.2).timeout.connect(func(): Global.go_to_prologue())
+		2:
 			# SELECT LEVEL
 			Global.play_sfx("menu_start")
 			get_tree().create_timer(0.2).timeout.connect(func(): Global.go_to_level_select())
-		2:
+		3:
 			# CONTRA MAKER
 			Global.is_maker_mode = true
 			Global.play_sfx("menu_start")
 			get_tree().create_timer(0.2).timeout.connect(func(): Global.start_game(1))
-		3:
+		4:
 			# HOW TO PLAY
 			Global.play_sfx("menu_cursor")
 			show_instructions = true
 			queue_redraw()
-		4:
+		5:
 			# TOGGLE SOUND
 			sound_enabled = not sound_enabled
 			var bus_idx := AudioServer.get_bus_index("Master")
 			AudioServer.set_bus_mute(bus_idx, not sound_enabled)
-			menu_items[4] = "SOUND: " + ("ON" if sound_enabled else "OFF")
+			menu_items[5] = "SOUND: " + ("ON" if sound_enabled else "OFF")
 			Global.play_sfx("menu_cursor")
 			queue_redraw()
 
@@ -186,10 +191,10 @@ func _draw_menu(ox: float) -> void:
 	var font := ThemeDB.fallback_font
 	var is_mob: bool = Global.is_mobile_device()
 	var screen_w := _get_screen_w()
-	var start_y: float = 286.0 if is_mob else 296.0
-	var item_height: float = 43.0 if is_mob else 38.0
+	var start_y: float = 270.0 if is_mob else 278.0
+	var item_height: float = 38.0 if is_mob else 35.0
 	var card_w: float = 380.0 if is_mob else 340.0
-	var card_h: float = 36.0 if is_mob else 32.0
+	var card_h: float = 33.0 if is_mob else 30.0
 	var card_x: float = (screen_w - card_w) * 0.5
 	
 	for i in range(menu_items.size()):
