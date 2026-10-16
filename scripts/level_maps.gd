@@ -6,8 +6,8 @@ extends RefCounted
 # =============================================================================
 
 const LEVEL_MIN_X: float = 0.0
-const LEVEL_MAX_X: float = 6700.0
-const BOSS_TRIGGER_X: float = 5800.0
+const LEVEL_MAX_X: float = 9800.0
+const BOSS_TRIGGER_X: float = 8800.0
 
 enum PlatformType {
 	TURF,
@@ -50,72 +50,80 @@ static func get_map_data(stage_id: int) -> Dictionary:
 			data["primary_color"] = Color(0.25, 0.75, 0.35)
 			data["accent_color"] = Color(0.95, 0.85, 0.20)
 			data["ground_segments"] = [
-				Rect2(0.0, 440.0, 820.0, 200.0),       # Sector 1: Landing Beach (0 - 820)
-				Rect2(960.0, 440.0, 860.0, 200.0),     # Sector 2: Outer Fortress Perimeter (960 - 1820)
-				Rect2(1960.0, 440.0, 900.0, 200.0),    # Sector 3: Jungle Ravine & Catwalks (1960 - 2860)
-				Rect2(3000.0, 440.0, 880.0, 200.0),    # Sector 4: Heavy Fortress Battery & Mini-Boss Arena (3000 - 3880)
-				# SECTOR 5 IS A PURE BOTTOMLESS ABYSS (3880 - 5140): NO GROUND!
-				Rect2(5140.0, 440.0, 1560.0, 200.0)    # Sector 6 & 7: Fortress Approach & Boss Arena (5140 - 6700)
+				Rect2(0.0, 440.0, 1100.0, 200.0),      # Sector 1: Landing Beach (0 - 1100)
+				Rect2(1240.0, 440.0, 1200.0, 200.0),    # Sector 2: Outer Fortress Perimeter (1240 - 2440)
+				Rect2(2580.0, 440.0, 1200.0, 200.0),    # Sector 3: Jungle Ravine & Catwalks (2580 - 3780)
+				Rect2(3920.0, 440.0, 1200.0, 200.0),    # Sector 4: Jungle Canopy & Riverbank (3920 - 5120)
+				Rect2(5260.0, 440.0, 960.0, 200.0),     # Sector 5: Heavy Fortress Battery & Mini-Boss Arena (5260 - 6220)
+				# SECTOR 6 IS A PURE BOTTOMLESS ABYSS (6220 - 7720): NO GROUND!
+				Rect2(7720.0, 440.0, 2080.0, 200.0)     # Sector 7 & 8: Fortress Approach & Boss Arena (7720 - 9800)
 			]
 			data["platforms"] = [
-				# Sector 1: Landing Beach (0 - 820)
-				{"rect": Rect2(240.0, 370.0, 200.0, 16.0), "type": PlatformType.TURF, "variant": "default"},
-				{"rect": Rect2(460.0, 280.0, 180.0, 16.0), "type": PlatformType.TURF, "variant": "small"},
+				# Sector 1: Landing Beach (0 - 1100)
+				{"rect": Rect2(260.0, 370.0, 220.0, 16.0), "type": PlatformType.TURF, "variant": "default"},
+				{"rect": Rect2(540.0, 280.0, 200.0, 16.0), "type": PlatformType.TURF, "variant": "small"},
+				{"rect": Rect2(820.0, 360.0, 200.0, 16.0), "type": PlatformType.TURF, "variant": "default"},
 				
-				# Sector 2: Outer Fortress Perimeter (960 - 1820)
-				{"rect": Rect2(1060.0, 370.0, 240.0, 16.0), "type": PlatformType.TURF, "variant": "wedge_left"},
-				{"rect": Rect2(1240.0, 295.0, 260.0, 16.0), "type": PlatformType.TURF, "variant": "wide"},
-				{"rect": Rect2(1460.0, 225.0, 180.0, 16.0), "type": PlatformType.TURF, "variant": "thin"},
+				# Sector 2: Outer Fortress Perimeter (1240 - 2440)
+				{"rect": Rect2(1360.0, 370.0, 240.0, 16.0), "type": PlatformType.TURF, "variant": "wedge_left"},
+				{"rect": Rect2(1660.0, 290.0, 260.0, 16.0), "type": PlatformType.TURF, "variant": "wide"},
+				{"rect": Rect2(1980.0, 215.0, 200.0, 16.0), "type": PlatformType.TURF, "variant": "thin"},
+				{"rect": Rect2(2220.0, 310.0, 180.0, 16.0), "type": PlatformType.TURF, "variant": "small"},
 				
-				# Sector 3: Jungle Ravine & Catwalks (1960 - 2860)
-				{"rect": Rect2(2060.0, 350.0, 240.0, 16.0), "type": PlatformType.TURF, "variant": "wedge_right"},
-				{"rect": Rect2(2300.0, 275.0, 240.0, 16.0), "type": PlatformType.TURF, "variant": "default"},
-				{"rect": Rect2(2520.0, 210.0, 200.0, 16.0), "type": PlatformType.TURF, "variant": "small"},
+				# Sector 3: Jungle Ravine & Catwalks (2580 - 3780)
+				{"rect": Rect2(2700.0, 350.0, 240.0, 16.0), "type": PlatformType.TURF, "variant": "wedge_right"},
+				{"rect": Rect2(3000.0, 270.0, 240.0, 16.0), "type": PlatformType.TURF, "variant": "default"},
+				{"rect": Rect2(3300.0, 210.0, 200.0, 16.0), "type": PlatformType.TURF, "variant": "small"},
+				{"rect": Rect2(3550.0, 310.0, 190.0, 16.0), "type": PlatformType.TURF, "variant": "thin"},
 				
-				# Sector 4: Heavy Fortress Battery & Mini-Boss Arena (3000 - 3880)
-				{"rect": Rect2(3100.0, 360.0, 260.0, 16.0), "type": PlatformType.TURF, "variant": "wedge_left"},
-				{"rect": Rect2(3340.0, 285.0, 300.0, 16.0), "type": PlatformType.TURF, "variant": "wide"},
-				{"rect": Rect2(3660.0, 210.0, 180.0, 16.0), "type": PlatformType.TURF, "variant": "thin"},
+				# Sector 4: Jungle Canopy & Riverbank (3920 - 5120)
+				{"rect": Rect2(4040.0, 360.0, 240.0, 16.0), "type": PlatformType.TURF, "variant": "wedge_left"},
+				{"rect": Rect2(4340.0, 280.0, 260.0, 16.0), "type": PlatformType.TURF, "variant": "wide"},
+				{"rect": Rect2(4660.0, 210.0, 200.0, 16.0), "type": PlatformType.TURF, "variant": "thin"},
+				{"rect": Rect2(4920.0, 320.0, 180.0, 16.0), "type": PlatformType.TURF, "variant": "small"},
+				
+				# Sector 5: Heavy Fortress Battery & Mini-Boss Arena (5260 - 6220)
+				{"rect": Rect2(5340.0, 360.0, 240.0, 16.0), "type": PlatformType.TURF, "variant": "wedge_left"},
+				{"rect": Rect2(5640.0, 280.0, 280.0, 16.0), "type": PlatformType.TURF, "variant": "wide"},
+				{"rect": Rect2(5960.0, 210.0, 200.0, 16.0), "type": PlatformType.TURF, "variant": "thin"},
 				
 				# =====================================================================
-				# POST-MINI-BOSS FALLING PLATFORM SEQUENCE (3880 - 5140)
+				# POST-MINI-BOSS FALLING PLATFORM SEQUENCE (6220 - 7720)
 				# PURE BOTTOMLESS ABYSS - NO GROUND!
-				# Player must hop across slowly descending platforms to reach the Fortress Gate!
 				# =====================================================================
-				
-				# Abyss Threshold Stepping Stone
-				{"rect": Rect2(3910.0, 360.0, 130.0, 16.0), "type": PlatformType.TURF, "variant": "thin", "is_drop": true, "drop_delay": 0.45, "respawn_time": 2.8},
+				{"rect": Rect2(6260.0, 360.0, 130.0, 16.0), "type": PlatformType.TURF, "variant": "thin", "is_drop": true, "drop_delay": 0.45, "respawn_time": 2.8},
 				
 				# LEVEL 1: High Skyway Route (y = 190 - 270)
-				{"rect": Rect2(4070.0, 270.0, 130.0, 16.0), "type": PlatformType.TURF, "variant": "small", "is_drop": true, "drop_delay": 0.45, "respawn_time": 2.8},
-				{"rect": Rect2(4240.0, 215.0, 140.0, 16.0), "type": PlatformType.TURF, "variant": "thin", "is_drop": true, "drop_delay": 0.45, "respawn_time": 2.8},
-				{"rect": Rect2(4410.0, 190.0, 140.0, 16.0), "type": PlatformType.TURF, "variant": "wide", "is_drop": true, "drop_delay": 0.45, "respawn_time": 2.8},
-				{"rect": Rect2(4590.0, 210.0, 140.0, 16.0), "type": PlatformType.TURF, "variant": "small", "is_drop": true, "drop_delay": 0.45, "respawn_time": 2.8},
-				{"rect": Rect2(4760.0, 250.0, 140.0, 16.0), "type": PlatformType.TURF, "variant": "wedge_right", "is_drop": true, "drop_delay": 0.45, "respawn_time": 2.8},
-				{"rect": Rect2(4930.0, 290.0, 130.0, 16.0), "type": PlatformType.TURF, "variant": "thin", "is_drop": true, "drop_delay": 0.45, "respawn_time": 2.8},
+				{"rect": Rect2(6430.0, 270.0, 140.0, 16.0), "type": PlatformType.TURF, "variant": "small", "is_drop": true, "drop_delay": 0.45, "respawn_time": 2.8},
+				{"rect": Rect2(6610.0, 215.0, 140.0, 16.0), "type": PlatformType.TURF, "variant": "thin", "is_drop": true, "drop_delay": 0.45, "respawn_time": 2.8},
+				{"rect": Rect2(6800.0, 190.0, 150.0, 16.0), "type": PlatformType.TURF, "variant": "wide", "is_drop": true, "drop_delay": 0.45, "respawn_time": 2.8},
+				{"rect": Rect2(7000.0, 210.0, 140.0, 16.0), "type": PlatformType.TURF, "variant": "small", "is_drop": true, "drop_delay": 0.45, "respawn_time": 2.8},
+				{"rect": Rect2(7200.0, 250.0, 140.0, 16.0), "type": PlatformType.TURF, "variant": "wedge_right", "is_drop": true, "drop_delay": 0.45, "respawn_time": 2.8},
+				{"rect": Rect2(7400.0, 290.0, 130.0, 16.0), "type": PlatformType.TURF, "variant": "thin", "is_drop": true, "drop_delay": 0.45, "respawn_time": 2.8},
 				
 				# LEVEL 2: Mid Terrace Route (y = 300 - 330)
-				{"rect": Rect2(4150.0, 330.0, 130.0, 16.0), "type": PlatformType.TURF, "variant": "default", "is_drop": true, "drop_delay": 0.50, "respawn_time": 2.8},
-				{"rect": Rect2(4330.0, 310.0, 140.0, 16.0), "type": PlatformType.TURF, "variant": "wide", "is_drop": true, "drop_delay": 0.50, "respawn_time": 2.8},
-				{"rect": Rect2(4510.0, 300.0, 140.0, 16.0), "type": PlatformType.TURF, "variant": "default", "is_drop": true, "drop_delay": 0.50, "respawn_time": 2.8},
-				{"rect": Rect2(4690.0, 310.0, 140.0, 16.0), "type": PlatformType.TURF, "variant": "wedge_left", "is_drop": true, "drop_delay": 0.50, "respawn_time": 2.8},
-				{"rect": Rect2(4870.0, 330.0, 130.0, 16.0), "type": PlatformType.TURF, "variant": "default", "is_drop": true, "drop_delay": 0.50, "respawn_time": 2.8},
+				{"rect": Rect2(6510.0, 330.0, 140.0, 16.0), "type": PlatformType.TURF, "variant": "default", "is_drop": true, "drop_delay": 0.50, "respawn_time": 2.8},
+				{"rect": Rect2(6710.0, 310.0, 140.0, 16.0), "type": PlatformType.TURF, "variant": "wide", "is_drop": true, "drop_delay": 0.50, "respawn_time": 2.8},
+				{"rect": Rect2(6910.0, 300.0, 140.0, 16.0), "type": PlatformType.TURF, "variant": "default", "is_drop": true, "drop_delay": 0.50, "respawn_time": 2.8},
+				{"rect": Rect2(7110.0, 310.0, 140.0, 16.0), "type": PlatformType.TURF, "variant": "wedge_left", "is_drop": true, "drop_delay": 0.50, "respawn_time": 2.8},
+				{"rect": Rect2(7320.0, 330.0, 130.0, 16.0), "type": PlatformType.TURF, "variant": "default", "is_drop": true, "drop_delay": 0.50, "respawn_time": 2.8},
 				
 				# LEVEL 3: Lower River Crag Route (y = 385 - 395)
-				{"rect": Rect2(4050.0, 395.0, 130.0, 16.0), "type": PlatformType.TURF, "variant": "crag", "is_drop": true, "drop_delay": 0.55, "respawn_time": 2.8},
-				{"rect": Rect2(4230.0, 390.0, 130.0, 16.0), "type": PlatformType.TURF, "variant": "crag", "is_drop": true, "drop_delay": 0.55, "respawn_time": 2.8},
-				{"rect": Rect2(4410.0, 390.0, 130.0, 16.0), "type": PlatformType.TURF, "variant": "crag", "is_drop": true, "drop_delay": 0.55, "respawn_time": 2.8},
-				{"rect": Rect2(4590.0, 395.0, 130.0, 16.0), "type": PlatformType.TURF, "variant": "crag", "is_drop": true, "drop_delay": 0.55, "respawn_time": 2.8},
-				{"rect": Rect2(4770.0, 390.0, 130.0, 16.0), "type": PlatformType.TURF, "variant": "crag", "is_drop": true, "drop_delay": 0.55, "respawn_time": 2.8},
-				{"rect": Rect2(4950.0, 390.0, 130.0, 16.0), "type": PlatformType.TURF, "variant": "crag", "is_drop": true, "drop_delay": 0.55, "respawn_time": 2.8},
+				{"rect": Rect2(6410.0, 395.0, 130.0, 16.0), "type": PlatformType.TURF, "variant": "crag", "is_drop": true, "drop_delay": 0.55, "respawn_time": 2.8},
+				{"rect": Rect2(6600.0, 390.0, 140.0, 16.0), "type": PlatformType.TURF, "variant": "crag", "is_drop": true, "drop_delay": 0.55, "respawn_time": 2.8},
+				{"rect": Rect2(6800.0, 390.0, 140.0, 16.0), "type": PlatformType.TURF, "variant": "crag", "is_drop": true, "drop_delay": 0.55, "respawn_time": 2.8},
+				{"rect": Rect2(7000.0, 395.0, 140.0, 16.0), "type": PlatformType.TURF, "variant": "crag", "is_drop": true, "drop_delay": 0.55, "respawn_time": 2.8},
+				{"rect": Rect2(7200.0, 390.0, 140.0, 16.0), "type": PlatformType.TURF, "variant": "crag", "is_drop": true, "drop_delay": 0.55, "respawn_time": 2.8},
+				{"rect": Rect2(7400.0, 390.0, 140.0, 16.0), "type": PlatformType.TURF, "variant": "crag", "is_drop": true, "drop_delay": 0.55, "respawn_time": 2.8},
 				
 				# Final Leap Threshold Platform into Fortress Gate
-				{"rect": Rect2(5050.0, 360.0, 120.0, 16.0), "type": PlatformType.TURF, "variant": "small", "is_drop": true, "drop_delay": 0.50, "respawn_time": 2.8},
+				{"rect": Rect2(7580.0, 350.0, 120.0, 16.0), "type": PlatformType.TURF, "variant": "small", "is_drop": true, "drop_delay": 0.50, "respawn_time": 2.8},
 				
-				# Sector 6 & 7: Fortress Approach & Boss Arena (5140 - 6700)
-				{"rect": Rect2(5220.0, 340.0, 260.0, 16.0), "type": PlatformType.TURF, "variant": "wedge_left"},
-				{"rect": Rect2(5460.0, 260.0, 240.0, 16.0), "type": PlatformType.TURF, "variant": "thin"},
-				{"rect": Rect2(5900.0, 340.0, 170.0, 16.0), "type": PlatformType.TURF, "variant": "wide"}
+				# Sector 7 & 8: Fortress Approach & Boss Arena (7720 - 9800)
+				{"rect": Rect2(7840.0, 340.0, 260.0, 16.0), "type": PlatformType.TURF, "variant": "wedge_left"},
+				{"rect": Rect2(8160.0, 260.0, 260.0, 16.0), "type": PlatformType.TURF, "variant": "thin"},
+				{"rect": Rect2(8500.0, 340.0, 220.0, 16.0), "type": PlatformType.TURF, "variant": "wide"},
+				{"rect": Rect2(8900.0, 340.0, 180.0, 16.0), "type": PlatformType.TURF, "variant": "small"}
 			]
 		2:
 			data["name"] = "WATERFALL FORTRESS"
@@ -128,27 +136,39 @@ static func get_map_data(stage_id: int) -> Dictionary:
 			data["primary_color"] = Color(0.20, 0.65, 0.95)
 			data["accent_color"] = Color(0.60, 0.90, 1.0)
 			data["ground_segments"] = [
-				Rect2(0.0, 440.0, 750.0, 200.0),
-				Rect2(900.0, 440.0, 750.0, 200.0),
-				Rect2(1800.0, 440.0, 750.0, 200.0),
-				Rect2(2700.0, 440.0, 850.0, 200.0),
-				Rect2(3700.0, 440.0, 850.0, 200.0),
-				Rect2(4750.0, 440.0, 1950.0, 200.0)
+				Rect2(0.0, 440.0, 1000.0, 200.0),
+				Rect2(1140.0, 440.0, 1050.0, 200.0),
+				Rect2(2330.0, 440.0, 1100.0, 200.0),
+				Rect2(3570.0, 440.0, 1150.0, 200.0),
+				Rect2(4860.0, 440.0, 1200.0, 200.0),
+				Rect2(6200.0, 440.0, 1200.0, 200.0),
+				Rect2(7700.0, 440.0, 2100.0, 200.0)
 			]
 			data["platforms"] = [
-				{"rect": Rect2(200.0, 360.0, 220.0, 16.0), "type": PlatformType.ROPE_BRIDGE},
-				{"rect": Rect2(380.0, 280.0, 200.0, 16.0), "type": PlatformType.HIGH_PERCH},
-				{"rect": Rect2(1050.0, 360.0, 220.0, 16.0), "type": PlatformType.TURF},
-				{"rect": Rect2(1280.0, 290.0, 240.0, 16.0), "type": PlatformType.TURF},
-				{"rect": Rect2(1950.0, 350.0, 240.0, 16.0), "type": PlatformType.TURF},
-				{"rect": Rect2(2200.0, 270.0, 220.0, 16.0), "type": PlatformType.HIGH_PERCH},
-				{"rect": Rect2(2850.0, 360.0, 260.0, 16.0), "type": PlatformType.TURF},
-				{"rect": Rect2(3150.0, 280.0, 280.0, 16.0), "type": PlatformType.ROPE_BRIDGE},
-				{"rect": Rect2(3850.0, 350.0, 240.0, 16.0), "type": PlatformType.TURF},
-				{"rect": Rect2(4150.0, 270.0, 260.0, 16.0), "type": PlatformType.HIGH_PERCH},
-				{"rect": Rect2(4950.0, 360.0, 260.0, 16.0), "type": PlatformType.TURF},
-				{"rect": Rect2(5250.0, 280.0, 280.0, 16.0), "type": PlatformType.HIGH_PERCH},
-				{"rect": Rect2(5550.0, 330.0, 240.0, 16.0), "type": PlatformType.ROPE_BRIDGE}
+				{"rect": Rect2(240.0, 360.0, 220.0, 16.0), "type": PlatformType.ROPE_BRIDGE},
+				{"rect": Rect2(520.0, 280.0, 200.0, 16.0), "type": PlatformType.HIGH_PERCH},
+				{"rect": Rect2(780.0, 350.0, 180.0, 16.0), "type": PlatformType.TURF},
+				{"rect": Rect2(1280.0, 360.0, 240.0, 16.0), "type": PlatformType.TURF},
+				{"rect": Rect2(1580.0, 280.0, 260.0, 16.0), "type": PlatformType.ROPE_BRIDGE},
+				{"rect": Rect2(1880.0, 340.0, 220.0, 16.0), "type": PlatformType.HIGH_PERCH},
+				{"rect": Rect2(2480.0, 360.0, 240.0, 16.0), "type": PlatformType.TURF},
+				{"rect": Rect2(2780.0, 270.0, 260.0, 16.0), "type": PlatformType.HIGH_PERCH},
+				{"rect": Rect2(3080.0, 350.0, 220.0, 16.0), "type": PlatformType.ROPE_BRIDGE},
+				{"rect": Rect2(3700.0, 360.0, 260.0, 16.0), "type": PlatformType.TURF},
+				{"rect": Rect2(4040.0, 280.0, 280.0, 16.0), "type": PlatformType.HIGH_PERCH},
+				{"rect": Rect2(4380.0, 340.0, 240.0, 16.0), "type": PlatformType.ROPE_BRIDGE},
+				{"rect": Rect2(5020.0, 350.0, 260.0, 16.0), "type": PlatformType.TURF},
+				{"rect": Rect2(5380.0, 270.0, 260.0, 16.0), "type": PlatformType.HIGH_PERCH},
+				{"rect": Rect2(5720.0, 340.0, 240.0, 16.0), "type": PlatformType.ROPE_BRIDGE},
+				{"rect": Rect2(6340.0, 360.0, 260.0, 16.0), "type": PlatformType.TURF},
+				{"rect": Rect2(6680.0, 280.0, 280.0, 16.0), "type": PlatformType.HIGH_PERCH},
+				{"rect": Rect2(7020.0, 350.0, 260.0, 16.0), "type": PlatformType.TURF},
+				# Cataract Chasm Crossing (7400 - 7700)
+				{"rect": Rect2(7440.0, 330.0, 220.0, 16.0), "type": PlatformType.ROPE_BRIDGE},
+				# Boss Arena Approach
+				{"rect": Rect2(7850.0, 350.0, 260.0, 16.0), "type": PlatformType.TURF},
+				{"rect": Rect2(8220.0, 270.0, 280.0, 16.0), "type": PlatformType.HIGH_PERCH},
+				{"rect": Rect2(8580.0, 330.0, 240.0, 16.0), "type": PlatformType.ROPE_BRIDGE}
 			]
 		3:
 			data["name"] = "ALIEN HIVE BIO-CAVERN"
@@ -161,33 +181,37 @@ static func get_map_data(stage_id: int) -> Dictionary:
 			data["primary_color"] = Color(0.85, 0.25, 0.40)
 			data["accent_color"] = Color(1.0, 0.60, 0.70)
 			data["ground_segments"] = [
-				Rect2(0.0, 440.0, 720.0, 200.0),
-				Rect2(840.0, 440.0, 740.0, 200.0),
-				Rect2(1700.0, 440.0, 740.0, 200.0),
-				Rect2(2580.0, 440.0, 820.0, 200.0),
-				Rect2(3550.0, 440.0, 850.0, 200.0),
-				Rect2(4550.0, 440.0, 950.0, 200.0),
-				Rect2(5650.0, 440.0, 1050.0, 200.0)
+				Rect2(0.0, 440.0, 950.0, 200.0),
+				Rect2(1090.0, 440.0, 1000.0, 200.0),
+				Rect2(2230.0, 440.0, 1050.0, 200.0),
+				Rect2(3420.0, 440.0, 1100.0, 200.0),
+				Rect2(4660.0, 440.0, 1150.0, 200.0),
+				Rect2(5950.0, 440.0, 1200.0, 200.0),
+				Rect2(7290.0, 440.0, 2510.0, 200.0)
 			]
 			data["platforms"] = [
-				{"rect": Rect2(220.0, 360.0, 200.0, 16.0), "type": PlatformType.BIO_RIB},
-				{"rect": Rect2(400.0, 280.0, 220.0, 16.0), "type": PlatformType.HIGH_PERCH},
-				{"rect": Rect2(690.0, 330.0, 230.0, 16.0), "type": PlatformType.BIO_RIB},
-				{"rect": Rect2(980.0, 360.0, 220.0, 16.0), "type": PlatformType.TURF},
-				{"rect": Rect2(1200.0, 290.0, 240.0, 16.0), "type": PlatformType.BIO_RIB},
-				{"rect": Rect2(1520.0, 330.0, 260.0, 16.0), "type": PlatformType.HIGH_PERCH},
-				{"rect": Rect2(1850.0, 360.0, 240.0, 16.0), "type": PlatformType.BIO_RIB},
-				{"rect": Rect2(2120.0, 270.0, 240.0, 16.0), "type": PlatformType.ROPE_BRIDGE},
-				{"rect": Rect2(2420.0, 330.0, 240.0, 16.0), "type": PlatformType.BIO_RIB},
-				{"rect": Rect2(2750.0, 360.0, 260.0, 16.0), "type": PlatformType.TURF},
-				{"rect": Rect2(3050.0, 280.0, 280.0, 16.0), "type": PlatformType.BIO_RIB},
-				{"rect": Rect2(3400.0, 330.0, 240.0, 16.0), "type": PlatformType.HIGH_PERCH},
-				{"rect": Rect2(3750.0, 360.0, 260.0, 16.0), "type": PlatformType.BIO_RIB},
-				{"rect": Rect2(4100.0, 270.0, 260.0, 16.0), "type": PlatformType.ROPE_BRIDGE},
-				{"rect": Rect2(4400.0, 330.0, 240.0, 16.0), "type": PlatformType.BIO_RIB},
-				{"rect": Rect2(4750.0, 360.0, 260.0, 16.0), "type": PlatformType.TURF},
-				{"rect": Rect2(5100.0, 280.0, 260.0, 16.0), "type": PlatformType.HIGH_PERCH},
-				{"rect": Rect2(5480.0, 330.0, 240.0, 16.0), "type": PlatformType.BIO_RIB}
+				{"rect": Rect2(240.0, 360.0, 220.0, 16.0), "type": PlatformType.BIO_RIB},
+				{"rect": Rect2(520.0, 280.0, 220.0, 16.0), "type": PlatformType.HIGH_PERCH},
+				{"rect": Rect2(800.0, 340.0, 200.0, 16.0), "type": PlatformType.BIO_RIB},
+				{"rect": Rect2(1220.0, 360.0, 240.0, 16.0), "type": PlatformType.TURF},
+				{"rect": Rect2(1520.0, 280.0, 260.0, 16.0), "type": PlatformType.BIO_RIB},
+				{"rect": Rect2(1840.0, 340.0, 220.0, 16.0), "type": PlatformType.HIGH_PERCH},
+				{"rect": Rect2(2360.0, 360.0, 240.0, 16.0), "type": PlatformType.BIO_RIB},
+				{"rect": Rect2(2680.0, 270.0, 260.0, 16.0), "type": PlatformType.ROPE_BRIDGE},
+				{"rect": Rect2(3000.0, 340.0, 240.0, 16.0), "type": PlatformType.BIO_RIB},
+				{"rect": Rect2(3550.0, 360.0, 260.0, 16.0), "type": PlatformType.TURF},
+				{"rect": Rect2(3880.0, 280.0, 280.0, 16.0), "type": PlatformType.BIO_RIB},
+				{"rect": Rect2(4220.0, 340.0, 240.0, 16.0), "type": PlatformType.HIGH_PERCH},
+				{"rect": Rect2(4800.0, 360.0, 260.0, 16.0), "type": PlatformType.BIO_RIB},
+				{"rect": Rect2(5150.0, 270.0, 260.0, 16.0), "type": PlatformType.ROPE_BRIDGE},
+				{"rect": Rect2(5480.0, 340.0, 240.0, 16.0), "type": PlatformType.BIO_RIB},
+				{"rect": Rect2(6100.0, 360.0, 260.0, 16.0), "type": PlatformType.TURF},
+				{"rect": Rect2(6450.0, 280.0, 280.0, 16.0), "type": PlatformType.HIGH_PERCH},
+				{"rect": Rect2(6800.0, 340.0, 240.0, 16.0), "type": PlatformType.BIO_RIB},
+				{"rect": Rect2(7450.0, 360.0, 260.0, 16.0), "type": PlatformType.BIO_RIB},
+				{"rect": Rect2(7820.0, 270.0, 280.0, 16.0), "type": PlatformType.HIGH_PERCH},
+				{"rect": Rect2(8180.0, 340.0, 260.0, 16.0), "type": PlatformType.BIO_RIB},
+				{"rect": Rect2(8560.0, 280.0, 240.0, 16.0), "type": PlatformType.HIGH_PERCH}
 			]
 		4:
 			data["name"] = "SNOWFIELD TUNDRA"
@@ -200,31 +224,36 @@ static func get_map_data(stage_id: int) -> Dictionary:
 			data["primary_color"] = Color(0.40, 0.85, 1.0)
 			data["accent_color"] = Color(0.85, 0.95, 1.0)
 			data["ground_segments"] = [
-				Rect2(0.0, 440.0, 780.0, 200.0),
-				Rect2(920.0, 440.0, 800.0, 200.0),
-				Rect2(1860.0, 440.0, 800.0, 200.0),
-				Rect2(2800.0, 440.0, 880.0, 200.0),
-				Rect2(3840.0, 440.0, 860.0, 200.0),
-				Rect2(4850.0, 440.0, 1850.0, 200.0)
+				Rect2(0.0, 440.0, 1050.0, 200.0),
+				Rect2(1190.0, 440.0, 1100.0, 200.0),
+				Rect2(2430.0, 440.0, 1150.0, 200.0),
+				Rect2(3720.0, 440.0, 1200.0, 200.0),
+				Rect2(5060.0, 440.0, 1200.0, 200.0),
+				Rect2(6400.0, 440.0, 1250.0, 200.0),
+				Rect2(7790.0, 440.0, 2010.0, 200.0)
 			]
 			data["platforms"] = [
-				{"rect": Rect2(240.0, 360.0, 220.0, 16.0), "type": PlatformType.ICE_SLAB},
-				{"rect": Rect2(450.0, 280.0, 200.0, 16.0), "type": PlatformType.HIGH_PERCH},
-				{"rect": Rect2(760.0, 330.0, 240.0, 16.0), "type": PlatformType.ICE_SLAB},
-				{"rect": Rect2(1080.0, 360.0, 240.0, 16.0), "type": PlatformType.GIRDER},
-				{"rect": Rect2(1320.0, 280.0, 260.0, 16.0), "type": PlatformType.ICE_SLAB},
-				{"rect": Rect2(1680.0, 330.0, 260.0, 16.0), "type": PlatformType.ROPE_BRIDGE},
-				{"rect": Rect2(2020.0, 360.0, 240.0, 16.0), "type": PlatformType.ICE_SLAB},
-				{"rect": Rect2(2300.0, 270.0, 240.0, 16.0), "type": PlatformType.HIGH_PERCH},
-				{"rect": Rect2(2640.0, 330.0, 240.0, 16.0), "type": PlatformType.ICE_SLAB},
-				{"rect": Rect2(2980.0, 360.0, 260.0, 16.0), "type": PlatformType.GIRDER},
-				{"rect": Rect2(3300.0, 270.0, 260.0, 16.0), "type": PlatformType.ICE_SLAB},
-				{"rect": Rect2(3660.0, 330.0, 260.0, 16.0), "type": PlatformType.ROPE_BRIDGE},
-				{"rect": Rect2(4000.0, 360.0, 260.0, 16.0), "type": PlatformType.ICE_SLAB},
-				{"rect": Rect2(4300.0, 270.0, 260.0, 16.0), "type": PlatformType.HIGH_PERCH},
-				{"rect": Rect2(4660.0, 330.0, 260.0, 16.0), "type": PlatformType.ICE_SLAB},
-				{"rect": Rect2(5040.0, 350.0, 280.0, 16.0), "type": PlatformType.GIRDER},
-				{"rect": Rect2(5380.0, 270.0, 260.0, 16.0), "type": PlatformType.ICE_SLAB}
+				{"rect": Rect2(260.0, 360.0, 240.0, 16.0), "type": PlatformType.ICE_SLAB},
+				{"rect": Rect2(560.0, 280.0, 220.0, 16.0), "type": PlatformType.HIGH_PERCH},
+				{"rect": Rect2(840.0, 350.0, 220.0, 16.0), "type": PlatformType.ICE_SLAB},
+				{"rect": Rect2(1320.0, 360.0, 240.0, 16.0), "type": PlatformType.GIRDER},
+				{"rect": Rect2(1620.0, 280.0, 260.0, 16.0), "type": PlatformType.ICE_SLAB},
+				{"rect": Rect2(1960.0, 340.0, 240.0, 16.0), "type": PlatformType.ROPE_BRIDGE},
+				{"rect": Rect2(2560.0, 360.0, 240.0, 16.0), "type": PlatformType.ICE_SLAB},
+				{"rect": Rect2(2880.0, 270.0, 260.0, 16.0), "type": PlatformType.HIGH_PERCH},
+				{"rect": Rect2(3220.0, 340.0, 240.0, 16.0), "type": PlatformType.ICE_SLAB},
+				{"rect": Rect2(3860.0, 360.0, 260.0, 16.0), "type": PlatformType.GIRDER},
+				{"rect": Rect2(4200.0, 270.0, 280.0, 16.0), "type": PlatformType.ICE_SLAB},
+				{"rect": Rect2(4560.0, 340.0, 260.0, 16.0), "type": PlatformType.ROPE_BRIDGE},
+				{"rect": Rect2(5200.0, 360.0, 260.0, 16.0), "type": PlatformType.ICE_SLAB},
+				{"rect": Rect2(5540.0, 270.0, 260.0, 16.0), "type": PlatformType.HIGH_PERCH},
+				{"rect": Rect2(5880.0, 340.0, 240.0, 16.0), "type": PlatformType.ICE_SLAB},
+				{"rect": Rect2(6540.0, 360.0, 260.0, 16.0), "type": PlatformType.GIRDER},
+				{"rect": Rect2(6880.0, 280.0, 280.0, 16.0), "type": PlatformType.HIGH_PERCH},
+				{"rect": Rect2(7240.0, 340.0, 260.0, 16.0), "type": PlatformType.ICE_SLAB},
+				{"rect": Rect2(7940.0, 360.0, 260.0, 16.0), "type": PlatformType.ICE_SLAB},
+				{"rect": Rect2(8300.0, 270.0, 280.0, 16.0), "type": PlatformType.HIGH_PERCH},
+				{"rect": Rect2(8650.0, 340.0, 260.0, 16.0), "type": PlatformType.GIRDER}
 			]
 		5:
 			data["name"] = "STEEL REFINERY"
@@ -237,36 +266,37 @@ static func get_map_data(stage_id: int) -> Dictionary:
 			data["primary_color"] = Color(1.0, 0.50, 0.15)
 			data["accent_color"] = Color(1.0, 0.85, 0.20)
 			data["ground_segments"] = [
-				Rect2(0.0, 440.0, 680.0, 200.0),
-				Rect2(780.0, 440.0, 700.0, 200.0),
-				Rect2(1580.0, 440.0, 700.0, 200.0),
-				Rect2(2380.0, 440.0, 800.0, 200.0),
-				Rect2(3280.0, 440.0, 800.0, 200.0),
-				Rect2(4180.0, 440.0, 800.0, 200.0),
-				Rect2(5080.0, 440.0, 700.0, 200.0),
-				Rect2(5880.0, 440.0, 820.0, 200.0)
+				Rect2(0.0, 440.0, 950.0, 200.0),
+				Rect2(1090.0, 440.0, 1000.0, 200.0),
+				Rect2(2230.0, 440.0, 1050.0, 200.0),
+				Rect2(3420.0, 440.0, 1100.0, 200.0),
+				Rect2(4660.0, 440.0, 1150.0, 200.0),
+				Rect2(5950.0, 440.0, 1150.0, 200.0),
+				Rect2(7240.0, 440.0, 2560.0, 200.0)
 			]
 			data["platforms"] = [
-				{"rect": Rect2(200.0, 360.0, 220.0, 16.0), "type": PlatformType.LAVA_GRATE},
-				{"rect": Rect2(420.0, 280.0, 200.0, 16.0), "type": PlatformType.HIGH_PERCH},
-				{"rect": Rect2(650.0, 330.0, 220.0, 16.0), "type": PlatformType.LAVA_GRATE},
-				{"rect": Rect2(920.0, 350.0, 240.0, 16.0), "type": PlatformType.GIRDER},
-				{"rect": Rect2(1200.0, 270.0, 260.0, 16.0), "type": PlatformType.LAVA_GRATE},
-				{"rect": Rect2(1450.0, 330.0, 220.0, 16.0), "type": PlatformType.HIGH_PERCH},
-				{"rect": Rect2(1740.0, 350.0, 240.0, 16.0), "type": PlatformType.LAVA_GRATE},
-				{"rect": Rect2(2000.0, 270.0, 240.0, 16.0), "type": PlatformType.GIRDER},
-				{"rect": Rect2(2250.0, 330.0, 220.0, 16.0), "type": PlatformType.LAVA_GRATE},
-				{"rect": Rect2(2520.0, 350.0, 260.0, 16.0), "type": PlatformType.HIGH_PERCH},
-				{"rect": Rect2(2850.0, 270.0, 260.0, 16.0), "type": PlatformType.LAVA_GRATE},
-				{"rect": Rect2(3150.0, 330.0, 220.0, 16.0), "type": PlatformType.GIRDER},
-				{"rect": Rect2(3450.0, 350.0, 260.0, 16.0), "type": PlatformType.LAVA_GRATE},
-				{"rect": Rect2(3750.0, 270.0, 260.0, 16.0), "type": PlatformType.HIGH_PERCH},
-				{"rect": Rect2(4050.0, 330.0, 220.0, 16.0), "type": PlatformType.LAVA_GRATE},
-				{"rect": Rect2(4350.0, 350.0, 260.0, 16.0), "type": PlatformType.GIRDER},
-				{"rect": Rect2(4700.0, 270.0, 260.0, 16.0), "type": PlatformType.LAVA_GRATE},
-				{"rect": Rect2(4980.0, 330.0, 220.0, 16.0), "type": PlatformType.HIGH_PERCH},
-				{"rect": Rect2(5300.0, 350.0, 260.0, 16.0), "type": PlatformType.LAVA_GRATE},
-				{"rect": Rect2(5650.0, 270.0, 240.0, 16.0), "type": PlatformType.GIRDER}
+				{"rect": Rect2(240.0, 360.0, 220.0, 16.0), "type": PlatformType.LAVA_GRATE},
+				{"rect": Rect2(500.0, 280.0, 220.0, 16.0), "type": PlatformType.HIGH_PERCH},
+				{"rect": Rect2(780.0, 340.0, 220.0, 16.0), "type": PlatformType.LAVA_GRATE},
+				{"rect": Rect2(1220.0, 360.0, 240.0, 16.0), "type": PlatformType.GIRDER},
+				{"rect": Rect2(1520.0, 270.0, 260.0, 16.0), "type": PlatformType.LAVA_GRATE},
+				{"rect": Rect2(1820.0, 340.0, 220.0, 16.0), "type": PlatformType.HIGH_PERCH},
+				{"rect": Rect2(2360.0, 360.0, 240.0, 16.0), "type": PlatformType.LAVA_GRATE},
+				{"rect": Rect2(2660.0, 270.0, 260.0, 16.0), "type": PlatformType.GIRDER},
+				{"rect": Rect2(2960.0, 340.0, 240.0, 16.0), "type": PlatformType.LAVA_GRATE},
+				{"rect": Rect2(3550.0, 360.0, 260.0, 16.0), "type": PlatformType.HIGH_PERCH},
+				{"rect": Rect2(3880.0, 270.0, 280.0, 16.0), "type": PlatformType.LAVA_GRATE},
+				{"rect": Rect2(4220.0, 340.0, 240.0, 16.0), "type": PlatformType.GIRDER},
+				{"rect": Rect2(4800.0, 360.0, 260.0, 16.0), "type": PlatformType.LAVA_GRATE},
+				{"rect": Rect2(5140.0, 270.0, 260.0, 16.0), "type": PlatformType.HIGH_PERCH},
+				{"rect": Rect2(5480.0, 340.0, 240.0, 16.0), "type": PlatformType.LAVA_GRATE},
+				{"rect": Rect2(6100.0, 360.0, 260.0, 16.0), "type": PlatformType.GIRDER},
+				{"rect": Rect2(6440.0, 270.0, 280.0, 16.0), "type": PlatformType.HIGH_PERCH},
+				{"rect": Rect2(6780.0, 340.0, 240.0, 16.0), "type": PlatformType.LAVA_GRATE},
+				{"rect": Rect2(7400.0, 360.0, 260.0, 16.0), "type": PlatformType.LAVA_GRATE},
+				{"rect": Rect2(7750.0, 270.0, 280.0, 16.0), "type": PlatformType.GIRDER},
+				{"rect": Rect2(8120.0, 340.0, 260.0, 16.0), "type": PlatformType.HIGH_PERCH},
+				{"rect": Rect2(8520.0, 280.0, 260.0, 16.0), "type": PlatformType.LAVA_GRATE}
 			]
 		6:
 			data["name"] = "ELECTRIC DYNAMO"
@@ -279,33 +309,36 @@ static func get_map_data(stage_id: int) -> Dictionary:
 			data["primary_color"] = Color(0.95, 0.85, 0.20)
 			data["accent_color"] = Color(0.40, 0.90, 1.0)
 			data["ground_segments"] = [
-				Rect2(0.0, 440.0, 740.0, 200.0),
-				Rect2(860.0, 440.0, 740.0, 200.0),
-				Rect2(1720.0, 440.0, 760.0, 200.0),
-				Rect2(2600.0, 440.0, 850.0, 200.0),
-				Rect2(3600.0, 440.0, 850.0, 200.0),
-				Rect2(4600.0, 440.0, 900.0, 200.0),
-				Rect2(5650.0, 440.0, 1050.0, 200.0)
+				Rect2(0.0, 440.0, 1000.0, 200.0),
+				Rect2(1140.0, 440.0, 1050.0, 200.0),
+				Rect2(2330.0, 440.0, 1100.0, 200.0),
+				Rect2(3570.0, 440.0, 1150.0, 200.0),
+				Rect2(4860.0, 440.0, 1200.0, 200.0),
+				Rect2(6200.0, 440.0, 1250.0, 200.0),
+				Rect2(7590.0, 440.0, 2210.0, 200.0)
 			]
 			data["platforms"] = [
-				{"rect": Rect2(220.0, 360.0, 220.0, 16.0), "type": PlatformType.ENERGY_BARRIER},
-				{"rect": Rect2(440.0, 280.0, 220.0, 16.0), "type": PlatformType.HIGH_PERCH},
-				{"rect": Rect2(720.0, 330.0, 220.0, 16.0), "type": PlatformType.ENERGY_BARRIER},
-				{"rect": Rect2(1000.0, 350.0, 240.0, 16.0), "type": PlatformType.GIRDER},
-				{"rect": Rect2(1260.0, 270.0, 260.0, 16.0), "type": PlatformType.ENERGY_BARRIER},
-				{"rect": Rect2(1580.0, 330.0, 240.0, 16.0), "type": PlatformType.HIGH_PERCH},
-				{"rect": Rect2(1880.0, 350.0, 260.0, 16.0), "type": PlatformType.ENERGY_BARRIER},
-				{"rect": Rect2(2180.0, 270.0, 260.0, 16.0), "type": PlatformType.GIRDER},
-				{"rect": Rect2(2480.0, 330.0, 220.0, 16.0), "type": PlatformType.ENERGY_BARRIER},
-				{"rect": Rect2(2800.0, 350.0, 260.0, 16.0), "type": PlatformType.HIGH_PERCH},
-				{"rect": Rect2(3100.0, 270.0, 280.0, 16.0), "type": PlatformType.ENERGY_BARRIER},
-				{"rect": Rect2(3480.0, 330.0, 220.0, 16.0), "type": PlatformType.GIRDER},
-				{"rect": Rect2(3800.0, 350.0, 260.0, 16.0), "type": PlatformType.ENERGY_BARRIER},
-				{"rect": Rect2(4150.0, 270.0, 260.0, 16.0), "type": PlatformType.HIGH_PERCH},
-				{"rect": Rect2(4480.0, 330.0, 220.0, 16.0), "type": PlatformType.ENERGY_BARRIER},
-				{"rect": Rect2(4800.0, 350.0, 260.0, 16.0), "type": PlatformType.GIRDER},
-				{"rect": Rect2(5200.0, 270.0, 260.0, 16.0), "type": PlatformType.ENERGY_BARRIER},
-				{"rect": Rect2(5520.0, 330.0, 220.0, 16.0), "type": PlatformType.HIGH_PERCH}
+				{"rect": Rect2(260.0, 360.0, 240.0, 16.0), "type": PlatformType.ENERGY_BARRIER},
+				{"rect": Rect2(540.0, 280.0, 220.0, 16.0), "type": PlatformType.HIGH_PERCH},
+				{"rect": Rect2(820.0, 340.0, 220.0, 16.0), "type": PlatformType.ENERGY_BARRIER},
+				{"rect": Rect2(1260.0, 360.0, 240.0, 16.0), "type": PlatformType.GIRDER},
+				{"rect": Rect2(1560.0, 270.0, 260.0, 16.0), "type": PlatformType.ENERGY_BARRIER},
+				{"rect": Rect2(1880.0, 340.0, 240.0, 16.0), "type": PlatformType.HIGH_PERCH},
+				{"rect": Rect2(2450.0, 360.0, 240.0, 16.0), "type": PlatformType.ENERGY_BARRIER},
+				{"rect": Rect2(2780.0, 270.0, 260.0, 16.0), "type": PlatformType.GIRDER},
+				{"rect": Rect2(3100.0, 340.0, 240.0, 16.0), "type": PlatformType.HIGH_PERCH},
+				{"rect": Rect2(3700.0, 360.0, 260.0, 16.0), "type": PlatformType.ENERGY_BARRIER},
+				{"rect": Rect2(4050.0, 270.0, 280.0, 16.0), "type": PlatformType.HIGH_PERCH},
+				{"rect": Rect2(4400.0, 340.0, 240.0, 16.0), "type": PlatformType.GIRDER},
+				{"rect": Rect2(5000.0, 360.0, 260.0, 16.0), "type": PlatformType.ENERGY_BARRIER},
+				{"rect": Rect2(5350.0, 270.0, 260.0, 16.0), "type": PlatformType.HIGH_PERCH},
+				{"rect": Rect2(5700.0, 340.0, 240.0, 16.0), "type": PlatformType.ENERGY_BARRIER},
+				{"rect": Rect2(6340.0, 360.0, 260.0, 16.0), "type": PlatformType.GIRDER},
+				{"rect": Rect2(6700.0, 270.0, 280.0, 16.0), "type": PlatformType.ENERGY_BARRIER},
+				{"rect": Rect2(7060.0, 340.0, 240.0, 16.0), "type": PlatformType.HIGH_PERCH},
+				{"rect": Rect2(7750.0, 360.0, 260.0, 16.0), "type": PlatformType.ENERGY_BARRIER},
+				{"rect": Rect2(8120.0, 270.0, 280.0, 16.0), "type": PlatformType.HIGH_PERCH},
+				{"rect": Rect2(8500.0, 340.0, 260.0, 16.0), "type": PlatformType.ENERGY_BARRIER}
 			]
 		7:
 			data["name"] = "ALIEN AEROSPACE HANGAR"
@@ -318,30 +351,35 @@ static func get_map_data(stage_id: int) -> Dictionary:
 			data["primary_color"] = Color(0.70, 0.45, 0.95)
 			data["accent_color"] = Color(0.35, 0.85, 1.0)
 			data["ground_segments"] = [
-				Rect2(0.0, 440.0, 820.0, 200.0),
-				Rect2(960.0, 440.0, 840.0, 200.0),
-				Rect2(1950.0, 440.0, 850.0, 200.0),
-				Rect2(2960.0, 440.0, 940.0, 200.0),
-				Rect2(4080.0, 440.0, 920.0, 200.0),
-				Rect2(5180.0, 440.0, 1520.0, 200.0)
+				Rect2(0.0, 440.0, 1100.0, 200.0),
+				Rect2(1240.0, 440.0, 1150.0, 200.0),
+				Rect2(2530.0, 440.0, 1200.0, 200.0),
+				Rect2(3870.0, 440.0, 1200.0, 200.0),
+				Rect2(5210.0, 440.0, 1250.0, 200.0),
+				Rect2(6600.0, 440.0, 1250.0, 200.0),
+				Rect2(7990.0, 440.0, 1810.0, 200.0)
 			]
 			data["platforms"] = [
-				{"rect": Rect2(250.0, 360.0, 240.0, 16.0), "type": PlatformType.TECH_CATWALK},
-				{"rect": Rect2(480.0, 280.0, 220.0, 16.0), "type": PlatformType.HIGH_PERCH},
-				{"rect": Rect2(820.0, 330.0, 220.0, 16.0), "type": PlatformType.TECH_CATWALK},
-				{"rect": Rect2(1100.0, 360.0, 260.0, 16.0), "type": PlatformType.GIRDER},
-				{"rect": Rect2(1400.0, 270.0, 260.0, 16.0), "type": PlatformType.HIGH_PERCH},
-				{"rect": Rect2(1800.0, 330.0, 240.0, 16.0), "type": PlatformType.TECH_CATWALK},
-				{"rect": Rect2(2120.0, 350.0, 260.0, 16.0), "type": PlatformType.GIRDER},
-				{"rect": Rect2(2450.0, 270.0, 260.0, 16.0), "type": PlatformType.HIGH_PERCH},
-				{"rect": Rect2(2800.0, 330.0, 240.0, 16.0), "type": PlatformType.TECH_CATWALK},
-				{"rect": Rect2(3150.0, 350.0, 280.0, 16.0), "type": PlatformType.GIRDER},
-				{"rect": Rect2(3500.0, 270.0, 280.0, 16.0), "type": PlatformType.HIGH_PERCH},
-				{"rect": Rect2(3920.0, 330.0, 240.0, 16.0), "type": PlatformType.TECH_CATWALK},
-				{"rect": Rect2(4250.0, 350.0, 280.0, 16.0), "type": PlatformType.GIRDER},
-				{"rect": Rect2(4650.0, 270.0, 280.0, 16.0), "type": PlatformType.HIGH_PERCH},
-				{"rect": Rect2(5020.0, 330.0, 240.0, 16.0), "type": PlatformType.TECH_CATWALK},
-				{"rect": Rect2(5380.0, 350.0, 280.0, 16.0), "type": PlatformType.GIRDER}
+				{"rect": Rect2(260.0, 360.0, 240.0, 16.0), "type": PlatformType.TECH_CATWALK},
+				{"rect": Rect2(560.0, 280.0, 220.0, 16.0), "type": PlatformType.HIGH_PERCH},
+				{"rect": Rect2(860.0, 340.0, 220.0, 16.0), "type": PlatformType.TECH_CATWALK},
+				{"rect": Rect2(1360.0, 360.0, 260.0, 16.0), "type": PlatformType.GIRDER},
+				{"rect": Rect2(1700.0, 270.0, 260.0, 16.0), "type": PlatformType.HIGH_PERCH},
+				{"rect": Rect2(2040.0, 340.0, 240.0, 16.0), "type": PlatformType.TECH_CATWALK},
+				{"rect": Rect2(2660.0, 360.0, 260.0, 16.0), "type": PlatformType.GIRDER},
+				{"rect": Rect2(3000.0, 270.0, 260.0, 16.0), "type": PlatformType.HIGH_PERCH},
+				{"rect": Rect2(3340.0, 340.0, 240.0, 16.0), "type": PlatformType.TECH_CATWALK},
+				{"rect": Rect2(4000.0, 360.0, 260.0, 16.0), "type": PlatformType.GIRDER},
+				{"rect": Rect2(4350.0, 270.0, 280.0, 16.0), "type": PlatformType.HIGH_PERCH},
+				{"rect": Rect2(4700.0, 340.0, 240.0, 16.0), "type": PlatformType.TECH_CATWALK},
+				{"rect": Rect2(5340.0, 360.0, 260.0, 16.0), "type": PlatformType.GIRDER},
+				{"rect": Rect2(5700.0, 270.0, 280.0, 16.0), "type": PlatformType.HIGH_PERCH},
+				{"rect": Rect2(6060.0, 340.0, 240.0, 16.0), "type": PlatformType.TECH_CATWALK},
+				{"rect": Rect2(6740.0, 360.0, 260.0, 16.0), "type": PlatformType.GIRDER},
+				{"rect": Rect2(7100.0, 270.0, 280.0, 16.0), "type": PlatformType.HIGH_PERCH},
+				{"rect": Rect2(7460.0, 340.0, 240.0, 16.0), "type": PlatformType.TECH_CATWALK},
+				{"rect": Rect2(8150.0, 360.0, 260.0, 16.0), "type": PlatformType.TECH_CATWALK},
+				{"rect": Rect2(8520.0, 270.0, 280.0, 16.0), "type": PlatformType.HIGH_PERCH}
 			]
 		8:
 			data["name"] = "MOTHER BRAIN SANCTUM"
@@ -354,33 +392,36 @@ static func get_map_data(stage_id: int) -> Dictionary:
 			data["primary_color"] = Color(1.0, 0.25, 0.35)
 			data["accent_color"] = Color(0.95, 0.85, 0.20)
 			data["ground_segments"] = [
-				Rect2(0.0, 440.0, 700.0, 200.0),
-				Rect2(820.0, 440.0, 700.0, 200.0),
-				Rect2(1640.0, 440.0, 760.0, 200.0),
-				Rect2(2520.0, 440.0, 830.0, 200.0),
-				Rect2(3500.0, 440.0, 850.0, 200.0),
-				Rect2(4500.0, 440.0, 900.0, 200.0),
-				Rect2(5550.0, 440.0, 1150.0, 200.0)
+				Rect2(0.0, 440.0, 1050.0, 200.0),
+				Rect2(1190.0, 440.0, 1100.0, 200.0),
+				Rect2(2430.0, 440.0, 1100.0, 200.0),
+				Rect2(3670.0, 440.0, 1150.0, 200.0),
+				Rect2(4960.0, 440.0, 1200.0, 200.0),
+				Rect2(6300.0, 440.0, 1200.0, 200.0),
+				Rect2(7640.0, 440.0, 2160.0, 200.0)
 			]
 			data["platforms"] = [
-				{"rect": Rect2(200.0, 360.0, 220.0, 16.0), "type": PlatformType.BIO_RIB},
-				{"rect": Rect2(400.0, 270.0, 220.0, 16.0), "type": PlatformType.ENERGY_BARRIER},
-				{"rect": Rect2(680.0, 330.0, 220.0, 16.0), "type": PlatformType.BIO_RIB},
-				{"rect": Rect2(950.0, 350.0, 240.0, 16.0), "type": PlatformType.TURF},
-				{"rect": Rect2(1220.0, 260.0, 240.0, 16.0), "type": PlatformType.ENERGY_BARRIER},
-				{"rect": Rect2(1500.0, 330.0, 240.0, 16.0), "type": PlatformType.BIO_RIB},
-				{"rect": Rect2(1800.0, 350.0, 260.0, 16.0), "type": PlatformType.HIGH_PERCH},
-				{"rect": Rect2(2100.0, 260.0, 260.0, 16.0), "type": PlatformType.ENERGY_BARRIER},
-				{"rect": Rect2(2400.0, 330.0, 220.0, 16.0), "type": PlatformType.BIO_RIB},
-				{"rect": Rect2(2720.0, 350.0, 260.0, 16.0), "type": PlatformType.TURF},
-				{"rect": Rect2(3050.0, 260.0, 280.0, 16.0), "type": PlatformType.ENERGY_BARRIER},
-				{"rect": Rect2(3380.0, 330.0, 220.0, 16.0), "type": PlatformType.BIO_RIB},
-				{"rect": Rect2(3700.0, 350.0, 280.0, 16.0), "type": PlatformType.HIGH_PERCH},
-				{"rect": Rect2(4050.0, 260.0, 280.0, 16.0), "type": PlatformType.ENERGY_BARRIER},
-				{"rect": Rect2(4380.0, 330.0, 220.0, 16.0), "type": PlatformType.BIO_RIB},
-				{"rect": Rect2(4700.0, 350.0, 280.0, 16.0), "type": PlatformType.TURF},
-				{"rect": Rect2(5100.0, 260.0, 280.0, 16.0), "type": PlatformType.ENERGY_BARRIER},
-				{"rect": Rect2(5420.0, 330.0, 220.0, 16.0), "type": PlatformType.BIO_RIB}
+				{"rect": Rect2(240.0, 360.0, 220.0, 16.0), "type": PlatformType.BIO_RIB},
+				{"rect": Rect2(520.0, 270.0, 220.0, 16.0), "type": PlatformType.ENERGY_BARRIER},
+				{"rect": Rect2(800.0, 340.0, 220.0, 16.0), "type": PlatformType.BIO_RIB},
+				{"rect": Rect2(1320.0, 360.0, 240.0, 16.0), "type": PlatformType.TURF},
+				{"rect": Rect2(1620.0, 260.0, 240.0, 16.0), "type": PlatformType.ENERGY_BARRIER},
+				{"rect": Rect2(1940.0, 340.0, 240.0, 16.0), "type": PlatformType.BIO_RIB},
+				{"rect": Rect2(2560.0, 360.0, 260.0, 16.0), "type": PlatformType.HIGH_PERCH},
+				{"rect": Rect2(2880.0, 260.0, 260.0, 16.0), "type": PlatformType.ENERGY_BARRIER},
+				{"rect": Rect2(3200.0, 340.0, 220.0, 16.0), "type": PlatformType.BIO_RIB},
+				{"rect": Rect2(3800.0, 360.0, 260.0, 16.0), "type": PlatformType.TURF},
+				{"rect": Rect2(4150.0, 260.0, 280.0, 16.0), "type": PlatformType.ENERGY_BARRIER},
+				{"rect": Rect2(4500.0, 340.0, 240.0, 16.0), "type": PlatformType.BIO_RIB},
+				{"rect": Rect2(5100.0, 360.0, 260.0, 16.0), "type": PlatformType.HIGH_PERCH},
+				{"rect": Rect2(5450.0, 260.0, 280.0, 16.0), "type": PlatformType.ENERGY_BARRIER},
+				{"rect": Rect2(5800.0, 340.0, 240.0, 16.0), "type": PlatformType.BIO_RIB},
+				{"rect": Rect2(6440.0, 360.0, 260.0, 16.0), "type": PlatformType.TURF},
+				{"rect": Rect2(6800.0, 260.0, 280.0, 16.0), "type": PlatformType.ENERGY_BARRIER},
+				{"rect": Rect2(7160.0, 340.0, 240.0, 16.0), "type": PlatformType.BIO_RIB},
+				{"rect": Rect2(7800.0, 360.0, 260.0, 16.0), "type": PlatformType.BIO_RIB},
+				{"rect": Rect2(8180.0, 260.0, 280.0, 16.0), "type": PlatformType.ENERGY_BARRIER},
+				{"rect": Rect2(8540.0, 340.0, 260.0, 16.0), "type": PlatformType.HIGH_PERCH}
 			]
 	
 	# Platform rule: If a pit between floor tiles can be crossed by jump, don't add any platform above it
@@ -448,65 +489,66 @@ static func draw_level_map(canvas: CanvasItem, stage_id: int, map_rect: Rect2, p
 		var pit_start: float = map_rect.position.x + g1.end.x * scale_x
 		var pit_end: float = map_rect.position.x + g2.position.x * scale_x
 		var pit_w: float = pit_end - pit_start
-		var chasm_rect := Rect2(pit_start, ground_y - 2.0, pit_w, ground_thickness + 4.0)
 		
-		# Hazard specific color in chasms
-		var hazard_col := Color(0.02, 0.03, 0.05)
-		if stage_id == 5: # Lava
-			hazard_col = Color(0.95, 0.35, 0.05, 0.85)
-		elif stage_id == 6: # Electric
-			hazard_col = Color(0.25, 0.80, 1.0, 0.85)
-		elif stage_id == 3 or stage_id == 8: # Acid
-			hazard_col = Color(0.85, 0.15, 0.35, 0.85)
-		elif stage_id == 4: # Blizzard Ice
-			hazard_col = Color(0.50, 0.80, 1.0, 0.85)
+		# Glowing hazard drop indication in chasm
+		var chasm_rect := Rect2(pit_start, ground_y + 2.0, pit_w, ground_thickness)
+		canvas.draw_rect(chasm_rect, Color(0.02, 0.03, 0.05, 0.95))
 		
-		canvas.draw_rect(chasm_rect, hazard_col)
-		# Hazard exclamation line
-		if is_schematic and pit_w > 8.0:
-			canvas.draw_line(Vector2(pit_start + pit_w * 0.5, ground_y - 4.0), Vector2(pit_start + pit_w * 0.5, ground_y + ground_thickness), Color(1.0, 0.25, 0.25, 0.9), 1.2)
+		# Hazard marker stripes
+		if pit_w > 8.0:
+			var hazard_col := Color(acc_col.r, acc_col.g, acc_col.b, 0.45)
+			var h_stripe_w := 3.0
+			var num_stripes: int = int(pit_w / (h_stripe_w * 2.0))
+			for s in range(num_stripes):
+				var sx := pit_start + float(s) * (h_stripe_w * 2.0)
+				canvas.draw_line(Vector2(sx, ground_y + 4.0), Vector2(sx + h_stripe_w, ground_y + ground_thickness - 2.0), hazard_col, 1.2)
 	
-	# 2. Solid Ground Segments
-	for g_item in grounds:
-		var g: Rect2 = g_item
+	# Draw Ground Solid Elevation Strips
+	for g in grounds:
 		var gx: float = map_rect.position.x + g.position.x * scale_x
 		var gw: float = g.size.x * scale_x
-		var g_rect := Rect2(gx, ground_y, gw, ground_thickness)
+		var gr := Rect2(gx, ground_y, gw, ground_thickness)
 		
-		# Terrain block
-		var col_body := Color(prim_col.r * 0.45, prim_col.g * 0.45, prim_col.b * 0.45)
-		canvas.draw_rect(g_rect, col_body)
-		# Top illuminated terrain ridge line
-		canvas.draw_line(Vector2(gx, ground_y), Vector2(gx + gw, ground_y), prim_col, 2.0)
+		# Sub-surface foundation fill
+		canvas.draw_rect(gr, Color(prim_col.r * 0.4, prim_col.g * 0.4, prim_col.b * 0.4, 0.95))
+		# Top surface tactical highlight edge
+		canvas.draw_rect(Rect2(gx, ground_y, gw, 2.5), prim_col)
+		# Mechanical depth line
+		canvas.draw_line(Vector2(gx, ground_y + 6.0), Vector2(gx + gw, ground_y + 6.0), Color(0.0, 0.0, 0.0, 0.4), 1.0)
 	
-	# 3. Elevated Platforms (Tiered Architecture)
+	# 2. Tactical Elevation Platforms
 	var plats: Array = m.get("platforms", [])
-	for p_item in plats:
-		var p: Dictionary = p_item
+	for p in plats:
 		var pr: Rect2 = p["rect"]
 		var px: float = map_rect.position.x + pr.position.x * scale_x
-		var pw: float = maxf(3.0, pr.size.x * scale_x)
-		var rel_y: float = clampf((pr.position.y - world_y_top) / world_y_range, 0.1, 0.9)
-		var py: float = map_rect.position.y + rel_y * (map_h * 0.72)
+		var pw: float = maxf(4.0, pr.size.x * scale_x)
 		
-		var p_col := acc_col
+		# Map world Y (180 to 440) to schematic height
+		var rel_y: float = (pr.position.y - world_y_top) / world_y_range
+		var py: float = map_rect.position.y + map_h * 0.16 + rel_y * (ground_y - (map_rect.position.y + map_h * 0.16))
+		
 		var p_type: int = p["type"]
-		if p_type == PlatformType.HIGH_PERCH:
-			p_col = Color(0.35, 0.85, 1.0)
-		elif p_type == PlatformType.ROPE_BRIDGE:
-			p_col = Color(0.95, 0.65, 0.30)
-		elif p_type == PlatformType.ICE_SLAB:
-			p_col = Color(0.70, 0.95, 1.0)
-		elif p_type == PlatformType.LAVA_GRATE:
-			p_col = Color(1.0, 0.50, 0.10)
-		elif p_type == PlatformType.ENERGY_BARRIER:
-			p_col = Color(0.25, 0.85, 1.0)
-		elif p_type == PlatformType.TECH_CATWALK:
-			p_col = Color(0.95, 0.80, 0.25)
-		elif p_type == PlatformType.BIO_RIB:
-			p_col = Color(0.95, 0.30, 0.60)
+		var p_col: Color = prim_col
+		var is_drop: bool = p.get("is_drop", false)
 		
-		canvas.draw_line(Vector2(px, py), Vector2(px + pw, py), p_col, 2.0)
+		match p_type:
+			PlatformType.TURF: p_col = prim_col
+			PlatformType.GIRDER: p_col = Color(0.90, 0.75, 0.30)
+			PlatformType.ROPE_BRIDGE: p_col = Color(0.80, 0.55, 0.30)
+			PlatformType.HIGH_PERCH: p_col = Color(0.95, 0.95, 0.95)
+			PlatformType.ICE_SLAB: p_col = Color(0.50, 0.85, 1.0)
+			PlatformType.LAVA_GRATE: p_col = Color(1.0, 0.40, 0.15)
+			PlatformType.ENERGY_BARRIER: p_col = Color(0.30, 0.90, 1.0)
+			PlatformType.TECH_CATWALK: p_col = Color(0.70, 0.50, 0.95)
+			PlatformType.BIO_RIB: p_col = Color(0.95, 0.35, 0.60)
+		
+		if is_drop:
+			p_col = Color(1.0, 0.4, 0.4)
+		
+		# Platform schematic pill
+		var plat_rect := Rect2(px, py - 1.5, pw, 3.0)
+		canvas.draw_rect(plat_rect, p_col)
+		
 		# Mini vertical support stanchion or schematic motif
 		if is_schematic:
 			canvas.draw_line(Vector2(px + pw * 0.5, py), Vector2(px + pw * 0.5, minf(ground_y, py + 8.0)), Color(p_col.r, p_col.g, p_col.b, 0.4), 1.0)
@@ -518,7 +560,7 @@ static func draw_level_map(canvas: CanvasItem, stage_id: int, map_rect: Rect2, p
 			elif p_type == PlatformType.ENERGY_BARRIER:
 				canvas.draw_line(Vector2(px + 4.0, py - 2.0), Vector2(px + pw - 4.0, py - 2.0), Color(0.8, 1.0, 1.0, 0.7), 1.0)
 	
-	# 4. Boss Stronghold Zone at 5800m
+	# 4. Boss Stronghold Zone at 8800m
 	var boss_x: float = map_rect.position.x + BOSS_TRIGGER_X * scale_x
 	var boss_marker_rect := Rect2(boss_x - 3.0, map_rect.position.y + 4.0, 6.0, map_h - 8.0)
 	var pulse: float = 0.75 + 0.25 * sin(anim_time * 6.0)
@@ -561,5 +603,5 @@ static func draw_level_map(canvas: CanvasItem, stage_id: int, map_rect: Rect2, p
 		canvas.draw_string(font, map_rect.position + Vector2(8.0, 30.0), "HAZARDS: " + m["hazard"], HORIZONTAL_ALIGNMENT_LEFT, -1, 9, Color(1.0, 0.45, 0.45))
 		canvas.draw_string(font, Vector2(boss_x - 44.0, map_rect.position.y + 16.0), "BOSS CORE ►", HORIZONTAL_ALIGNMENT_RIGHT, -1, 9, Color(1.0, 0.35, 0.35))
 		canvas.draw_string(font, map_rect.position + Vector2(8.0, map_h - 6.0), "0m [DROP ZONE]", HORIZONTAL_ALIGNMENT_LEFT, -1, 8, Color(0.5, 0.7, 0.9))
-		canvas.draw_string(font, Vector2(boss_x - 30.0, map_rect.end.y - 6.0), "5800m [CORE]", HORIZONTAL_ALIGNMENT_LEFT, -1, 8, Color(1.0, 0.5, 0.5))
-		canvas.draw_string(font, Vector2(map_rect.end.x - 68.0, map_rect.end.y - 6.0), "6700m [EXIT]", HORIZONTAL_ALIGNMENT_LEFT, -1, 8, Color(0.5, 0.7, 0.9))
+		canvas.draw_string(font, Vector2(boss_x - 30.0, map_rect.end.y - 6.0), "8800m [CORE]", HORIZONTAL_ALIGNMENT_LEFT, -1, 8, Color(1.0, 0.5, 0.5))
+		canvas.draw_string(font, Vector2(map_rect.end.x - 68.0, map_rect.end.y - 6.0), "9800m [EXIT]", HORIZONTAL_ALIGNMENT_LEFT, -1, 8, Color(0.5, 0.7, 0.9))

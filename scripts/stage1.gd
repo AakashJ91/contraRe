@@ -227,6 +227,20 @@ func _load_textures() -> void:
 	if not dynamo_erf.is_empty():
 		ground_edge_right_frames_by_stage[6] = dynamo_erf
 	
+	var waterfall_elf: Array[Texture2D] = []
+	var waterfall_erf: Array[Texture2D] = []
+	for i in range(4):
+		var welp := "res://assets/tiles/ground_waterfall_edge_left_%d.png" % i
+		var werp := "res://assets/tiles/ground_waterfall_edge_right_%d.png" % i
+		if ResourceLoader.exists(welp):
+			waterfall_elf.append(load(welp))
+		if ResourceLoader.exists(werp):
+			waterfall_erf.append(load(werp))
+	if not waterfall_elf.is_empty():
+		ground_edge_left_frames_by_stage[2] = waterfall_elf
+	if not waterfall_erf.is_empty():
+		ground_edge_right_frames_by_stage[2] = waterfall_erf
+	
 	water_surface_frames.clear()
 	for i in range(4):
 		var wp := "res://assets/tiles/water_surface_%d.png" % i
@@ -1528,6 +1542,11 @@ func _draw_platforms(view_left: float, view_right: float) -> void:
 			# Molten lava pool at bottom of refinery pits
 			var lava_pulse := 0.8 + 0.2 * sin(anim_timer * 6.0 + float(i))
 			draw_rect(Rect2(pit_left, 500.0, pit_w, 40.0), Color(1.0 * lava_pulse, 0.35, 0.05, 0.85))
+		elif Global.current_stage == 2:
+			# Frothing river mist & turbulent rapids at bottom of waterfall chasms
+			var river_pulse := 0.85 + 0.15 * sin(anim_timer * 8.0 + float(i))
+			draw_rect(Rect2(pit_left, 505.0, pit_w, 35.0), Color(0.20, 0.55, 0.85, 0.70 * river_pulse))
+			draw_line(Vector2(pit_left, 506.0), Vector2(pit_right, 506.0), Color(0.85, 0.95, 1.0, 0.85), 2.0)
 		elif Global.current_stage == 6:
 			# Electric surge sparks at bottom of dynamo voids
 			draw_line(Vector2(pit_left, 510.0), Vector2(pit_right, 510.0), Color(0.2, 0.8, 1.0, 0.8), 2.5)
@@ -1540,18 +1559,19 @@ func _draw_platforms(view_left: float, view_right: float) -> void:
 		
 		var has_left_edge: bool = (g.position.x > 0.0)
 		var has_right_edge: bool = (g.end.x < LEVEL_MAX_X)
+		var edge_anim_fps: float = 8.0 if Global.current_stage == 2 else 6.0
 		var active_edge_left_tex: Texture2D = ground_edge_left_textures_by_stage.get(Global.current_stage, ground_edge_left_texture)
 		if ground_edge_left_frames_by_stage.has(Global.current_stage):
 			var elf: Array = ground_edge_left_frames_by_stage[Global.current_stage]
 			if not elf.is_empty():
-				var el_idx: int = int(fmod(anim_timer * 6.0, float(elf.size())))
+				var el_idx: int = int(fmod(anim_timer * edge_anim_fps, float(elf.size())))
 				active_edge_left_tex = elf[el_idx]
 
 		var active_edge_right_tex: Texture2D = ground_edge_right_textures_by_stage.get(Global.current_stage, ground_edge_right_texture)
 		if ground_edge_right_frames_by_stage.has(Global.current_stage):
 			var erf: Array = ground_edge_right_frames_by_stage[Global.current_stage]
 			if not erf.is_empty():
-				var er_idx: int = int(fmod(anim_timer * 6.0, float(erf.size())))
+				var er_idx: int = int(fmod(anim_timer * edge_anim_fps, float(erf.size())))
 				active_edge_right_tex = erf[er_idx]
 
 		var actual_left_w: float = edge_w if (has_left_edge and active_edge_left_tex != null) else 0.0
