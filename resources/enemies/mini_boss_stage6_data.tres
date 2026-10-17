@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="EnemyData" format=3 uid="uid://cminiboss_stg6_001"]
+
+[ext_resource type="Script" path="res://scripts/enemy_data.gd" id="1_data"]
+[ext_resource type="Texture2D" path="res://assets/enemies/mini_boss_stage6/mini_boss_stage6.png" id="2_tex"]
+
+[resource]
+script = ExtResource("1_data")
+enemy_name = "Tesla Overlord"
+max_health = 42.0
+move_speed = 54.0
+score_reward = 12000
+contact_damage = 2.0
+sprite_texture = ExtResource("2_tex")
+sprite_size = Vector2(115, 140)
+attack_interval_min = 1.1
+attack_interval_max = 2.4

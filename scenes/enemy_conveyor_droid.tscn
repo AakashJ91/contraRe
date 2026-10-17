@@ -1,0 +1,15 @@
+[gd_scene load_steps=3 format=3 uid="uid://csceneconveyor_d001"]
+
+[ext_resource type="Script" path="res://scripts/enemy_conveyor_droid.gd" id="1_conveyor_droid"]
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_1"]
+radius = 13.0
+
+[node name="EnemyConveyorDroid" type="CharacterBody2D"]
+collision_layer = 4
+collision_mask = 2
+script = ExtResource("1_conveyor_droid")
+
+<node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+position = Vector2(0, 0)
+shape = SubResource("CircleShape2D_1")

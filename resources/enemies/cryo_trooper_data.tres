@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="EnemyData" format=3 uid="uid://bpq81osi8fd6w"]
+
+[ext_resource type="Script" path="res://scripts/enemy_data.gd" id="1_data"]
+[ext_resource type="Texture2D" path="res://assets/enemies/cryo_trooper/cryo_trooper.png" id="2_tex"]
+
+[resource]
+script = ExtResource("1_data")
+enemy_name = "Cryo Trooper"
+max_health = 4.5
+move_speed = 60.0
+score_reward = 350
+contact_damage = 1.0
+sprite_texture = ExtResource("2_tex")
+sprite_size = Vector2(58.0, 60.0)
+attack_interval_min = 2.5
+attack_interval_max = 4.0

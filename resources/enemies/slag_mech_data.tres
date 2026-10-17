@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="EnemyData" format=3 uid="uid://cslagmech001"]
+
+[ext_resource type="Script" path="res://scripts/enemy_data.gd" id="1_data"]
+[ext_resource type="Texture2D" path="res://assets/enemies/slag_mech/slag_mech.png" id="2_tex"]
+
+[resource]
+script = ExtResource("1_data")
+enemy_name = "Slag Loader Mech"
+max_health = 7.0
+move_speed = 50.0
+score_reward = 500
+contact_damage = 2.0
+sprite_texture = ExtResource("2_tex")
+sprite_size = Vector2(72.0, 72.0)
+attack_interval_min = 2.5
+attack_interval_max = 4.0

@@ -1,0 +1,15 @@
+[gd_scene load_steps=3 format=3 uid="uid://cscenerail_turre001"]
+
+[ext_resource type="Script" path="res://scripts/enemy_rail_turret.gd" id="1_rail_turret"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_1"]
+size = Vector2(28.0, 28.0)
+
+[node name="EnemyRailTurret" type="CharacterBody2D"]
+collision_layer = 4
+collision_mask = 2
+script = ExtResource("1_rail_turret")
+
+<node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+position = Vector2(0, 0)
+shape = SubResource("RectangleShape2D_1")

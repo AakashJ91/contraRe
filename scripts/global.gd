@@ -97,14 +97,14 @@ const STAGE_FULL_TITLES: Array[String] = [
 ]
 
 const BOSS_NAMES: Array[String] = [
-	"RED FALCON DEFENSE WALL",
-	"HYDRO MECH",
-	"BIO-HEART",
-	"SIEGE TANK",
-	"MAGMA FORGE",
+	"WALL DEFENSE FORTRESS",
+	"HYDRO-GOLIATH MECH",
+	"GIGA BIO-HEART",
+	"FROSTBITE SIEGE TANK",
+	"MAGMA FORGE GOLEM",
 	"THUNDER DYNAMO",
-	"STAR CRUISER",
-	"MOTHER BRAIN"
+	"VANGUARD STAR CRUISER",
+	"EMPEROR MOTHER BRAIN"
 ]
 
 func _ready() -> void:
@@ -169,7 +169,7 @@ func get_stage_full_title(stage_idx: int = -1) -> String:
 	return get_stage_name(stage_idx)
 
 func get_boss_name(stage_idx: int = -1) -> String:
-	if active_boss_name != "":
+	if stage_idx <= 0 and active_boss_name != "":
 		return active_boss_name
 	var idx := (current_stage if stage_idx <= 0 else stage_idx) - 1
 	if idx >= 0 and idx < BOSS_NAMES.size():

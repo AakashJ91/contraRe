@@ -29,7 +29,7 @@ shape = SubResource("Rect_wall_left")
 position = Vector2(100, 410)
 
 [node name="MiniBoss" parent="." instance=ExtResource("4_miniboss")]
-position = Vector2(3620, 440)
+position = Vector2(5620, 440)
 
 [node name="Boss" parent="." instance=ExtResource("3_boss")]
-position = Vector2(6150, 330)
+position = Vector2(9150, 330)

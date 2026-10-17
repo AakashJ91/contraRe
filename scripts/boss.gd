@@ -33,7 +33,26 @@ var muzzle_flash_left: float = 0.0
 var muzzle_flash_right: float = 0.0
 var muzzle_flash_top: float = 0.0
 
-# Stage 1 Machineguns State
+# Stage 2 Hydro-Goliath Walking & Turbine Animation State
+var walk_textures: Array[Texture2D] = []
+var idle_textures: Array[Texture2D] = []
+var boss_texture_red: Texture2D = null
+var boss_texture_hg: Texture2D = null
+var standing_textures: Array[Texture2D] = []
+var is_standing_vulnerable: bool = false
+var goliath_state_timer: float = 4.5
+var standing_anim_timer: float = 0.0
+var walk_frame_index: int = 0
+var walk_anim_timer: float = 0.0
+var walk_cycle_speed: float = 4.5
+var walk_dir: float = -1.0 # -1.0 = forward (towards player / left), 1.0 = backward (retreating / right)
+var walk_timer: float = 2.5
+var walk_speed: float = 46.0
+var arena_min_x: float = 8890.0
+var arena_max_x: float = 9240.0
+var is_walking: bool = false
+var step_sound_cooldown: float = 0.0
+
 var mg_burst_active: bool = false
 var mg_burst_gun: int = 0 # 0: Mid-Left, 1: Top-Left, 2: Top-Right
 var mg_burst_count: int = 0
@@ -74,43 +93,133 @@ func _ready() -> void:
 			boss_texture = load("res://assets/enemies/boss_fortress.png")
 		elif ResourceLoader.exists("res://assets/enemies/boss_wall.png"):
 			boss_texture = load("res://assets/enemies/boss_wall.png")
+	elif Global.current_stage == 2:
+		walk_textures.clear()
+		for i in range(4):
+			var wp := "res://assets/enemies/boss_hydro_goliath/movement/walk_%d.png" % i
+			if ResourceLoader.exists(wp):
+				walk_textures.append(load(wp))
+		
+		standing_textures.clear()
+		if ResourceLoader.exists("res://assets/enemies/boss_hydro_goliath/boss_hydro_goliath.png"):
+			boss_texture = load("res://assets/enemies/boss_hydro_goliath/boss_hydro_goliath.png")
+			standing_textures.append(boss_texture)
+		
+		var red_p := "res://assets/enemies/boss_hydro_goliath/boss_hydro_goliath_red.png"
+		if ResourceLoader.exists(red_p):
+			boss_texture_red = load(red_p)
+			standing_textures.append(boss_texture_red)
+		
+		var hg_p := "res://assets/enemies/boss_hydro_goliath/hg.png"
+		if ResourceLoader.exists(hg_p):
+			boss_texture_hg = load(hg_p)
+			standing_textures.append(boss_texture_hg)
+		
+		death_textures.clear()
+		for i in range(4):
+			var dp := "res://assets/enemies/boss_hydro_goliath/death/destroy_%d.png" % i
+			if ResourceLoader.exists(dp):
+				death_textures.append(load(dp))
+		
+		left_cannon.position = Vector2(-110.0, -5.0)
+		right_cannon.position = Vector2(65.0, -45.0)
+		arena_min_x = 8890.0
+		arena_max_x = 9240.0
+		walk_dir = -1.0
+		is_standing_vulnerable = false
+		goliath_state_timer = 4.5
+	elif Global.current_stage in [3, 4, 5, 6, 7, 8]:
+		var stage_folder_map := {
+			3: "boss_bio_heart",
+			4: "boss_siege_tank",
+			5: "boss_magma_forge",
+			6: "boss_thunder_dynamo",
+			7: "boss_star_cruiser",
+			8: "boss_mother_brain"
+		}
+		var f_name: String = stage_folder_map.get(Global.current_stage, "")
+		if f_name != "":
+			var base_p := "res://assets/enemies/%s/%s.png" % [f_name, f_name]
+			if ResourceLoader.exists(base_p):
+				boss_texture = load(base_p)
+			
+			core_textures.clear()
+			for i in range(4):
+				var mp := "res://assets/enemies/%s/movement/frame_%d.png" % [f_name, i]
+				if ResourceLoader.exists(mp):
+					core_textures.append(load(mp))
+			
+			death_textures.clear()
+			for i in range(4):
+				var dp := "res://assets/enemies/%s/death/destroy_%d.png" % [f_name, i]
+				if ResourceLoader.exists(dp):
+					death_textures.append(load(dp))
+		
+		match Global.current_stage:
+			3:
+				left_cannon.position = Vector2(-75.0, -20.0)
+				right_cannon.position = Vector2(75.0, -20.0)
+			4:
+				left_cannon.position = Vector2(-70.0, -40.0)
+				right_cannon.position = Vector2(50.0, -65.0)
+			5:
+				left_cannon.position = Vector2(-80.0, 10.0)
+				right_cannon.position = Vector2(80.0, 10.0)
+			6:
+				left_cannon.position = Vector2(-80.0, -10.0)
+				right_cannon.position = Vector2(80.0, -10.0)
+			7:
+				left_cannon.position = Vector2(-120.0, -10.0)
+				right_cannon.position = Vector2(-30.0, -40.0)
+			8:
+				left_cannon.position = Vector2(-80.0, 40.0)
+				right_cannon.position = Vector2(80.0, 40.0)
 	queue_redraw()
 
+func _get_boss_resource() -> EnemyData:
+	var path_map := {
+		1: "res://resources/enemies/alien_core_data.tres",
+		2: "res://resources/enemies/hydro_goliath_data.tres",
+		3: "res://resources/enemies/bio_heart_data.tres",
+		4: "res://resources/enemies/siege_tank_data.tres",
+		5: "res://resources/enemies/magma_forge_data.tres",
+		6: "res://resources/enemies/thunder_dynamo_data.tres",
+		7: "res://resources/enemies/star_cruiser_data.tres",
+		8: "res://resources/enemies/mother_brain_data.tres"
+	}
+	var res_path: String = path_map.get(Global.current_stage, "")
+	if res_path != "" and ResourceLoader.exists(res_path):
+		return load(res_path) as EnemyData
+	return enemy_data
+
 func _init_boss_stats() -> void:
+	var res := _get_boss_resource()
+	var default_hp := 35.0 + float(Global.current_stage - 1) * 3.5
+	max_health = res.max_health if res != null else default_hp
+
 	match Global.current_stage:
-		1: # Wall Defense Fortress
-			if enemy_data != null:
-				max_health = enemy_data.max_health
-			else:
-				max_health = 35.0
+		1:
 			left_part_hp = 12.0
 			right_part_hp = 12.0
-		2: # Hydro-Goliath Mech
-			max_health = 38.0
+		2:
 			left_part_hp = 14.0
 			right_part_hp = 14.0
-		3: # Giga Bio-Heart
-			max_health = 42.0
+		3:
 			left_part_hp = 14.0
 			right_part_hp = 14.0
-		4: # Frostbite Siege Tank
-			max_health = 45.0
+		4:
 			left_part_hp = 15.0
 			right_part_hp = 15.0
-		5: # Magma Forge Golem
-			max_health = 48.0
+		5:
 			left_part_hp = 16.0
 			right_part_hp = 16.0
-		6: # Thunder Dynamo
-			max_health = 52.0
+		6:
 			left_part_hp = 18.0
 			right_part_hp = 18.0
-		7: # Vanguard Star Cruiser
-			max_health = 55.0
+		7:
 			left_part_hp = 20.0
 			right_part_hp = 20.0
-		8: # Emperor Mother Brain
-			max_health = 60.0
+		8:
 			left_part_hp = 22.0
 			right_part_hp = 22.0
 	current_health = max_health
@@ -198,6 +307,10 @@ func _physics_process(delta: float) -> void:
 			sc["rot"] += sc["rot_speed"] * delta
 		sc_idx -= 1
 	
+	# Walking Movement AI (Stage 2: Hydro-Goliath Mech)
+	if Global.current_stage == 2 and not is_dead and is_active:
+		_process_hydro_goliath_movement(delta)
+	
 	# Attack Pattern 1: Primary side weapons
 	attack_timer_1 -= delta
 	if attack_timer_1 <= 0.0:
@@ -213,6 +326,99 @@ func _physics_process(delta: float) -> void:
 		_execute_attack_2()
 	
 	queue_redraw()
+
+func _process_hydro_goliath_movement(delta: float) -> void:
+	if step_sound_cooldown > 0.0:
+		step_sound_cooldown -= delta
+	
+	# Pacing state machine: alternate between Walking (armored) and Standing Still (vulnerable overheat)
+	goliath_state_timer -= delta
+	if goliath_state_timer <= 0.0:
+		if is_standing_vulnerable:
+			# Finished standing overheat state -> resume walking forward/backward
+			is_standing_vulnerable = false
+			goliath_state_timer = randf_range(4.0, 5.5)
+			if global_position.x <= arena_min_x + 90.0:
+				walk_dir = 1.0
+			elif global_position.x >= arena_max_x - 50.0:
+				walk_dir = -1.0
+			else:
+				walk_dir = -1.0 if randf() < 0.65 else 1.0
+			walk_timer = randf_range(2.0, 3.5)
+		else:
+			# Finished walking -> stop still and enter vulnerable overheat state
+			is_standing_vulnerable = true
+			goliath_state_timer = randf_range(3.2, 4.2)
+			standing_anim_timer = 0.0
+			Global.play_sfx("boss_alarm")
+			VFX.spawn_dust_puff(global_position + Vector2(0.0, 20.0), 8, Color(0.9, 0.4, 0.3, 0.75))
+
+	if is_standing_vulnerable:
+		# Standing still: stop movement and increment standing animation timer
+		is_walking = false
+		walk_frame_index = 0
+		standing_anim_timer += delta
+		return
+
+	# If currently executing an attack or recovering from a shot, briefly pause walking to brace
+	var is_bracing: bool = (muzzle_flash_left > 0.0 or muzzle_flash_right > 0.0)
+	
+	# Dynamic movement pacing while walking
+	walk_timer -= delta
+	if walk_timer <= 0.0:
+		if walk_dir < 0.0:
+			# If advancing toward player, after a while either halt to fire or retreat
+			if randf() < 0.65 and global_position.x <= arena_min_x + 90.0:
+				walk_dir = 1.0 # Retreat backward
+				walk_timer = randf_range(2.0, 3.5)
+			else:
+				walk_timer = randf_range(1.5, 2.5)
+		else:
+			# If retreating, after reaching rear threshold, advance forward
+			if global_position.x >= arena_max_x - 50.0 or randf() < 0.7:
+				walk_dir = -1.0 # Advance forward
+				walk_timer = randf_range(2.5, 4.0)
+			else:
+				walk_timer = randf_range(1.5, 2.5)
+
+	# Arena boundary constraints
+	if global_position.x <= arena_min_x:
+		global_position.x = arena_min_x
+		walk_dir = 1.0 # Push back
+		walk_timer = randf_range(2.0, 3.2)
+	elif global_position.x >= arena_max_x:
+		global_position.x = arena_max_x
+		walk_dir = -1.0 # Push forward
+		walk_timer = randf_range(2.5, 3.8)
+
+	var cur_speed: float = walk_speed if not is_bracing else 0.0
+	var vel_x: float = walk_dir * cur_speed
+	global_position.x += vel_x * delta
+	global_position.x = clampf(global_position.x, arena_min_x, arena_max_x)
+	is_walking = abs(vel_x) > 1.0
+
+	if is_walking:
+		var prev_frame := walk_frame_index
+		if walk_dir < 0.0:
+			# Forward stride
+			walk_anim_timer += delta * walk_cycle_speed
+			walk_frame_index = int(walk_anim_timer) % 4
+		else:
+			# Backward stride (reverse cycle)
+			walk_anim_timer -= delta * walk_cycle_speed
+			walk_frame_index = posmod(int(floor(walk_anim_timer)), 4)
+
+		# Trigger foot stomp sound and terrain dust when switching to stance contact frames (0 or 2)
+		if walk_frame_index != prev_frame and (walk_frame_index == 0 or walk_frame_index == 2):
+			if step_sound_cooldown <= 0.0:
+				step_sound_cooldown = 0.22
+				Global.play_sfx("hit")
+				Global.shake_screen(2.2, 0.08)
+			var foot_x := -95.0 if walk_frame_index == 0 else 75.0
+			var foot_world_pos := global_position + Vector2(foot_x, 105.0)
+			VFX.spawn_dust_puff(foot_world_pos, 4, Color(0.65, 0.78, 0.88, 0.7))
+	else:
+		walk_frame_index = 0
 
 func _execute_attack_1() -> void:
 	if bullet_scene == null:
@@ -380,13 +586,15 @@ func _fire_straight_cannons(player_node: Node2D, spd: float) -> void:
 func _fire_spread_cannons(player_node: Node2D, spd: float, count: int) -> void:
 	var mid := float(count - 1) * 0.5
 	if left_part_hp > 0.0:
-		var p1 := global_position + Vector2(-60.0, 40.0)
+		muzzle_flash_left = 0.12
+		var p1 := global_position + (Vector2(-110.0, -5.0) if Global.current_stage == 2 else Vector2(-60.0, 40.0))
 		var d1 := (player_node.global_position - p1).normalized()
 		for i in range(count):
 			var ang := (float(i) - mid) * 0.16
 			_spawn_bullet(p1, d1.rotated(ang), spd)
 	if right_part_hp > 0.0:
-		var p2 := global_position + Vector2(60.0, 40.0)
+		muzzle_flash_right = 0.12
+		var p2 := global_position + (Vector2(65.0, -45.0) if Global.current_stage == 2 else Vector2(60.0, 40.0))
 		var d2 := (player_node.global_position - p2).normalized()
 		for i in range(count):
 			var ang := (float(i) - mid) * 0.16
@@ -419,7 +627,13 @@ func _on_left_part_hit(area: Area2D) -> void:
 	if left_part_hp <= 0.0:
 		return
 	var dmg: float = area.get("damage") if area.get("damage") != null else 1.0
-	left_part_hp -= dmg
+	var actual_dmg := dmg
+	if Global.current_stage == 2:
+		if is_standing_vulnerable:
+			actual_dmg = dmg * 2.5
+		else:
+			actual_dmg = maxf(0.2, dmg * 0.25)
+	left_part_hp -= actual_dmg
 	Global.play_sfx("hit")
 	if area.get("pierce_count") != null:
 		area.pierce_count -= 1
@@ -428,14 +642,20 @@ func _on_left_part_hit(area: Area2D) -> void:
 	else:
 		area.queue_free()
 	if left_part_hp <= 0.0:
-		var d_offset := Vector2(-120.0, 25.0) if Global.current_stage == 1 else Vector2(-60.0, 40.0)
+		var d_offset := Vector2(-110.0, -5.0) if Global.current_stage == 2 else (Vector2(-120.0, 25.0) if Global.current_stage == 1 else Vector2(-60.0, 40.0))
 		_destroy_sub_part(global_position + d_offset)
 
 func _on_right_part_hit(area: Area2D) -> void:
 	if right_part_hp <= 0.0:
 		return
 	var dmg: float = area.get("damage") if area.get("damage") != null else 1.0
-	right_part_hp -= dmg
+	var actual_dmg := dmg
+	if Global.current_stage == 2:
+		if is_standing_vulnerable:
+			actual_dmg = dmg * 2.5
+		else:
+			actual_dmg = maxf(0.2, dmg * 0.25)
+	right_part_hp -= actual_dmg
 	Global.play_sfx("hit")
 	if area.get("pierce_count") != null:
 		area.pierce_count -= 1
@@ -444,7 +664,7 @@ func _on_right_part_hit(area: Area2D) -> void:
 	else:
 		area.queue_free()
 	if right_part_hp <= 0.0:
-		var d_offset := Vector2(-74.0, -87.0) if Global.current_stage == 1 else Vector2(60.0, 40.0)
+		var d_offset := Vector2(65.0, -45.0) if Global.current_stage == 2 else (Vector2(-74.0, -87.0) if Global.current_stage == 1 else Vector2(60.0, 40.0))
 		_destroy_sub_part(global_position + d_offset)
 
 func _destroy_sub_part(pos: Vector2) -> void:
@@ -458,18 +678,36 @@ func _destroy_sub_part(pos: Vector2) -> void:
 func take_damage(dmg: float = 1.0) -> void:
 	if not is_active or is_dead:
 		return
-	current_health -= dmg
-	core_flash_timer = 0.08
-	Global.play_sfx("hit")
+	
+	var actual_dmg := dmg
+	if Global.current_stage == 2:
+		if is_standing_vulnerable:
+			# While standing still: takes BIG damage from player!
+			actual_dmg = dmg * 3.0
+			core_flash_timer = 0.14
+			Global.play_sfx("hit")
+			Global.shake_screen(4.0, 0.15)
+			VFX.spawn_hit_sparks(global_position + Vector2(0.0, 8.0), Vector2.UP, Color(1.0, 0.25, 0.15))
+		else:
+			# While walking: heavy armor deflects shots, takes very less damage!
+			actual_dmg = maxf(0.15, dmg * 0.20)
+			core_flash_timer = 0.05
+			Global.play_sfx("hit")
+			VFX.spawn_hit_sparks(global_position + Vector2(-40.0, 0.0), Vector2(-walk_dir, -0.6).normalized(), Color(0.75, 0.85, 1.0))
+	else:
+		core_flash_timer = 0.08
+		Global.play_sfx("hit")
+	
+	current_health -= actual_dmg
 	Global.boss_health_changed.emit(maxf(0.0, current_health), max_health)
 	if current_health <= 0.0:
 		_trigger_death()
 
 func _trigger_death() -> void:
 	is_dead = true
-	var base_score := enemy_data.score_reward if (enemy_data != null and Global.current_stage == 1) else 10000
-	var bonus_score := base_score + (Global.current_stage - 1) * 2000
-	Global.add_score(bonus_score)
+	var res := _get_boss_resource()
+	var score_to_add: int = res.score_reward if res != null else (10000 + (Global.current_stage - 1) * 2000)
+	Global.add_score(score_to_add)
 	Global.is_victory = true
 	Global.boss_defeated.emit()
 	death_explosions_left = 18
@@ -644,143 +882,217 @@ func _draw_boss_1_wall() -> void:
 # BOSS 2: HYDRO-GOLIATH MECH
 # -----------------------------------------------------------------------------
 func _draw_boss_2_hydro_mech() -> void:
-	var col_mech := Color(0.18, 0.28, 0.38)
-	var col_armor := Color(0.25, 0.42, 0.55)
-	# Heavy hydraulic legs
-	draw_line(Vector2(-70.0, 30.0), Vector2(-90.0, 95.0), Color(0.12, 0.16, 0.22), 12.0)
-	draw_line(Vector2(70.0, 30.0), Vector2(90.0, 95.0), Color(0.12, 0.16, 0.22), 12.0)
-	# Walker chassis
-	draw_rect(Rect2(-95.0, -75.0, 190.0, 140.0), col_mech)
-	draw_rect(Rect2(-80.0, -60.0, 160.0, 110.0), col_armor)
-	# Rotating top water turbine
-	draw_circle(Vector2(0.0, -65.0), 22.0, Color(0.15, 0.30, 0.45))
-	draw_arc(Vector2(0.0, -65.0), 22.0, anim_timer * 4.0, anim_timer * 4.0 + PI, 16, Color(0.35, 0.85, 1.0), 2.5)
-	_draw_cannons_and_core(Color(0.2, 0.6, 1.0))
+	var draw_w: float = 290.0
+	var draw_h: float = 225.0
+	var draw_rect := Rect2(-116.0, -110.0, draw_w, draw_h)
+	var flash_col: Color
+	if core_flash_timer > 0.0:
+		if is_standing_vulnerable:
+			flash_col = Color(2.5, 0.4, 0.4)
+		else:
+			flash_col = Color(1.3, 1.4, 1.8)
+	else:
+		flash_col = Color.WHITE
+	
+	if is_dead and death_textures.size() > 0:
+		var tex: Texture2D = death_textures[clampi(death_frame_index, 0, death_textures.size() - 1)]
+		if tex != null:
+			draw_texture_rect(tex, draw_rect, false, Color.WHITE)
+	elif not is_dead:
+		var active_tex: Texture2D = null
+		
+		if not is_standing_vulnerable and is_walking and walk_textures.size() > 0:
+			# Walking: cycle articulated walking animation frames (0 -> 1 -> 2 -> 3)
+			var cur_frame := clampi(walk_frame_index, 0, walk_textures.size() - 1)
+			active_tex = walk_textures[cur_frame]
+		elif standing_textures.size() > 0:
+			# Standing still: animate sequential cycle across the 3 PNGs:
+			# 0: boss_hydro_goliath.png (base standing)
+			# 1: boss_hydro_goliath_red.png (red turbine)
+			# 2: hg.png (overheated red glowing turbine)
+			var stand_fps := 3.0
+			var stand_idx := int(standing_anim_timer * stand_fps) % standing_textures.size()
+			active_tex = standing_textures[stand_idx]
+		elif boss_texture != null:
+			active_tex = boss_texture
+		
+		if active_tex != null:
+			draw_texture_rect(active_tex, draw_rect, false, flash_col)
+		else:
+			draw_rect(Rect2(-95.0, -75.0, 190.0, 140.0), Color(0.18, 0.28, 0.38))
+		
+		core_area.position = Vector2(0.0, 8.0)
+		
+		# Torrential Water Mist & Hydro Exhaust effects
+		if is_standing_vulnerable:
+			# Overheated exhaust steam & warning heat pulse when standing still
+			var heat_pulse := 0.7 + 0.3 * sin(anim_timer * 14.0)
+			draw_circle(Vector2(-112.0, -5.0), 16.0 * heat_pulse, Color(1.0, 0.4, 0.2, 0.50))
+			draw_circle(Vector2(-112.0, -5.0), 8.0 * heat_pulse, Color(1.0, 0.8, 0.3, 0.70))
+			draw_circle(Vector2(20.0, -100.0), 10.0 * heat_pulse, Color(0.9, 0.3, 0.2, 0.40))
+		else:
+			# Normal hydro-mist while moving
+			var mist_pulse := 0.6 + 0.4 * sin(anim_timer * 10.0)
+			draw_circle(Vector2(-112.0, -5.0), 12.0 * mist_pulse, Color(0.3, 0.85, 1.0, 0.35))
+		
+		# Twin Hydro-Cannon Muzzle Flashes when firing
+		if muzzle_flash_left > 0.0:
+			var s := muzzle_flash_left / 0.10
+			var mfp1 := Vector2(-116.0, -18.0)
+			var mfp2 := Vector2(-116.0, 10.0)
+			draw_circle(mfp1, 14.0 * s, Color(0.3, 0.85, 1.0, 0.9))
+			draw_circle(mfp1, 7.0 * s, Color.WHITE)
+			draw_circle(mfp2, 14.0 * s, Color(0.3, 0.85, 1.0, 0.9))
+			draw_circle(mfp2, 7.0 * s, Color.WHITE)
+			
+		# Torpedo pod muzzle flash when firing
+		if muzzle_flash_right > 0.0:
+			var s := muzzle_flash_right / 0.10
+			var mfp3 := Vector2(65.0, -45.0)
+			draw_circle(mfp3, 16.0 * s, Color(1.0, 0.7, 0.2, 0.9))
+			draw_circle(mfp3, 8.0 * s, Color.WHITE)
+
+	# Destroyed side cannon damage states (smoke + sparks)
+	if left_part_hp <= 0.0:
+		var d_pos := Vector2(-105.0, -5.0)
+		draw_circle(d_pos, 14.0, Color(0.10, 0.10, 0.12, 0.95))
+		if sin(anim_timer * 18.0) > 0.3:
+			draw_circle(d_pos + Vector2(randf_range(-6, 6), randf_range(-6, 6)), 4.0, Color(1.0, 0.7, 0.2))
+		draw_circle(d_pos + Vector2(0.0, -10.0 - fmod(anim_timer * 20.0, 18.0)), 7.0, Color(0.2, 0.2, 0.25, 0.6))
+
+	if right_part_hp <= 0.0:
+		var d_pos := Vector2(65.0, -45.0)
+		draw_circle(d_pos, 14.0, Color(0.10, 0.10, 0.12, 0.95))
+		if sin(anim_timer * 18.0 + 1.0) > 0.3:
+			draw_circle(d_pos + Vector2(randf_range(-6, 6), randf_range(-6, 6)), 4.0, Color(1.0, 0.7, 0.2))
+		draw_circle(d_pos + Vector2(0.0, -10.0 - fmod(anim_timer * 20.0, 18.0)), 7.0, Color(0.2, 0.2, 0.25, 0.6))
 
 # -----------------------------------------------------------------------------
 # BOSS 3: GIGA BIO-HEART
 # -----------------------------------------------------------------------------
 func _draw_boss_3_bio_heart() -> void:
-	var pulse := 1.0 + 0.12 * sin(core_pulse)
-	var col_flesh := Color(0.70, 0.15, 0.25)
-	var col_vein := Color(0.95, 0.25, 0.40)
-	# Waving alien tentacles
-	for t in range(4):
-		var side := -1.0 if t < 2 else 1.0
-		var ty := -50.0 + float(t % 2) * 80.0
-		var sweep := sin(anim_timer * 3.0 + float(t)) * 25.0
-		draw_line(Vector2(side * 60.0, ty), Vector2(side * 115.0 + sweep, ty + 20.0), col_flesh, 7.0)
-	# Pulsing heart chamber
-	draw_circle(Vector2(0.0, 8.0), 65.0 * pulse, col_flesh)
-	draw_circle(Vector2(-25.0, -15.0), 38.0 * pulse, Color(0.55, 0.10, 0.20))
-	draw_circle(Vector2(25.0, -15.0), 38.0 * pulse, Color(0.55, 0.10, 0.20))
-	# Glowing veins
-	for v in range(6):
-		var a := float(v) * (TAU / 6.0) + core_pulse * 0.2
-		draw_line(Vector2(0.0, 8.0), Vector2(cos(a) * 45.0, 8.0 + sin(a) * 45.0), col_vein, 2.5)
-	_draw_cannons_and_core(Color(1.0, 0.20, 0.30))
+	var draw_rect := Rect2(-135.0, -110.0, 270.0, 220.0)
+	var flash_col := Color(2.2, 0.4, 0.4) if core_flash_timer > 0.0 else Color.WHITE
+	
+	if is_dead and death_textures.size() > 0:
+		var tex: Texture2D = death_textures[clampi(death_frame_index, 0, death_textures.size() - 1)]
+		if tex != null:
+			draw_texture_rect(tex, draw_rect, false, Color.WHITE)
+	elif not is_dead:
+		var active_tex: Texture2D = boss_texture
+		if core_textures.size() > 0:
+			var idx := int(anim_timer * 4.5) % core_textures.size()
+			active_tex = core_textures[idx]
+		if active_tex != null:
+			draw_texture_rect(active_tex, draw_rect, false, flash_col)
+		else:
+			var pulse := 1.0 + 0.12 * sin(core_pulse)
+			draw_circle(Vector2(0.0, 8.0), 65.0 * pulse, Color(0.70, 0.15, 0.25))
 
 # -----------------------------------------------------------------------------
 # BOSS 4: FROSTBITE SIEGE TANK
 # -----------------------------------------------------------------------------
 func _draw_boss_4_siege_tank() -> void:
-	var col_tank := Color(0.22, 0.28, 0.36)
-	var col_ice := Color(0.75, 0.88, 1.0)
-	# Heavy treads
-	draw_rect(Rect2(-115.0, 50.0, 230.0, 38.0), Color(0.12, 0.14, 0.18))
-	for w in range(7):
-		draw_circle(Vector2(-90.0 + float(w) * 30.0, 69.0), 12.0, Color(0.25, 0.30, 0.38))
-	# Armored hull & snow-plow
-	draw_rect(Rect2(-105.0, -60.0, 210.0, 110.0), col_tank)
-	draw_line(Vector2(-105.0, -60.0), Vector2(105.0, -60.0), col_ice, 4.0)
-	# Heavy Mortar Cannon Barrel
-	draw_rect(Rect2(-18.0, -95.0, 36.0, 45.0), Color(0.15, 0.18, 0.24))
-	draw_rect(Rect2(-24.0, -100.0, 48.0, 12.0), col_ice)
-	_draw_cannons_and_core(Color(0.40, 0.90, 1.0))
+	var draw_rect := Rect2(-140.0, -100.0, 280.0, 200.0)
+	var flash_col := Color(2.0, 0.4, 0.4) if core_flash_timer > 0.0 else Color.WHITE
+	
+	if is_dead and death_textures.size() > 0:
+		var tex: Texture2D = death_textures[clampi(death_frame_index, 0, death_textures.size() - 1)]
+		if tex != null:
+			draw_texture_rect(tex, draw_rect, false, Color.WHITE)
+	elif not is_dead:
+		var active_tex: Texture2D = boss_texture
+		if core_textures.size() > 0:
+			var idx := int(anim_timer * 4.0) % core_textures.size()
+			active_tex = core_textures[idx]
+		if active_tex != null:
+			draw_texture_rect(active_tex, draw_rect, false, flash_col)
+		else:
+			draw_rect(Rect2(-105.0, -60.0, 210.0, 110.0), Color(0.22, 0.28, 0.36))
 
 # -----------------------------------------------------------------------------
 # BOSS 5: MAGMA FORGE GOLEM
 # -----------------------------------------------------------------------------
 func _draw_boss_5_magma_forge() -> void:
-	var col_iron := Color(0.22, 0.16, 0.16)
-	var col_lava := Color(1.0, 0.40, 0.08)
-	# Smelting furnace body
-	draw_rect(Rect2(-100.0, -75.0, 200.0, 155.0), col_iron)
-	draw_rect(Rect2(-85.0, -60.0, 170.0, 125.0), Color(0.14, 0.10, 0.10))
-	# Boiling lava exhaust conduits
-	for l in range(5):
-		var lx := -70.0 + float(l) * 35.0
-		draw_rect(Rect2(lx, -50.0, 15.0, 95.0), col_lava * (0.8 + 0.2 * sin(core_pulse + float(l))))
-	# Top smokestack chimneys
-	draw_rect(Rect2(-55.0, -95.0, 30.0, 26.0), col_iron)
-	draw_rect(Rect2(25.0, -95.0, 30.0, 26.0), col_iron)
-	_draw_cannons_and_core(Color(1.0, 0.45, 0.10))
+	var draw_rect := Rect2(-125.0, -125.0, 250.0, 250.0)
+	var flash_col := Color(2.2, 0.4, 0.4) if core_flash_timer > 0.0 else Color.WHITE
+	
+	if is_dead and death_textures.size() > 0:
+		var tex: Texture2D = death_textures[clampi(death_frame_index, 0, death_textures.size() - 1)]
+		if tex != null:
+			draw_texture_rect(tex, draw_rect, false, Color.WHITE)
+	elif not is_dead:
+		var active_tex: Texture2D = boss_texture
+		if core_textures.size() > 0:
+			var idx := int(anim_timer * 4.0) % core_textures.size()
+			active_tex = core_textures[idx]
+		if active_tex != null:
+			draw_texture_rect(active_tex, draw_rect, false, flash_col)
+		else:
+			draw_rect(Rect2(-100.0, -75.0, 200.0, 155.0), Color(0.22, 0.16, 0.16))
 
 # -----------------------------------------------------------------------------
 # BOSS 6: THUNDER OVERLORD DYNAMO
 # -----------------------------------------------------------------------------
 func _draw_boss_6_thunder_dynamo() -> void:
-	var col_stator := Color(0.16, 0.18, 0.26)
-	var col_electric := Color(0.25, 0.85, 1.0)
-	# Rotating stator ring
-	draw_circle(Vector2(0.0, 8.0), 80.0, col_stator)
-	draw_arc(Vector2(0.0, 8.0), 75.0, anim_timer * 5.0, anim_timer * 5.0 + TAU, 28, col_electric, 3.0)
-	# Tesla coil spikes
-	for i in range(8):
-		var a := float(i) * (TAU / 8.0) + anim_timer * 2.0
-		var p1 := Vector2(0.0, 8.0) + Vector2(cos(a), sin(a)) * 60.0
-		var p2 := Vector2(0.0, 8.0) + Vector2(cos(a), sin(a)) * 95.0
-		draw_line(p1, p2, Color(1.0, 0.90, 0.25), 3.0)
-	_draw_cannons_and_core(Color(0.20, 0.85, 1.0))
+	var draw_rect := Rect2(-130.0, -105.0, 260.0, 210.0)
+	var flash_col := Color(2.0, 0.4, 0.4) if core_flash_timer > 0.0 else Color.WHITE
+	
+	if is_dead and death_textures.size() > 0:
+		var tex: Texture2D = death_textures[clampi(death_frame_index, 0, death_textures.size() - 1)]
+		if tex != null:
+			draw_texture_rect(tex, draw_rect, false, Color.WHITE)
+	elif not is_dead:
+		var active_tex: Texture2D = boss_texture
+		if core_textures.size() > 0:
+			var idx := int(anim_timer * 6.0) % core_textures.size()
+			active_tex = core_textures[idx]
+		if active_tex != null:
+			draw_texture_rect(active_tex, draw_rect, false, flash_col)
+		else:
+			draw_circle(Vector2(0.0, 8.0), 80.0, Color(0.16, 0.18, 0.26))
 
 # -----------------------------------------------------------------------------
 # BOSS 7: VANGUARD STAR CRUISER
 # -----------------------------------------------------------------------------
 func _draw_boss_7_star_cruiser() -> void:
-	var col_hull := Color(0.30, 0.32, 0.42)
-	var col_trim := Color(0.65, 0.40, 0.95)
-	# Dreadnought wing aerofoils
-	var wing_pts := PackedVector2Array([
-		Vector2(-125.0, 55.0),
-		Vector2(-80.0, -45.0),
-		Vector2(0.0, -85.0),
-		Vector2(80.0, -45.0),
-		Vector2(125.0, 55.0),
-		Vector2(0.0, 40.0)
-	])
-	draw_colored_polygon(wing_pts, col_hull)
-	# Glowing warp lines
-	draw_line(Vector2(-105.0, 45.0), Vector2(0.0, -75.0), col_trim, 2.5)
-	draw_line(Vector2(105.0, 45.0), Vector2(0.0, -75.0), col_trim, 2.5)
-	_draw_cannons_and_core(Color(0.70, 0.35, 1.0))
+	var draw_rect := Rect2(-168.0, -75.0, 336.0, 150.0)
+	var flash_col := Color(2.0, 0.4, 0.4) if core_flash_timer > 0.0 else Color.WHITE
+	
+	if is_dead and death_textures.size() > 0:
+		var tex: Texture2D = death_textures[clampi(death_frame_index, 0, death_textures.size() - 1)]
+		if tex != null:
+			draw_texture_rect(tex, draw_rect, false, Color.WHITE)
+	elif not is_dead:
+		var active_tex: Texture2D = boss_texture
+		if core_textures.size() > 0:
+			var idx := int(anim_timer * 5.0) % core_textures.size()
+			active_tex = core_textures[idx]
+		if active_tex != null:
+			draw_texture_rect(active_tex, draw_rect, false, flash_col)
+		else:
+			draw_rect(Rect2(-120.0, -50.0, 240.0, 100.0), Color(0.30, 0.32, 0.42))
 
 # -----------------------------------------------------------------------------
 # BOSS 8: EMPEROR MOTHER BRAIN
 # -----------------------------------------------------------------------------
 func _draw_boss_8_mother_brain() -> void:
-	var pulse := 1.0 + 0.10 * sin(core_pulse * 1.5)
-	var col_brain := Color(0.95, 0.35, 0.45)
-	var col_glass := Color(0.35, 0.75, 1.0, 0.45)
-	# Glass bio-containment cylinder
-	draw_rect(Rect2(-85.0, -85.0, 170.0, 170.0), Color(0.08, 0.12, 0.18, 0.85))
-	draw_rect(Rect2(-85.0, -85.0, 170.0, 170.0), col_glass, false, 3.0)
-	# Pulsing cerebrum convolutions
-	draw_circle(Vector2(0.0, 4.0), 55.0 * pulse, col_brain)
-	draw_circle(Vector2(-24.0, -18.0), 32.0 * pulse, Color(1.0, 0.50, 0.60))
-	draw_circle(Vector2(24.0, -18.0), 32.0 * pulse, Color(1.0, 0.50, 0.60))
-	draw_circle(Vector2(0.0, 24.0), 36.0 * pulse, Color(0.80, 0.25, 0.35))
-	# Crack lines across glass
-	draw_line(Vector2(-60.0, -70.0), Vector2(-15.0, -25.0), Color(1.0, 1.0, 1.0, 0.8), 1.5)
-	draw_line(Vector2(-15.0, -25.0), Vector2(30.0, -50.0), Color(1.0, 1.0, 1.0, 0.8), 1.5)
-	# Orbiting optic eye drones
-	var eye_ang := anim_timer * 4.0
-	var eye1_pos := Vector2(cos(eye_ang) * 95.0, sin(eye_ang) * 55.0)
-	var eye2_pos := Vector2(cos(eye_ang + PI) * 95.0, sin(eye_ang + PI) * 55.0)
-	draw_circle(eye1_pos, 12.0, Color(1.0, 0.2, 0.2))
-	draw_circle(eye1_pos, 5.0, Color.WHITE)
-	draw_circle(eye2_pos, 12.0, Color(1.0, 0.2, 0.2))
-	draw_circle(eye2_pos, 5.0, Color.WHITE)
-	_draw_cannons_and_core(Color(1.0, 0.2, 0.2))
+	var draw_rect := Rect2(-145.0, -110.0, 290.0, 220.0)
+	var flash_col := Color(2.2, 0.4, 0.4) if core_flash_timer > 0.0 else Color.WHITE
+	
+	if is_dead and death_textures.size() > 0:
+		var tex: Texture2D = death_textures[clampi(death_frame_index, 0, death_textures.size() - 1)]
+		if tex != null:
+			draw_texture_rect(tex, draw_rect, false, Color.WHITE)
+	elif not is_dead:
+		var active_tex: Texture2D = boss_texture
+		if core_textures.size() > 0:
+			var idx := int(anim_timer * 3.5) % core_textures.size()
+			active_tex = core_textures[idx]
+		if active_tex != null:
+			draw_texture_rect(active_tex, draw_rect, false, flash_col)
+		else:
+			draw_circle(Vector2(0.0, 4.0), 55.0, Color(0.95, 0.35, 0.45))
 
 # -----------------------------------------------------------------------------
 # COMMON SUB-PART CANNONS & VITAL CORE

@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="EnemyData" format=3 uid="uid://y7ey305pb1ma"]
+
+[ext_resource type="Script" path="res://scripts/enemy_data.gd" id="1_data"]
+[ext_resource type="Texture2D" path="res://assets/enemies/guerrilla_gunner/guerrilla_gunner.png" id="2_tex"]
+
+[resource]
+script = ExtResource("1_data")
+enemy_name = "Guerrilla Gunner"
+max_health = 2.0
+move_speed = 90.0
+score_reward = 200
+contact_damage = 1.0
+sprite_texture = ExtResource("2_tex")
+sprite_size = Vector2(54.0, 56.0)
+attack_interval_min = 1.8
+attack_interval_max = 3.0

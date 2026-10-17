@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="EnemyData" format=3 uid="uid://cminiboss_stg3_001"]
+
+[ext_resource type="Script" path="res://scripts/enemy_data.gd" id="1_data"]
+[ext_resource type="Texture2D" path="res://assets/enemies/mini_boss_stage3/mini_boss_stage3.png" id="2_tex"]
+
+[resource]
+script = ExtResource("1_data")
+enemy_name = "Chitin Behemoth"
+max_health = 34.0
+move_speed = 58.0
+score_reward = 9000
+contact_damage = 2.0
+sprite_texture = ExtResource("2_tex")
+sprite_size = Vector2(120, 135)
+attack_interval_min = 1.4
+attack_interval_max = 2.8

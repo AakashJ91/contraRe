@@ -1,0 +1,15 @@
+[gd_scene load_steps=3 format=3 uid="uid://csceneslag_mech001"]
+
+[ext_resource type="Script" path="res://scripts/enemy_slag_mech.gd" id="1_slag_mech"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_1"]
+size = Vector2(34.0, 42.0)
+
+[node name="EnemySlagMech" type="CharacterBody2D"]
+collision_layer = 4
+collision_mask = 2
+script = ExtResource("1_slag_mech")
+
+<node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+position = Vector2(0, -2)
+shape = SubResource("RectangleShape2D_1")

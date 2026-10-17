@@ -1168,7 +1168,7 @@ func _handle_bottom_shelf_click(pos: Vector2) -> void:
 	# Scrubber bar (y: 450 to 468)
 	if pos.y >= 450.0 and pos.y <= 470.0:
 		var scrub_ratio := clampf((pos.x - 40.0) / 880.0, 0.0, 1.0)
-		cam_x = scrub_ratio * 5800.0 + 480.0
+		cam_x = scrub_ratio * LevelMaps.BOSS_TRIGGER_X + 480.0
 		if camera != null:
 			camera.global_position.x = cam_x
 		if stage != null:
@@ -1400,7 +1400,7 @@ func _on_overlay_draw() -> void:
 	overlay_control.draw_rect(track_rect, Color(0.30, 0.45, 0.65), false, 1.0)
 	
 	# Current camera scrubber thumb
-	var thumb_x := 40.0 + clampf((cam_x - 480.0) / 5800.0, 0.0, 1.0) * 880.0
+	var thumb_x := 40.0 + clampf((cam_x - 480.0) / LevelMaps.BOSS_TRIGGER_X, 0.0, 1.0) * 880.0
 	overlay_control.draw_rect(Rect2(thumb_x - 6.0, 451.0, 12.0, 20.0), Color(0.2, 0.9, 1.0))
 	overlay_control.draw_rect(Rect2(thumb_x - 6.0, 451.0, 12.0, 20.0), Color.WHITE, false, 1.2)
 	

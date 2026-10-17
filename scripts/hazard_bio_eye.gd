@@ -7,6 +7,7 @@ extends Area2D
 # Sanctum. Pupils smoothly track the player, blink, and fire optic needle darts.
 
 @export var bullet_scene: PackedScene = preload("res://scenes/bullet.tscn")
+@export var enemy_data: EnemyData = preload("res://resources/enemies/bio_eye_data.tres")
 
 var health: float = 3.0
 var anim_timer: float = 0.0
@@ -16,15 +17,34 @@ var blink_timer: float = 3.5
 var is_blinking: bool = false
 var look_dir: Vector2 = Vector2.DOWN
 
+var tex_center: Texture2D = null
+var tex_left: Texture2D = null
+var tex_right: Texture2D = null
+var tex_down: Texture2D = null
+var tex_blink: Texture2D = null
+
 func _ready() -> void:
 	collision_layer = 1 << 2 # Layer 3: Enemies
 	collision_mask = (1 << 3) # Layer 4: PlayerBullets
+	if enemy_data != null:
+		health = enemy_data.max_health
 	shoot_timer = randf_range(1.8, 3.2)
 	blink_timer = randf_range(2.5, 4.5)
 	
+	if ResourceLoader.exists("res://assets/enemies/hazards/bio_eye.png"):
+		tex_center = load("res://assets/enemies/hazards/bio_eye.png")
+	if ResourceLoader.exists("res://assets/enemies/hazards/bio_eye_left.png"):
+		tex_left = load("res://assets/enemies/hazards/bio_eye_left.png")
+	if ResourceLoader.exists("res://assets/enemies/hazards/bio_eye_right.png"):
+		tex_right = load("res://assets/enemies/hazards/bio_eye_right.png")
+	if ResourceLoader.exists("res://assets/enemies/hazards/bio_eye_down.png"):
+		tex_down = load("res://assets/enemies/hazards/bio_eye_down.png")
+	if ResourceLoader.exists("res://assets/enemies/hazards/bio_eye_blink.png"):
+		tex_blink = load("res://assets/enemies/hazards/bio_eye_blink.png")
+	
 	var col_shape := CollisionShape2D.new()
 	var circle := CircleShape2D.new()
-	circle.radius = 15.0
+	circle.radius = 16.0
 	col_shape.shape = circle
 	col_shape.position = Vector2.ZERO
 	add_child(col_shape)
@@ -77,38 +97,32 @@ func take_damage(dmg: float = 1.0) -> void:
 		_die()
 
 func _die() -> void:
-	Global.add_score(400)
+	var score_val := enemy_data.score_reward if enemy_data != null else 500
+	Global.add_score(score_val)
 	VFX.spawn_blood_splatter(global_position, look_dir, true)
 	VFX.spawn_explosion(global_position, 1.1, false, true)
 	queue_free()
 
 func _draw() -> void:
-	var col_socket := Color(0.35, 0.05, 0.12)
-	var col_sclera := Color(0.92, 0.88, 0.82) if flash_timer <= 0.0 else Color.WHITE
-	var col_iris := Color(0.95, 0.15, 0.25)
-	var col_pupil := Color(0.08, 0.02, 0.02)
+	var flash_col := Color(2.0, 0.4, 0.4) if flash_timer > 0.0 else Color.WHITE
+	var cur_tex: Texture2D = tex_center
 	
-	# Organic fleshy eye socket
-	draw_circle(Vector2.ZERO, 16.0, col_socket)
+	if is_blinking and tex_blink != null:
+		cur_tex = tex_blink
+	elif look_dir.x < -0.3 and tex_left != null:
+		cur_tex = tex_left
+	elif look_dir.x > 0.3 and tex_right != null:
+		cur_tex = tex_right
+	elif look_dir.y > 0.3 and tex_down != null:
+		cur_tex = tex_down
 	
-	# Bloodshot eyeball sclera
-	draw_circle(Vector2.ZERO, 13.0, col_sclera)
-	
-	# Blood vessels in sclera
-	for v in range(5):
-		var v_ang := float(v) * (TAU / 5.0) + 0.2
-		var v_end := Vector2(cos(v_ang), sin(v_ang)) * 12.0
-		draw_line(Vector2.ZERO, v_end, Color(0.8, 0.15, 0.2, 0.45), 1.0)
-	
-	# Iris tracking player
-	var pupil_offset := look_dir * 5.0
-	draw_circle(pupil_offset, 6.5, col_iris)
-	draw_circle(pupil_offset, 3.8, col_pupil)
-	
-	# Cornea reflection glint
-	draw_circle(pupil_offset + Vector2(-2.0, -2.0), 1.5, Color.WHITE)
-	
-	# Blinking fleshy eyelid
-	if is_blinking:
-		draw_rect(Rect2(-16.0, -16.0, 32.0, 32.0), col_socket)
-		draw_line(Vector2(-15.0, 0.0), Vector2(15.0, 0.0), Color(0.2, 0.02, 0.06), 2.5)
+	if cur_tex != null:
+		var draw_w := 36.0
+		var draw_h := 34.0
+		draw_texture_rect(cur_tex, Rect2(-draw_w * 0.5, -draw_h * 0.5, draw_w, draw_h), false, flash_col)
+	else:
+		# Fallback procedural
+		var col_socket := Color(0.35, 0.05, 0.12)
+		var col_sclera := Color(0.92, 0.88, 0.82) if flash_timer <= 0.0 else Color.WHITE
+		draw_circle(Vector2.ZERO, 16.0, col_socket)
+		draw_circle(Vector2.ZERO, 13.0, col_sclera)

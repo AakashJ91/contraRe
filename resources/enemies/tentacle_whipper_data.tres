@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="EnemyData" format=3 uid="uid://dnj1neannn1ds"]
+
+[ext_resource type="Script" path="res://scripts/enemy_data.gd" id="1_data"]
+[ext_resource type="Texture2D" path="res://assets/enemies/tentacle_whipper/tentacle_whipper.png" id="2_tex"]
+
+[resource]
+script = ExtResource("1_data")
+enemy_name = "Sanctum Tentacle Whipper"
+max_health = 5.5
+move_speed = 0.0
+score_reward = 450
+contact_damage = 2.0
+sprite_texture = ExtResource("2_tex")
+sprite_size = Vector2(60.0, 68.0)
+attack_interval_min = 1.5
+attack_interval_max = 2.8

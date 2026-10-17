@@ -1,0 +1,15 @@
+[gd_scene load_steps=3 format=3 uid="uid://cscenesled_raide001"]
+
+[ext_resource type="Script" path="res://scripts/enemy_sled_raider.gd" id="1_sled_raider"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_1"]
+size = Vector2(36.0, 22.0)
+
+[node name="EnemySledRaider" type="CharacterBody2D"]
+collision_layer = 4
+collision_mask = 2
+script = ExtResource("1_sled_raider")
+
+<node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+position = Vector2(0, 2)
+shape = SubResource("RectangleShape2D_1")

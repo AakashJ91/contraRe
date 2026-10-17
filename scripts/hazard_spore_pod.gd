@@ -7,6 +7,7 @@ extends Area2D
 # when approached by the commando or hit by weapon gunfire.
 
 @export var crawler_scene: PackedScene = preload("res://scenes/enemy_crawler.tscn")
+@export var enemy_data: EnemyData = preload("res://resources/enemies/spore_pod_data.tres")
 
 var health: float = 2.0
 var anim_timer: float = 0.0
@@ -14,10 +15,24 @@ var flash_timer: float = 0.0
 var is_ruptured: bool = false
 var pulse_offset: float = 0.0
 
+var pod_texture: Texture2D = null
+var pod_frames: Array[Texture2D] = []
+
 func _ready() -> void:
 	collision_layer = 1 << 2 # Layer 3: Enemies
 	collision_mask = (1 << 3) # Layer 4: PlayerBullets
+	if enemy_data != null:
+		health = enemy_data.max_health
 	pulse_offset = randf_range(0.0, TAU)
+	
+	if ResourceLoader.exists("res://assets/enemies/hazards/spore_pod.png"):
+		pod_texture = load("res://assets/enemies/hazards/spore_pod.png")
+	
+	pod_frames.clear()
+	for i in range(4):
+		var p := "res://assets/enemies/hazards/spore_pod_%d.png" % i
+		if ResourceLoader.exists(p):
+			pod_frames.append(load(p))
 	
 	var col_shape := CollisionShape2D.new()
 	var circle := CircleShape2D.new()
@@ -56,6 +71,8 @@ func rupture() -> void:
 	if is_ruptured:
 		return
 	is_ruptured = true
+	var score_val := enemy_data.score_reward if enemy_data != null else 300
+	Global.add_score(score_val)
 	Global.play_sfx("player_death")
 	
 	# Massive alien blood splatter and organic rupture blast
@@ -75,29 +92,21 @@ func rupture() -> void:
 	queue_free()
 
 func _draw() -> void:
-	var pulse := 1.0 + 0.12 * sin(anim_timer * 5.0 + pulse_offset)
-	var egg_w: float = 15.0 * pulse
-	var egg_h: float = 22.0 * pulse
+	var flash_col := Color(2.0, 0.4, 0.4) if flash_timer > 0.0 else Color.WHITE
+	var cur_tex: Texture2D = pod_texture
 	
-	var col_outer := Color(0.75, 0.18, 0.32) if flash_timer <= 0.0 else Color.WHITE
-	var col_inner := Color(0.95, 0.35, 0.50) if flash_timer <= 0.0 else Color.WHITE
-	var col_vein := Color(0.45, 0.08, 0.18)
-	var col_core := Color(0.55, 1.0, 0.30, 0.85) # Glowing toxic embryo core
+	if pod_frames.size() > 0:
+		var frame_idx := int(fmod((anim_timer * 4.0) + (pulse_offset * 0.5), float(pod_frames.size())))
+		cur_tex = pod_frames[frame_idx]
 	
-	# Root chitin tendrils anchoring egg to surface
-	for r in range(4):
-		var rx := float(r - 2) * 8.0
-		var r_end := Vector2(rx * 1.5, 0.0)
-		draw_line(Vector2(0.0, -6.0), r_end, col_vein, 2.5)
-	
-	# Pulsating bulbous egg sac base
-	draw_circle(Vector2(0.0, -egg_h * 0.55), egg_w, col_outer)
-	draw_circle(Vector2(0.0, -egg_h * 0.55), egg_w * 0.75, col_inner)
-	
-	# Pulsing green toxic embryo inside
-	var core_pulse := 0.6 + 0.4 * sin(anim_timer * 8.0 + pulse_offset)
-	draw_circle(Vector2(0.0, -egg_h * 0.55), egg_w * 0.45 * core_pulse, col_core)
-	
-	# Organic surface veins
-	draw_arc(Vector2(0.0, -egg_h * 0.55), egg_w * 0.85, 0.2, 2.8, 12, col_vein, 1.5)
-	draw_arc(Vector2(0.0, -egg_h * 0.55), egg_w * 0.65, -2.5, -0.4, 12, col_vein, 1.5)
+	if cur_tex != null:
+		var draw_w := 34.0
+		var draw_h := 38.0
+		draw_texture_rect(cur_tex, Rect2(-draw_w * 0.5, -draw_h + 4.0, draw_w, draw_h), false, flash_col)
+	else:
+		# Fallback procedural
+		var pulse := 1.0 + 0.12 * sin(anim_timer * 5.0 + pulse_offset)
+		var egg_w: float = 15.0 * pulse
+		var egg_h: float = 22.0 * pulse
+		var col_outer := Color(0.75, 0.18, 0.32) if flash_timer <= 0.0 else Color.WHITE
+		draw_circle(Vector2(0.0, -egg_h * 0.55), egg_w, col_outer)

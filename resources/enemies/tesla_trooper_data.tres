@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="EnemyData" format=3 uid="uid://ceo6im3svwod1"]
+
+[ext_resource type="Script" path="res://scripts/enemy_data.gd" id="1_data"]
+[ext_resource type="Texture2D" path="res://assets/enemies/tesla_trooper/tesla_trooper.png" id="2_tex"]
+
+[resource]
+script = ExtResource("1_data")
+enemy_name = "Tesla Shock Trooper"
+max_health = 5.0
+move_speed = 65.0
+score_reward = 450
+contact_damage = 1.5
+sprite_texture = ExtResource("2_tex")
+sprite_size = Vector2(58.0, 62.0)
+attack_interval_min = 2.2
+attack_interval_max = 3.8

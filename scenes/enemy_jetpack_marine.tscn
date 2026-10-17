@@ -1,0 +1,16 @@
+[gd_scene load_steps=3 format=3 uid="uid://cscenejetpack_ma001"]
+
+[ext_resource type="Script" path="res://scripts/enemy_jetpack_marine.gd" id="1_jetpack_marine"]
+
+[sub_resource type="CapsuleShape2D" id="CapsuleShape2D_1"]
+radius = 9.0
+height = 32.0
+
+[node name="EnemyJetpackMarine" type="CharacterBody2D"]
+collision_layer = 4
+collision_mask = 2
+script = ExtResource("1_jetpack_marine")
+
+<node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+position = Vector2(0, 0)
+shape = SubResource("CapsuleShape2D_1")

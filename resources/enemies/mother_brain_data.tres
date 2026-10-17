@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="EnemyData" format=3 uid="uid://bgobp018vdmtc"]
+
+[ext_resource type="Script" path="res://scripts/enemy_data.gd" id="1_data"]
+[ext_resource type="Texture2D" path="res://assets/enemies/boss_mother_brain/boss_mother_brain.png" id="2_tex"]
+
+[resource]
+script = ExtResource("1_data")
+enemy_name = "Emperor Mother Brain"
+max_health = 60.0
+move_speed = 0.0
+score_reward = 25000
+contact_damage = 3.0
+sprite_texture = ExtResource("2_tex")
+sprite_size = Vector2(300, 230)
+attack_interval_min = 1.0
+attack_interval_max = 2.0

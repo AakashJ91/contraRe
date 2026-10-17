@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="EnemyData" format=3 uid="uid://d3xcgohhjlm3y"]
+
+[ext_resource type="Script" path="res://scripts/enemy_data.gd" id="1_data"]
+[ext_resource type="Texture2D" path="res://assets/enemies/rail_turret/rail_turret.png" id="2_tex"]
+
+[resource]
+script = ExtResource("1_data")
+enemy_name = "Ceiling Rail Turret"
+max_health = 6.0
+move_speed = 60.0
+score_reward = 500
+contact_damage = 1.5
+sprite_texture = ExtResource("2_tex")
+sprite_size = Vector2(60.0, 56.0)
+attack_interval_min = 2.4
+attack_interval_max = 3.8

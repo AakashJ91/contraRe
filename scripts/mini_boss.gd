@@ -61,28 +61,50 @@ var step_sound_cooldown: float = 0.0
 
 func _ready() -> void:
 	walk_textures.clear()
+	death_textures.clear()
+	
+	var stg := clampi(Global.current_stage, 1, 8)
+	var is_stage1: bool = (stg == 1)
+	var move_prefix: String = "res://assets/enemies/mini_boss/movement/walk_%d.png" if is_stage1 else ("res://assets/enemies/mini_boss_stage%d/movement/walk_%%d.png" % stg)
+	var death_prefix: String = "res://assets/enemies/mini_boss/death/death_%d.png" if is_stage1 else ("res://assets/enemies/mini_boss_stage%d/death/death_%%d.png" % stg)
+	var base_mech_path: String = "res://assets/enemies/mini_boss/mini_boss_mech.png" if is_stage1 else ("res://assets/enemies/mini_boss_stage%d/mini_boss_stage%d.png" % [stg, stg])
+	
 	for i in range(4):
-		var p := "res://assets/enemies/mini_boss/movement/walk_%d.png" % i
-		if not ResourceLoader.exists(p):
+		var p := move_prefix % i
+		if not ResourceLoader.exists(p) and is_stage1:
 			p = "res://assets/enemies/mini_boss_walk_%d.png" % i
 		if ResourceLoader.exists(p):
 			walk_textures.append(load(p))
 	
-	death_textures.clear()
 	for i in range(4):
-		var p := "res://assets/enemies/mini_boss/death/death_%d.png" % i
+		var p := death_prefix % i
 		if ResourceLoader.exists(p):
 			death_textures.append(load(p))
 	
-	if ResourceLoader.exists("res://assets/enemies/mini_boss/mini_boss_mech.png"):
-		mech_texture = load("res://assets/enemies/mini_boss/mini_boss_mech.png")
-	elif ResourceLoader.exists("res://assets/enemies/mini_boss_mech.png"):
+	if ResourceLoader.exists(base_mech_path):
+		mech_texture = load(base_mech_path)
+	elif is_stage1 and ResourceLoader.exists("res://assets/enemies/mini_boss_mech.png"):
 		mech_texture = load("res://assets/enemies/mini_boss_mech.png")
 	elif walk_textures.size() > 0:
 		mech_texture = walk_textures[0]
 	
+	var res_path := "res://resources/enemies/mini_boss_stage%d_data.tres" % stg
+	var res: EnemyData = load(res_path) if ResourceLoader.exists(res_path) else null
+	
+	if res != null:
+		max_health = res.max_health
+		if res.sprite_size != Vector2.ZERO:
+			mech_width = res.sprite_size.x
+			mech_height = res.sprite_size.y
+	else:
+		max_health = 26.0 + float(stg) * 4.0
+	current_health = max_health
+	
 	if hurtbox != null:
 		hurtbox.area_entered.connect(_on_hurtbox_entered)
+	
+	arena_min_x = global_position.x - 260.0
+	arena_max_x = global_position.x + 80.0
 	
 	queue_redraw()
 
@@ -93,7 +115,16 @@ func activate() -> void:
 	current_state = State.ENTRANCE
 	global_position.y = ground_y - 220.0
 	vel_y = 280.0
-	Global.active_boss_name = "MINI-BOSS: TITAN GOLIATH"
+	match Global.current_stage:
+		1: Global.active_boss_name = "MINI-BOSS: TITAN GOLIATH"
+		2: Global.active_boss_name = "MINI-BOSS: AQUA ASSAULT RIG"
+		3: Global.active_boss_name = "MINI-BOSS: CHITIN BEHEMOTH"
+		4: Global.active_boss_name = "MINI-BOSS: POLAR SIEGE COLOSSUS"
+		5: Global.active_boss_name = "MINI-BOSS: VULCAN DREADNOUGHT"
+		6: Global.active_boss_name = "MINI-BOSS: TESLA OVERLORD"
+		7: Global.active_boss_name = "MINI-BOSS: ORBITAL VANGUARD"
+		8: Global.active_boss_name = "MINI-BOSS: PSIONIC LEVIATHAN"
+		_: Global.active_boss_name = "MINI-BOSS: TITAN GOLIATH"
 	Global.play_sfx("boss_alarm")
 	Global.shake_screen(6.0, 0.35)
 	Global.boss_health_changed.emit(current_health, max_health)
@@ -224,49 +255,161 @@ func get_missile_pod_pos() -> Vector2:
 	return global_position + Vector2(facing * 18.0, -118.0 + bob_y)
 
 func _fire_gatling_bullet(player_node: Node2D) -> void:
-	if bullet_scene == null:
-		return
 	muzzle_flash_timer = 0.10
-	Global.play_sfx("shoot_machine")
-	
 	var spawn_pos := get_muzzle_pos()
-	
 	var dir := Vector2(facing, 0.0)
 	if player_node != null and is_instance_valid(player_node):
 		var aim_vec := (player_node.global_position - spawn_pos).normalized()
-		# Slight spread variance
 		dir = aim_vec.rotated(randf_range(-0.08, 0.08))
 	
-	var b = bullet_scene.instantiate()
-	b.bullet_owner = b.BulletOwner.ENEMY
-	b.direction = dir
-	b.speed = 340.0
-	b.global_position = spawn_pos
-	get_parent().add_child(b)
+	var parent_node = get_parent()
+	if parent_node == null:
+		return
 	
-	VFX.spawn_hit_sparks(spawn_pos, dir, Color(1.0, 0.85, 0.3))
+	match Global.current_stage:
+		2: # Aqua Assault Rig: Harpoon
+			Global.play_sfx("shoot")
+			var harpoon = EnemySpecialProjectile.new()
+			harpoon.proj_type = EnemySpecialProjectile.ProjectileType.HARPOON
+			harpoon.global_position = spawn_pos
+			harpoon.velocity = dir * 370.0
+			parent_node.add_child(harpoon)
+			VFX.spawn_hit_sparks(spawn_pos, dir, Color(0.35, 0.90, 1.0))
+		3: # Chitin Behemoth: Toxic Needle Dart Flurry
+			Global.play_sfx("shoot")
+			var dart = EnemySpecialProjectile.new()
+			dart.proj_type = EnemySpecialProjectile.ProjectileType.NEEDLE_DART
+			dart.global_position = spawn_pos
+			dart.velocity = dir * 350.0
+			parent_node.add_child(dart)
+			VFX.spawn_hit_sparks(spawn_pos, dir, Color(0.8, 0.2, 0.6))
+		5: # Vulcan Dreadnought: Superheated Industrial Rivets
+			Global.play_sfx("shoot")
+			var rivet = EnemySpecialProjectile.new()
+			rivet.proj_type = EnemySpecialProjectile.ProjectileType.RIVET
+			rivet.global_position = spawn_pos
+			rivet.velocity = dir * 360.0
+			parent_node.add_child(rivet)
+			VFX.spawn_hit_sparks(spawn_pos, dir, Color(1.0, 0.5, 0.1))
+		6: # Tesla Overlord: Spark Crossfire
+			Global.play_sfx("shoot_laser")
+			var spk = EnemySpecialProjectile.new()
+			spk.proj_type = EnemySpecialProjectile.ProjectileType.SPARK_CROSS
+			spk.global_position = spawn_pos
+			spk.velocity = dir * 340.0
+			parent_node.add_child(spk)
+			VFX.spawn_hit_sparks(spawn_pos, dir, Color(0.3, 0.9, 1.0))
+		8: # Psionic Leviathan: Psionic Needle Dart
+			Global.play_sfx("shoot")
+			var p_dart = EnemySpecialProjectile.new()
+			p_dart.proj_type = EnemySpecialProjectile.ProjectileType.NEEDLE_DART
+			p_dart.global_position = spawn_pos
+			p_dart.velocity = dir * 360.0
+			parent_node.add_child(p_dart)
+			VFX.spawn_hit_sparks(spawn_pos, dir, Color(0.9, 0.3, 1.0))
+		_: # Stages 1, 4, 7: Standard machine/autocannon/particle rounds
+			if bullet_scene == null:
+				return
+			Global.play_sfx("shoot_machine")
+			var b = bullet_scene.instantiate()
+			b.bullet_owner = b.BulletOwner.ENEMY
+			b.direction = dir
+			b.speed = 360.0 if Global.current_stage >= 4 else 340.0
+			b.global_position = spawn_pos
+			parent_node.add_child(b)
+			var spark_col := Color(0.4, 0.9, 1.0) if Global.current_stage == 7 else Color(1.0, 0.85, 0.3)
+			VFX.spawn_hit_sparks(spawn_pos, dir, spark_col)
 
 func _fire_shoulder_missiles(player_node: Node2D) -> void:
-	if grenade_scene == null:
-		return
-	Global.play_sfx("shoot_spread")
 	Global.shake_screen(4.0, 0.2)
-	
 	var pod_pos := get_missile_pod_pos()
-	VFX.spawn_dust_puff(pod_pos, 4, Color(0.9, 0.8, 0.4))
+	var dust_col := Color(0.9, 0.8, 0.4)
+	match Global.current_stage:
+		2: dust_col = Color(0.40, 0.85, 1.0, 0.7)
+		3: dust_col = Color(0.5, 0.9, 0.3, 0.7)
+		4: dust_col = Color(0.7, 0.9, 1.0, 0.8)
+		5: dust_col = Color(1.0, 0.5, 0.1, 0.8)
+		6: dust_col = Color(0.4, 0.9, 1.0, 0.8)
+		7: dust_col = Color(0.8, 0.4, 1.0, 0.8)
+		8: dust_col = Color(0.9, 0.3, 0.9, 0.8)
+	VFX.spawn_dust_puff(pod_pos, 4, dust_col)
 	
 	var target_x: float = global_position.x + facing * 200.0
 	if player_node != null and is_instance_valid(player_node):
 		target_x = player_node.global_position.x
 	
-	for i in range(2):
-		var g = grenade_scene.instantiate()
-		g.global_position = pod_pos
-		var dist_x: float = target_x - pod_pos.x + randf_range(-40.0, 40.0)
-		var vx: float = clampf(dist_x * 0.9, -280.0, 280.0)
-		var vy: float = -280.0 - float(i) * 50.0
-		g.velocity = Vector2(vx, vy)
-		get_parent().add_child(g)
+	var parent_node = get_parent()
+	if parent_node == null:
+		return
+	
+	match Global.current_stage:
+		2: # Depth Charge
+			Global.play_sfx("shoot_spread")
+			var dc = EnemySpecialProjectile.new()
+			dc.proj_type = EnemySpecialProjectile.ProjectileType.DEPTH_CHARGE
+			dc.global_position = pod_pos
+			var dist_x: float = target_x - pod_pos.x + randf_range(-40.0, 40.0)
+			dc.velocity = Vector2(clampf(dist_x * 0.9, -260.0, 260.0), -260.0)
+			parent_node.add_child(dc)
+		3: # Corrosive Acid Globs
+			Global.play_sfx("shoot_spread")
+			for i in range(2):
+				var glob = EnemySpecialProjectile.new()
+				glob.proj_type = EnemySpecialProjectile.ProjectileType.ACID_GLOB
+				glob.global_position = pod_pos
+				var dist_x: float = target_x - pod_pos.x + randf_range(-60.0, 60.0)
+				glob.velocity = Vector2(clampf(dist_x * 0.8, -250.0, 250.0), -280.0 - float(i) * 50.0)
+				parent_node.add_child(glob)
+		4: # Cryogenic Ice Mortar
+			Global.play_sfx("shoot_spread")
+			var im = EnemySpecialProjectile.new()
+			im.proj_type = EnemySpecialProjectile.ProjectileType.ICE_MORTAR
+			im.global_position = pod_pos
+			var dist_x: float = target_x - pod_pos.x + randf_range(-30.0, 30.0)
+			im.velocity = Vector2(clampf(dist_x * 0.85, -280.0, 280.0), -300.0)
+			parent_node.add_child(im)
+		5: # Slag Shockwave along floor
+			Global.play_sfx("explosion")
+			Global.shake_screen(6.0, 0.25)
+			var sw = EnemySpecialProjectile.new()
+			sw.proj_type = EnemySpecialProjectile.ProjectileType.SLAG_WAVE
+			sw.global_position = global_position + Vector2(facing * 30.0, -8.0)
+			sw.velocity = Vector2(facing * 280.0, 0.0)
+			parent_node.add_child(sw)
+		6: # Homing Ball Lightning
+			Global.play_sfx("shoot_laser")
+			var bl = EnemySpecialProjectile.new()
+			bl.proj_type = EnemySpecialProjectile.ProjectileType.BALL_LIGHTNING
+			bl.global_position = pod_pos
+			bl.velocity = Vector2(facing * 190.0, -90.0)
+			parent_node.add_child(bl)
+		7: # Dual Homing Micro-Missiles
+			Global.play_sfx("shoot_spread")
+			for i in range(2):
+				var m = EnemySpecialProjectile.new()
+				m.proj_type = EnemySpecialProjectile.ProjectileType.HOMING_MISSILE
+				m.global_position = pod_pos + Vector2(randf_range(-8.0, 8.0), randf_range(-8.0, 8.0))
+				m.velocity = Vector2(randf_range(-80.0, 80.0), -260.0 - float(i) * 60.0)
+				parent_node.add_child(m)
+		8: # Expanding Psionic Energy Ring
+			Global.play_sfx("shoot_laser")
+			var ring = EnemySpecialProjectile.new()
+			ring.proj_type = EnemySpecialProjectile.ProjectileType.PSYCHIC_RING
+			ring.global_position = global_position + Vector2(facing * 40.0, -70.0)
+			ring.velocity = Vector2(facing * 160.0, 0.0)
+			parent_node.add_child(ring)
+		_: # Stage 1: Lobbed Frag Grenades
+			if grenade_scene == null:
+				return
+			Global.play_sfx("shoot_spread")
+			for i in range(2):
+				var g = grenade_scene.instantiate()
+				g.global_position = pod_pos
+				var dist_x: float = target_x - pod_pos.x + randf_range(-40.0, 40.0)
+				var vx: float = clampf(dist_x * 0.9, -280.0, 280.0)
+				var vy: float = -280.0 - float(i) * 50.0
+				g.velocity = Vector2(vx, vy)
+				parent_node.add_child(g)
 
 func _execute_jet_leap(player_node: Node2D) -> void:
 	is_on_ground = false
@@ -302,8 +445,11 @@ func take_damage(dmg: float = 1.0) -> void:
 
 func _trigger_death() -> void:
 	is_dead = true
-	current_state = State.DEATH
-	Global.add_score(6000)
+	var res_path := "res://resources/enemies/mini_boss_stage%d_data.tres" % Global.current_stage
+	var res: EnemyData = load(res_path) if ResourceLoader.exists(res_path) else null
+	var fallback_score: int = 6000 + (Global.current_stage - 1) * 2000
+	var score_val: int = res.score_reward if res != null else fallback_score
+	Global.add_score(score_val)
 	Global.shake_screen(10.0, 0.5)
 	death_explosions_left = 12
 	death_chain_timer = 0.05
@@ -405,5 +551,14 @@ func _draw() -> void:
 	if not is_on_ground and vel_y < 100.0:
 		var jet_pos := Vector2(-facing * 24.0, -75.0)
 		var flame_len := 18.0 + sin(anim_timer * 20.0) * 8.0
-		draw_line(jet_pos, jet_pos + Vector2(-facing * flame_len, 12.0), Color(1.0, 0.4, 0.1), 4.5)
-		draw_line(jet_pos, jet_pos + Vector2(-facing * (flame_len * 0.6), 8.0), Color(1.0, 0.9, 0.4), 2.5)
+		var fl_col := Color(1.0, 0.4, 0.1)
+		match Global.current_stage:
+			2: fl_col = Color(0.2, 0.8, 1.0)
+			3: fl_col = Color(0.4, 1.0, 0.3)
+			4: fl_col = Color(0.5, 0.9, 1.0)
+			5: fl_col = Color(1.0, 0.5, 0.1)
+			6: fl_col = Color(0.3, 0.9, 1.0)
+			7: fl_col = Color(0.3, 0.8, 1.0)
+			8: fl_col = Color(0.9, 0.2, 1.0)
+		draw_line(jet_pos, jet_pos + Vector2(-facing * flame_len, 12.0), fl_col, 4.5)
+		draw_line(jet_pos, jet_pos + Vector2(-facing * (flame_len * 0.6), 8.0), Color.WHITE, 2.5)

@@ -12,6 +12,24 @@ extends Node2D
 @export var spore_pod_script: GDScript = preload("res://scripts/hazard_spore_pod.gd")
 @export var bio_eye_script: GDScript = preload("res://scripts/hazard_bio_eye.gd")
 
+# 16 Distinct Stage-Specific Enemies (2 unique per stage)
+@export var guerrilla_gunner_scene: PackedScene = preload("res://scenes/enemy_guerrilla_gunner.tscn")
+@export var flame_trooper_scene: PackedScene = preload("res://scenes/enemy_flame_trooper.tscn")
+@export var scuba_commando_scene: PackedScene = preload("res://scenes/enemy_scuba_commando.tscn")
+@export var torpedo_drone_scene: PackedScene = preload("res://scenes/enemy_torpedo_drone.tscn")
+@export var acid_spitter_scene: PackedScene = preload("res://scenes/enemy_acid_spitter.tscn")
+@export var ceiling_stalker_scene: PackedScene = preload("res://scenes/enemy_ceiling_stalker.tscn")
+@export var cryo_trooper_scene: PackedScene = preload("res://scenes/enemy_cryo_trooper.tscn")
+@export var sled_raider_scene: PackedScene = preload("res://scenes/enemy_sled_raider.tscn")
+@export var slag_mech_scene: PackedScene = preload("res://scenes/enemy_slag_mech.tscn")
+@export var conveyor_droid_scene: PackedScene = preload("res://scenes/enemy_conveyor_droid.tscn")
+@export var tesla_trooper_scene: PackedScene = preload("res://scenes/enemy_tesla_trooper.tscn")
+@export var spark_drone_scene: PackedScene = preload("res://scenes/enemy_spark_drone.tscn")
+@export var jetpack_marine_scene: PackedScene = preload("res://scenes/enemy_jetpack_marine.tscn")
+@export var rail_turret_scene: PackedScene = preload("res://scenes/enemy_rail_turret.tscn")
+@export var tentacle_whipper_scene: PackedScene = preload("res://scenes/enemy_tentacle_whipper.tscn")
+@export var psychic_orb_scene: PackedScene = preload("res://scenes/enemy_psychic_orb.tscn")
+
 @onready var camera: Camera2D = $Camera2D
 @onready var player: Player = $Player
 @onready var boss: Node2D = $Boss
@@ -41,10 +59,10 @@ var psychic_pulse_active: float = 0.0
 @onready var mini_boss: Node2D = get_node_or_null("MiniBoss")
 
 const LEVEL_MIN_X: float = 0.0
-const LEVEL_MAX_X: float = 6700.0
-const MINI_BOSS_TRIGGER_X: float = 3320.0
-const MINI_BOSS_LOCK_X: float = 3450.0
-const BOSS_TRIGGER_X: float = 5800.0
+const LEVEL_MAX_X: float = 9800.0
+const MINI_BOSS_TRIGGER_X: float = 5320.0
+const MINI_BOSS_LOCK_X: float = 5450.0
+const BOSS_TRIGGER_X: float = 8800.0
 
 var is_mini_boss_active: bool = false
 var is_mini_boss_defeated: bool = false
@@ -66,6 +84,11 @@ var platform_turf_wedge_right_texture: Texture2D = null
 var platform_tech_texture: Texture2D = null
 var platform_chain_texture: Texture2D = null
 var platform_chain_hook_texture: Texture2D = null
+var platform_ice_slab_texture: Texture2D = null
+var platform_lava_grate_texture: Texture2D = null
+var platform_energy_barrier_texture: Texture2D = null
+var platform_tech_catwalk_texture: Texture2D = null
+var platform_bio_rib_texture: Texture2D = null
 var ground_edge_right_texture: Texture2D = null
 var ground_edge_left_texture: Texture2D = null
 var ground_edge_left_textures_by_stage: Dictionary = {}
@@ -118,11 +141,7 @@ func _ready() -> void:
 		var cur_half_h: float = (540.0 / entry_zoom.y) * 0.5
 		var p_x: float = player.global_position.x if (player != null and is_instance_valid(player)) else 100.0
 		var p_y: float = player.global_position.y if (player != null and is_instance_valid(player)) else 410.0
-		camera.global_position = Vector2(clampf(p_x + 80.0, cur_half_w, 5800.0), clampf(p_y - 30.0, cur_half_h, 540.0 - cur_half_h))
-	
-	if Global.current_stage != 1 and mini_boss != null and is_instance_valid(mini_boss):
-		mini_boss.queue_free()
-		mini_boss = null
+		camera.global_position = Vector2(clampf(p_x + 80.0, cur_half_w, BOSS_TRIGGER_X), clampf(p_y - 30.0, cur_half_h, 540.0 - cur_half_h))
 	
 	queue_redraw()
 
@@ -180,6 +199,16 @@ func _load_textures() -> void:
 		platform_chain_texture = load("res://assets/tiles/platform_chain.png")
 	if ResourceLoader.exists("res://assets/tiles/platform_chain_hook.png"):
 		platform_chain_hook_texture = load("res://assets/tiles/platform_chain_hook.png")
+	if ResourceLoader.exists("res://assets/tiles/platform_ice_slab.png"):
+		platform_ice_slab_texture = load("res://assets/tiles/platform_ice_slab.png")
+	if ResourceLoader.exists("res://assets/tiles/platform_lava_grate.png"):
+		platform_lava_grate_texture = load("res://assets/tiles/platform_lava_grate.png")
+	if ResourceLoader.exists("res://assets/tiles/platform_energy_barrier.png"):
+		platform_energy_barrier_texture = load("res://assets/tiles/platform_energy_barrier.png")
+	if ResourceLoader.exists("res://assets/tiles/platform_tech_catwalk.png"):
+		platform_tech_catwalk_texture = load("res://assets/tiles/platform_tech_catwalk.png")
+	if ResourceLoader.exists("res://assets/tiles/platform_bio_rib.png"):
+		platform_bio_rib_texture = load("res://assets/tiles/platform_bio_rib.png")
 	ground_edge_left_textures_by_stage.clear()
 	ground_edge_right_textures_by_stage.clear()
 	if ResourceLoader.exists("res://assets/tiles/ground_edge_left.png"):
@@ -322,10 +351,10 @@ func _init_stage_hazards() -> void:
 						"timer": 0.0
 					})
 		5: # REFINERY: Molten flame geysers in foundry chasms
-			var vent_xs := [730.0, 1530.0, 2330.0, 3230.0, 4130.0, 5030.0]
-			for vx in vent_xs:
+			for i in range(ground_segments.size() - 1):
+				var pit_center := (ground_segments[i].end.x + ground_segments[i + 1].position.x) * 0.5
 				flame_vents.append({
-					"pos": Vector2(vx, 455.0),
+					"pos": Vector2(pit_center, 455.0),
 					"state": 0, # 0=Dormant, 1=Warning, 2=Erupting
 					"timer": randf_range(1.5, 3.8)
 				})
@@ -342,7 +371,7 @@ func _init_stage_hazards() -> void:
 						"period": 3.0
 					})
 		7: # HANGAR: Moving hydraulic elevator lifts and laser tripwires
-			for idx in [2, 5, 8, 11, 14]:
+			for idx in [2, 5, 8, 11, 14, 17]:
 				if idx < platforms.size():
 					var pr: Rect2 = platforms[idx]["rect"]
 					hydraulic_lifts.append({
@@ -352,7 +381,7 @@ func _init_stage_hazards() -> void:
 						"speed": 1.5,
 						"phase": float(idx) * 1.2
 					})
-			for tw_x in [1350.0, 2600.0, 4100.0]:
+			for tw_x in [1350.0, 2600.0, 4100.0, 5400.0, 6800.0]:
 				security_tripwires.append({
 					"x": tw_x,
 					"top_y": 140.0,
@@ -524,10 +553,10 @@ func _physics_process(delta: float) -> void:
 			var min_y: float = cur_half_h
 			var max_y: float = 540.0 - cur_half_h
 			
-			var entry_cam_x: float = clampf(player.global_position.x + 80.0, cur_half_w, 5800.0)
+			var entry_cam_x: float = clampf(player.global_position.x + 80.0, cur_half_w, BOSS_TRIGGER_X)
 			var entry_cam_y: float = clampf(player.global_position.y - 30.0, min_y, max_y)
 			
-			var game_cam_x: float = clampf(player.global_position.x + 120.0, cur_half_w, 5800.0)
+			var game_cam_x: float = clampf(player.global_position.x + 120.0, cur_half_w, BOSS_TRIGGER_X)
 			var game_cam_y: float = clampf(280.0 if is_mob else 270.0, min_y, max_y)
 			
 			camera.global_position.x = lerpf(entry_cam_x, game_cam_x, zoom_ease)
@@ -535,18 +564,18 @@ func _physics_process(delta: float) -> void:
 		else:
 			camera.zoom = target_zoom
 			var half_w: float = (960.0 / camera.zoom.x) * 0.5
-			var max_scroll_x := 5800.0
+			var max_scroll_x := BOSS_TRIGGER_X
 			
-			# Mini-Boss arena encounter in Sector 4
-			if Global.current_stage == 1 and not is_mini_boss_defeated and mini_boss != null and is_instance_valid(mini_boss):
+			# Mini-Boss arena encounter in Sector 5 (All Stages 1-8)
+			if not is_mini_boss_defeated and mini_boss != null and is_instance_valid(mini_boss):
 				if player.global_position.x >= MINI_BOSS_TRIGGER_X or is_mini_boss_active:
 					if not is_mini_boss_active:
 						is_mini_boss_active = true
 						mini_boss.activate()
 					max_scroll_x = MINI_BOSS_LOCK_X
 					# Keep player within battle arena while mini-boss is alive
-					if player.global_position.x > 3700.0:
-						player.global_position.x = 3700.0
+					if player.global_position.x > 5700.0:
+						player.global_position.x = 5700.0
 			
 			var target_cam_x := clampf(player.global_position.x + 120.0, half_w, max_scroll_x)
 			camera.global_position.x = maxf(camera.global_position.x, target_cam_x)
@@ -554,7 +583,8 @@ func _physics_process(delta: float) -> void:
 		
 		# Boss arena player containment (Player must never pass behind the boss)
 		if boss != null and is_instance_valid(boss):
-			var boss_wall_x: float = boss.global_position.x - 70.0
+			var wall_offset: float = 90.0 if Global.current_stage == 2 else 70.0
+			var boss_wall_x: float = boss.global_position.x - wall_offset
 			if player.global_position.x > boss_wall_x:
 				player.global_position.x = boss_wall_x
 				player.velocity.x = minf(player.velocity.x, 0.0)
@@ -568,7 +598,7 @@ func _physics_process(delta: float) -> void:
 				_clear_ambient_enemies_near_boss()
 		
 		if Global.is_boss_cutscene_active:
-			var arena_cam_x := 5800.0
+			var arena_cam_x := BOSS_TRIGGER_X
 			camera.global_position.x = lerpf(camera.global_position.x, arena_cam_x, delta * 3.5)
 			camera.global_position.y = lerpf(camera.global_position.y, (280.0 if is_mob else 270.0), delta * 3.5)
 	
@@ -955,198 +985,421 @@ func _clear_ambient_enemies_near_boss() -> void:
 		if c == null or not is_instance_valid(c):
 			continue
 		if c.is_in_group("enemies") or c.name.begins_with("EnemySoldier") or c.name.begins_with("EnemyDrone"):
-			if c.global_position.x > 5000.0:
+			if c.global_position.x > BOSS_TRIGGER_X - 800.0:
 				c.queue_free()
 
 func _setup_static_enemies() -> void:
 	match Global.current_stage:
 		1: # JUNGLE PERIMETER
 			# Classic fortified bunkers, high lookouts & river gorge bridges
-			_spawn_turrets([Vector2(720.0, 435.0), Vector2(1380.0, 435.0), Vector2(2650.0, 435.0), Vector2(3180.0, 355.0), Vector2(5320.0, 435.0), Vector2(5580.0, 435.0)])
-			_spawn_snipers([Vector2(530.0, 270.0), Vector2(1080.0, 360.0), Vector2(1550.0, 215.0), Vector2(2080.0, 340.0), Vector2(3120.0, 350.0), Vector2(3480.0, 275.0), Vector2(5220.0, 330.0)])
-			_spawn_grenadiers([Vector2(5260.0, 330.0), Vector2(5640.0, 250.0)])
-			_spawn_crawlers([Vector2(2220.0, 420.0), Vector2(2440.0, 420.0), Vector2(5380.0, 420.0)])
+			_spawn_turrets([Vector2(720.0, 435.0), Vector2(1380.0, 435.0), Vector2(2650.0, 435.0), Vector2(3180.0, 435.0), Vector2(4100.0, 435.0), Vector2(4800.0, 435.0), Vector2(5320.0, 435.0), Vector2(7850.0, 435.0), Vector2(8350.0, 435.0)])
+			_spawn_snipers([Vector2(530.0, 434.0), Vector2(1080.0, 434.0), Vector2(1550.0, 364.0), Vector2(2080.0, 434.0), Vector2(2800.0, 344.0), Vector2(3480.0, 204.0), Vector2(4200.0, 354.0), Vector2(4750.0, 204.0), Vector2(5450.0, 354.0), Vector2(6800.0, 304.0), Vector2(8000.0, 334.0), Vector2(8550.0, 334.0)])
+			_spawn_grenadiers([Vector2(2200.0, 432.0), Vector2(3600.0, 432.0), Vector2(5000.0, 432.0), Vector2(5800.0, 432.0), Vector2(8200.0, 432.0)])
+			_spawn_crawlers([Vector2(1800.0, 434.0), Vector2(2220.0, 434.0), Vector2(3300.0, 434.0), Vector2(4400.0, 434.0), Vector2(5900.0, 434.0), Vector2(7900.0, 434.0), Vector2(8400.0, 434.0)])
+			_spawn_guerrilla_gunners([Vector2(950.0, 434.0), Vector2(2400.0, 434.0), Vector2(3700.0, 434.0), Vector2(4950.0, 434.0), Vector2(8100.0, 434.0)])
+			_spawn_flame_troopers([Vector2(1650.0, 432.0), Vector2(3050.0, 432.0), Vector2(4500.0, 432.0), Vector2(7950.0, 432.0), Vector2(8450.0, 432.0)])
 			_spawn_sensors([
-				{"pos": Vector2(330.0, 370.0), "weapon": Global.WeaponType.SPREAD},
-				{"pos": Vector2(1280.0, 295.0), "weapon": Global.WeaponType.MACHINE},
-				{"pos": Vector2(2380.0, 275.0), "weapon": Global.WeaponType.LASER},
-				{"pos": Vector2(4510.0, 260.0), "weapon": Global.WeaponType.SPREAD}
+				{"pos": Vector2(330.0, 358.0), "weapon": Global.WeaponType.SPREAD},
+				{"pos": Vector2(1700.0, 278.0), "weapon": Global.WeaponType.MACHINE},
+				{"pos": Vector2(3050.0, 258.0), "weapon": Global.WeaponType.LASER},
+				{"pos": Vector2(4380.0, 268.0), "weapon": Global.WeaponType.SPREAD},
+				{"pos": Vector2(5700.0, 268.0), "weapon": Global.WeaponType.MACHINE},
+				{"pos": Vector2(8200.0, 248.0), "weapon": Global.WeaponType.LASER}
 			])
-
 		2: # WATERFALL FORTRESS
 			# Cliffside snipers overlooking waterfall chasms + escarpment turrets
-			_spawn_turrets([Vector2(1050.0, 435.0), Vector2(2850.0, 435.0), Vector2(3850.0, 340.0), Vector2(4950.0, 435.0), Vector2(5550.0, 320.0)])
-			_spawn_snipers([Vector2(380.0, 270.0), Vector2(710.0, 435.0), Vector2(1280.0, 280.0), Vector2(1610.0, 435.0), Vector2(2200.0, 260.0), Vector2(2510.0, 435.0), Vector2(3150.0, 270.0), Vector2(4150.0, 260.0), Vector2(5250.0, 270.0)])
-			_spawn_grenadiers([Vector2(2000.0, 435.0), Vector2(3460.0, 435.0), Vector2(5600.0, 435.0)])
-			_spawn_crawlers([Vector2(1400.0, 420.0), Vector2(2950.0, 420.0), Vector2(4350.0, 420.0)])
+			_spawn_turrets([Vector2(600.0, 435.0), Vector2(1400.0, 435.0), Vector2(2600.0, 435.0), Vector2(3800.0, 435.0), Vector2(5100.0, 435.0), Vector2(6400.0, 435.0), Vector2(7900.0, 435.0), Vector2(8400.0, 435.0)])
+			_spawn_snipers([Vector2(380.0, 354.0), Vector2(780.0, 434.0), Vector2(1280.0, 434.0), Vector2(1880.0, 434.0), Vector2(2480.0, 434.0), Vector2(3080.0, 434.0), Vector2(3700.0, 434.0), Vector2(4380.0, 434.0), Vector2(5020.0, 434.0), Vector2(5720.0, 434.0), Vector2(6340.0, 434.0), Vector2(7020.0, 434.0), Vector2(7850.0, 434.0), Vector2(8580.0, 434.0)])
+			_spawn_grenadiers([Vector2(2000.0, 432.0), Vector2(3200.0, 432.0), Vector2(4500.0, 432.0), Vector2(5800.0, 432.0), Vector2(7100.0, 432.0), Vector2(8300.0, 432.0)])
+			_spawn_crawlers([Vector2(1600.0, 434.0), Vector2(2900.0, 434.0), Vector2(4100.0, 434.0), Vector2(5400.0, 434.0), Vector2(6700.0, 434.0), Vector2(8000.0, 434.0)])
+			_spawn_scuba_commandos([Vector2(850.0, 434.0), Vector2(2100.0, 434.0), Vector2(3400.0, 434.0), Vector2(4700.0, 434.0), Vector2(6100.0, 434.0), Vector2(7600.0, 434.0)])
+			_spawn_torpedo_drones([Vector2(1100.0, 320.0), Vector2(2300.0, 310.0), Vector2(3600.0, 300.0), Vector2(4900.0, 310.0), Vector2(6300.0, 300.0), Vector2(7750.0, 320.0)])
 			_spawn_sensors([
-				{"pos": Vector2(300.0, 350.0), "weapon": Global.WeaponType.MACHINE},
-				{"pos": Vector2(1600.0, 430.0), "weapon": Global.WeaponType.SPREAD},
-				{"pos": Vector2(3100.0, 270.0), "weapon": Global.WeaponType.LASER},
-				{"pos": Vector2(4800.0, 350.0), "weapon": Global.WeaponType.MACHINE}
+				{"pos": Vector2(300.0, 348.0), "weapon": Global.WeaponType.MACHINE},
+				{"pos": Vector2(1600.0, 268.0), "weapon": Global.WeaponType.SPREAD},
+				{"pos": Vector2(3100.0, 338.0), "weapon": Global.WeaponType.LASER},
+				{"pos": Vector2(4400.0, 328.0), "weapon": Global.WeaponType.SPREAD},
+				{"pos": Vector2(5740.0, 328.0), "weapon": Global.WeaponType.MACHINE},
+				{"pos": Vector2(7050.0, 338.0), "weapon": Global.WeaponType.SPREAD},
+				{"pos": Vector2(8240.0, 258.0), "weapon": Global.WeaponType.LASER}
 			])
-
 		3: # ALIEN HIVE BIO-CAVERN
 			# Living spore egg pods + swarming crawlers & bio-snipers
-			_spawn_spore_pods([Vector2(400.0, 270.0), Vector2(980.0, 350.0), Vector2(1520.0, 320.0), Vector2(2120.0, 260.0), Vector2(2750.0, 350.0), Vector2(3400.0, 320.0), Vector2(4100.0, 260.0), Vector2(5100.0, 270.0)])
-			_spawn_turrets([Vector2(690.0, 320.0), Vector2(1850.0, 350.0), Vector2(3750.0, 350.0), Vector2(4750.0, 435.0), Vector2(5480.0, 320.0)])
-			_spawn_snipers([Vector2(220.0, 350.0), Vector2(1200.0, 280.0), Vector2(2420.0, 320.0), Vector2(3050.0, 270.0), Vector2(4400.0, 320.0), Vector2(5300.0, 435.0)])
-			_spawn_crawlers([Vector2(550.0, 420.0), Vector2(1100.0, 420.0), Vector2(1950.0, 420.0), Vector2(2850.0, 420.0), Vector2(3800.0, 420.0), Vector2(4800.0, 420.0)])
+			_spawn_spore_pods([Vector2(400.0, 358.0), Vector2(980.0, 338.0), Vector2(1520.0, 438.0), Vector2(2045.0, 338.0), Vector2(2750.0, 268.0), Vector2(3440.0, 438.0), Vector2(4100.0, 278.0), Vector2(5100.0, 438.0), Vector2(6400.0, 438.0), Vector2(7500.0, 358.0), Vector2(8200.0, 338.0)])
+			_spawn_turrets([Vector2(690.0, 275.0), Vector2(1850.0, 335.0), Vector2(3000.0, 435.0), Vector2(4200.0, 435.0), Vector2(5400.0, 265.0), Vector2(6600.0, 275.0), Vector2(7800.0, 435.0), Vector2(8400.0, 435.0)])
+			_spawn_snipers([Vector2(240.0, 434.0), Vector2(1220.0, 434.0), Vector2(2360.0, 434.0), Vector2(3550.0, 434.0), Vector2(4800.0, 434.0), Vector2(6100.0, 434.0), Vector2(7450.0, 434.0), Vector2(8180.0, 434.0)])
+			_spawn_crawlers([Vector2(550.0, 434.0), Vector2(1110.0, 434.0), Vector2(1950.0, 434.0), Vector2(2850.0, 434.0), Vector2(3800.0, 434.0), Vector2(4800.0, 434.0), Vector2(6200.0, 434.0), Vector2(7400.0, 434.0), Vector2(8000.0, 434.0)])
+			_spawn_acid_spitters([Vector2(850.0, 432.0), Vector2(2200.0, 432.0), Vector2(3600.0, 432.0), Vector2(4950.0, 432.0), Vector2(6700.0, 432.0), Vector2(7900.0, 432.0)])
+			_spawn_ceiling_stalkers([Vector2(600.0, 240.0), Vector2(1750.0, 290.0), Vector2(3100.0, 310.0), Vector2(4400.0, 300.0), Vector2(5800.0, 250.0), Vector2(7200.0, 280.0)])
 			_spawn_sensors([
-				{"pos": Vector2(260.0, 350.0), "weapon": Global.WeaponType.SPREAD},
-				{"pos": Vector2(1800.0, 340.0), "weapon": Global.WeaponType.LASER},
-				{"pos": Vector2(3300.0, 320.0), "weapon": Global.WeaponType.SPREAD},
-				{"pos": Vector2(4900.0, 350.0), "weapon": Global.WeaponType.LASER}
+				{"pos": Vector2(260.0, 348.0), "weapon": Global.WeaponType.SPREAD},
+				{"pos": Vector2(1800.0, 428.0), "weapon": Global.WeaponType.LASER},
+				{"pos": Vector2(3225.0, 328.0), "weapon": Global.WeaponType.SPREAD},
+				{"pos": Vector2(4900.0, 348.0), "weapon": Global.WeaponType.LASER},
+				{"pos": Vector2(6500.0, 268.0), "weapon": Global.WeaponType.MACHINE},
+				{"pos": Vector2(7840.0, 258.0), "weapon": Global.WeaponType.SPREAD}
 			])
-
 		4: # SNOWFIELD TUNDRA
 			# Fortified mortar grenadiers & frost snipers
-			_spawn_turrets([Vector2(1320.0, 270.0), Vector2(2640.0, 320.0), Vector2(4000.0, 350.0), Vector2(5040.0, 340.0)])
-			_spawn_snipers([Vector2(450.0, 270.0), Vector2(1080.0, 350.0), Vector2(1680.0, 320.0), Vector2(2300.0, 260.0), Vector2(2980.0, 350.0), Vector2(3660.0, 320.0), Vector2(4300.0, 260.0), Vector2(5380.0, 260.0)])
-			_spawn_grenadiers([Vector2(760.0, 320.0), Vector2(2020.0, 350.0), Vector2(3300.0, 260.0), Vector2(4660.0, 320.0), Vector2(5500.0, 435.0)])
+			_spawn_turrets([Vector2(800.0, 435.0), Vector2(1800.0, 435.0), Vector2(2800.0, 435.0), Vector2(4000.0, 355.0), Vector2(5300.0, 435.0), Vector2(6600.0, 435.0), Vector2(8000.0, 435.0), Vector2(8500.0, 435.0)])
+			_spawn_snipers([Vector2(300.0, 354.0), Vector2(1340.0, 354.0), Vector2(1980.0, 334.0), Vector2(2600.0, 354.0), Vector2(3240.0, 334.0), Vector2(3900.0, 354.0), Vector2(4580.0, 334.0), Vector2(5240.0, 354.0), Vector2(5900.0, 334.0), Vector2(6580.0, 354.0), Vector2(7260.0, 334.0), Vector2(7960.0, 354.0), Vector2(8660.0, 334.0)])
+			_spawn_grenadiers([Vector2(760.0, 272.0), Vector2(2020.0, 332.0), Vector2(3300.0, 332.0), Vector2(4660.0, 332.0), Vector2(5700.0, 432.0), Vector2(6900.0, 432.0), Vector2(8200.0, 432.0)])
+			_spawn_cryo_troopers([Vector2(1050.0, 432.0), Vector2(2350.0, 432.0), Vector2(3700.0, 432.0), Vector2(5050.0, 432.0), Vector2(6400.0, 432.0), Vector2(7750.0, 432.0)])
+			_spawn_sled_raiders([Vector2(1450.0, 430.0), Vector2(2850.0, 430.0), Vector2(4300.0, 430.0), Vector2(5500.0, 430.0), Vector2(7000.0, 430.0), Vector2(8150.0, 430.0)])
 			_spawn_sensors([
-				{"pos": Vector2(320.0, 350.0), "weapon": Global.WeaponType.SPREAD},
-				{"pos": Vector2(1900.0, 350.0), "weapon": Global.WeaponType.MACHINE},
-				{"pos": Vector2(3200.0, 260.0), "weapon": Global.WeaponType.SPREAD},
-				{"pos": Vector2(4500.0, 260.0), "weapon": Global.WeaponType.LASER}
+				{"pos": Vector2(320.0, 348.0), "weapon": Global.WeaponType.SPREAD},
+				{"pos": Vector2(1900.0, 428.0), "weapon": Global.WeaponType.MACHINE},
+				{"pos": Vector2(3220.0, 428.0), "weapon": Global.WeaponType.SPREAD},
+				{"pos": Vector2(4560.0, 428.0), "weapon": Global.WeaponType.LASER},
+				{"pos": Vector2(5880.0, 428.0), "weapon": Global.WeaponType.MACHINE},
+				{"pos": Vector2(7240.0, 428.0), "weapon": Global.WeaponType.SPREAD},
+				{"pos": Vector2(8320.0, 258.0), "weapon": Global.WeaponType.LASER}
 			])
-
 		5: # STEEL REFINERY
 			# Conveyor rush, molten foundry turrets & upper mortar posts
-			_spawn_turrets([Vector2(420.0, 270.0), Vector2(1450.0, 320.0), Vector2(2520.0, 340.0), Vector2(3750.0, 260.0), Vector2(4980.0, 320.0), Vector2(5650.0, 260.0)])
-			_spawn_snipers([Vector2(650.0, 320.0), Vector2(1740.0, 340.0), Vector2(2850.0, 260.0), Vector2(4050.0, 320.0), Vector2(5300.0, 340.0)])
-			_spawn_grenadiers([Vector2(920.0, 340.0), Vector2(2000.0, 260.0), Vector2(3150.0, 320.0), Vector2(4350.0, 340.0), Vector2(5200.0, 435.0)])
+			_spawn_turrets([Vector2(420.0, 355.0), Vector2(1450.0, 355.0), Vector2(2520.0, 355.0), Vector2(3750.0, 355.0), Vector2(4980.0, 355.0), Vector2(6200.0, 355.0), Vector2(7500.0, 355.0), Vector2(8300.0, 435.0)])
+			_spawn_snipers([Vector2(650.0, 274.0), Vector2(1740.0, 264.0), Vector2(2850.0, 264.0), Vector2(4050.0, 264.0), Vector2(5300.0, 264.0), Vector2(6500.0, 264.0), Vector2(7750.0, 434.0), Vector2(8520.0, 434.0)])
+			_spawn_grenadiers([Vector2(920.0, 332.0), Vector2(2000.0, 332.0), Vector2(3150.0, 332.0), Vector2(4350.0, 332.0), Vector2(5600.0, 432.0), Vector2(6800.0, 432.0), Vector2(8100.0, 432.0)])
+			_spawn_slag_mechs([Vector2(1150.0, 430.0), Vector2(2700.0, 430.0), Vector2(4150.0, 430.0), Vector2(5400.0, 430.0), Vector2(7100.0, 430.0), Vector2(8250.0, 430.0)])
+			_spawn_conveyor_droids([Vector2(800.0, 350.0), Vector2(1900.0, 260.0), Vector2(3350.0, 320.0), Vector2(4700.0, 320.0), Vector2(6050.0, 350.0), Vector2(7650.0, 350.0)])
 			_spawn_sensors([
-				{"pos": Vector2(280.0, 350.0), "weapon": Global.WeaponType.LASER},
-				{"pos": Vector2(1600.0, 340.0), "weapon": Global.WeaponType.MACHINE},
-				{"pos": Vector2(3000.0, 260.0), "weapon": Global.WeaponType.SPREAD},
-				{"pos": Vector2(4800.0, 260.0), "weapon": Global.WeaponType.LASER}
+				{"pos": Vector2(280.0, 348.0), "weapon": Global.WeaponType.LASER},
+				{"pos": Vector2(1600.0, 258.0), "weapon": Global.WeaponType.MACHINE},
+				{"pos": Vector2(3000.0, 328.0), "weapon": Global.WeaponType.SPREAD},
+				{"pos": Vector2(4400.0, 328.0), "weapon": Global.WeaponType.LASER},
+				{"pos": Vector2(5790.0, 428.0), "weapon": Global.WeaponType.MACHINE},
+				{"pos": Vector2(7420.0, 348.0), "weapon": Global.WeaponType.SPREAD},
+				{"pos": Vector2(8200.0, 328.0), "weapon": Global.WeaponType.LASER}
 			])
-
 		6: # ELECTRIC DYNAMO
 			# High-voltage surge grid, tesla coils & dielectric snipers
-			_spawn_turrets([Vector2(440.0, 270.0), Vector2(1580.0, 320.0), Vector2(2800.0, 340.0), Vector2(4150.0, 260.0), Vector2(5520.0, 320.0)])
-			_spawn_snipers([Vector2(720.0, 320.0), Vector2(1260.0, 260.0), Vector2(1880.0, 340.0), Vector2(2480.0, 320.0), Vector2(3100.0, 260.0), Vector2(3800.0, 340.0), Vector2(4480.0, 320.0), Vector2(5200.0, 260.0)])
-			_spawn_grenadiers([Vector2(1000.0, 340.0), Vector2(2180.0, 260.0), Vector2(3480.0, 320.0), Vector2(4800.0, 340.0)])
+			_spawn_turrets([Vector2(440.0, 355.0), Vector2(1580.0, 265.0), Vector2(2800.0, 265.0), Vector2(4150.0, 265.0), Vector2(5520.0, 265.0), Vector2(6750.0, 265.0), Vector2(7850.0, 355.0), Vector2(8450.0, 435.0)])
+			_spawn_snipers([Vector2(720.0, 274.0), Vector2(1260.0, 434.0), Vector2(1880.0, 434.0), Vector2(2480.0, 354.0), Vector2(3100.0, 434.0), Vector2(3800.0, 354.0), Vector2(4480.0, 334.0), Vector2(5200.0, 354.0), Vector2(5850.0, 334.0), Vector2(6500.0, 354.0), Vector2(7150.0, 334.0), Vector2(7850.0, 354.0), Vector2(8500.0, 434.0)])
+			_spawn_grenadiers([Vector2(1000.0, 332.0), Vector2(2105.0, 332.0), Vector2(3410.0, 432.0), Vector2(4880.0, 432.0), Vector2(6040.0, 432.0), Vector2(7350.0, 432.0), Vector2(8250.0, 432.0)])
+			_spawn_tesla_troopers([Vector2(900.0, 434.0), Vector2(2250.0, 434.0), Vector2(3600.0, 434.0), Vector2(4950.0, 434.0), Vector2(6300.0, 434.0), Vector2(7650.0, 434.0)])
+			_spawn_spark_drones([Vector2(1200.0, 320.0), Vector2(2600.0, 300.0), Vector2(3950.0, 310.0), Vector2(5300.0, 300.0), Vector2(6650.0, 310.0), Vector2(7950.0, 320.0)])
 			_spawn_sensors([
-				{"pos": Vector2(300.0, 350.0), "weapon": Global.WeaponType.SPREAD},
-				{"pos": Vector2(1700.0, 320.0), "weapon": Global.WeaponType.LASER},
-				{"pos": Vector2(3300.0, 320.0), "weapon": Global.WeaponType.MACHINE},
-				{"pos": Vector2(4700.0, 340.0), "weapon": Global.WeaponType.SPREAD}
+				{"pos": Vector2(300.0, 348.0), "weapon": Global.WeaponType.SPREAD},
+				{"pos": Vector2(1700.0, 258.0), "weapon": Global.WeaponType.LASER},
+				{"pos": Vector2(3300.0, 328.0), "weapon": Global.WeaponType.MACHINE},
+				{"pos": Vector2(4700.0, 428.0), "weapon": Global.WeaponType.SPREAD},
+				{"pos": Vector2(6040.0, 428.0), "weapon": Global.WeaponType.LASER},
+				{"pos": Vector2(7430.0, 428.0), "weapon": Global.WeaponType.MACHINE},
+				{"pos": Vector2(8350.0, 258.0), "weapon": Global.WeaponType.SPREAD}
 			])
-
 		7: # ALIEN AEROSPACE HANGAR
 			# Moving hydraulic elevators, security lasers, orbital gantry turrets
-			_spawn_turrets([Vector2(480.0, 270.0), Vector2(1400.0, 260.0), Vector2(2450.0, 260.0), Vector2(3500.0, 260.0), Vector2(4650.0, 260.0), Vector2(5380.0, 340.0)])
-			_spawn_snipers([Vector2(250.0, 350.0), Vector2(1100.0, 350.0), Vector2(2120.0, 340.0), Vector2(3150.0, 340.0), Vector2(4250.0, 340.0), Vector2(5200.0, 435.0)])
-			_spawn_grenadiers([Vector2(1600.0, 435.0), Vector2(3800.0, 435.0), Vector2(4900.0, 435.0)])
+			_spawn_turrets([Vector2(480.0, 355.0), Vector2(1400.0, 355.0), Vector2(2370.0, 435.0), Vector2(3500.0, 335.0), Vector2(4650.0, 435.0), Vector2(5600.0, 435.0), Vector2(6800.0, 355.0), Vector2(8100.0, 435.0), Vector2(8550.0, 435.0)])
+			_spawn_snipers([Vector2(250.0, 434.0), Vector2(1065.0, 334.0), Vector2(2120.0, 334.0), Vector2(3150.0, 264.0), Vector2(4250.0, 354.0), Vector2(5230.0, 434.0), Vector2(6200.0, 334.0), Vector2(7200.0, 264.0), Vector2(8200.0, 354.0)])
+			_spawn_grenadiers([Vector2(1600.0, 432.0), Vector2(4900.0, 432.0), Vector2(6100.0, 432.0), Vector2(7400.0, 432.0), Vector2(8350.0, 432.0)])
+			_spawn_jetpack_marines([Vector2(850.0, 280.0), Vector2(2000.0, 260.0), Vector2(3400.0, 270.0), Vector2(4800.0, 260.0), Vector2(6200.0, 270.0), Vector2(7800.0, 280.0)])
+			_spawn_rail_turrets([Vector2(1100.0, 160.0), Vector2(2450.0, 160.0), Vector2(3850.0, 160.0), Vector2(5150.0, 160.0), Vector2(6550.0, 160.0), Vector2(8000.0, 160.0)])
 			_spawn_sensors([
-				{"pos": Vector2(290.0, 350.0), "weapon": Global.WeaponType.MACHINE},
-				{"pos": Vector2(1900.0, 340.0), "weapon": Global.WeaponType.SPREAD},
-				{"pos": Vector2(3300.0, 340.0), "weapon": Global.WeaponType.LASER},
-				{"pos": Vector2(4800.0, 260.0), "weapon": Global.WeaponType.MACHINE}
+				{"pos": Vector2(290.0, 348.0), "weapon": Global.WeaponType.MACHINE},
+				{"pos": Vector2(1900.0, 258.0), "weapon": Global.WeaponType.SPREAD},
+				{"pos": Vector2(3300.0, 428.0), "weapon": Global.WeaponType.LASER},
+				{"pos": Vector2(4700.0, 428.0), "weapon": Global.WeaponType.MACHINE},
+				{"pos": Vector2(6100.0, 328.0), "weapon": Global.WeaponType.SPREAD},
+				{"pos": Vector2(7500.0, 328.0), "weapon": Global.WeaponType.LASER},
+				{"pos": Vector2(8350.0, 348.0), "weapon": Global.WeaponType.SPREAD}
 			])
-
 		8: # MOTHER BRAIN SANCTUM
 			# Living bio-eye sentries, egg sacs, heavy crawler packs, final powerups
-			_spawn_bio_eyes([Vector2(400.0, 260.0), Vector2(1220.0, 250.0), Vector2(2100.0, 250.0), Vector2(3050.0, 250.0), Vector2(4050.0, 250.0), Vector2(5100.0, 250.0)])
-			_spawn_spore_pods([Vector2(200.0, 350.0), Vector2(680.0, 320.0), Vector2(1500.0, 320.0), Vector2(2400.0, 320.0), Vector2(3380.0, 320.0), Vector2(4380.0, 320.0), Vector2(5420.0, 320.0)])
-			_spawn_turrets([Vector2(950.0, 340.0), Vector2(1800.0, 340.0), Vector2(2720.0, 340.0), Vector2(3700.0, 340.0), Vector2(4700.0, 340.0)])
-			_spawn_crawlers([Vector2(1100.0, 420.0), Vector2(1950.0, 420.0), Vector2(2850.0, 420.0), Vector2(3850.0, 420.0), Vector2(4900.0, 420.0)])
-			_spawn_grenadiers([Vector2(2200.0, 435.0), Vector2(4500.0, 435.0), Vector2(5600.0, 435.0)])
+			_spawn_bio_eyes([Vector2(400.0, 346.0), Vector2(1220.0, 426.0), Vector2(2100.0, 326.0), Vector2(3050.0, 246.0), Vector2(4050.0, 346.0), Vector2(5100.0, 426.0), Vector2(6140.0, 426.0), Vector2(7200.0, 326.0), Vector2(8100.0, 426.0)])
+			_spawn_spore_pods([Vector2(200.0, 438.0), Vector2(680.0, 268.0), Vector2(1500.0, 358.0), Vector2(2450.0, 438.0), Vector2(3380.0, 338.0), Vector2(4380.0, 258.0), Vector2(5420.0, 438.0), Vector2(6500.0, 358.0), Vector2(7450.0, 438.0), Vector2(8300.0, 258.0)])
+			_spawn_turrets([Vector2(950.0, 335.0), Vector2(1800.0, 255.0), Vector2(2720.0, 355.0), Vector2(3700.0, 435.0), Vector2(4700.0, 335.0), Vector2(5700.0, 255.0), Vector2(6800.0, 435.0), Vector2(7900.0, 355.0), Vector2(8450.0, 435.0)])
+			_spawn_crawlers([Vector2(1030.0, 434.0), Vector2(1950.0, 434.0), Vector2(2850.0, 434.0), Vector2(3850.0, 434.0), Vector2(4980.0, 434.0), Vector2(5950.0, 434.0), Vector2(7000.0, 434.0), Vector2(8050.0, 434.0)])
+			_spawn_grenadiers([Vector2(2200.0, 432.0), Vector2(4500.0, 432.0), Vector2(5600.0, 432.0), Vector2(6700.0, 432.0), Vector2(7800.0, 432.0), Vector2(8350.0, 432.0)])
+			_spawn_tentacle_whippers([Vector2(750.0, 434.0), Vector2(1950.0, 434.0), Vector2(3200.0, 434.0), Vector2(4450.0, 434.0), Vector2(5800.0, 434.0), Vector2(7100.0, 434.0), Vector2(8150.0, 434.0)])
+			_spawn_psychic_orbs([Vector2(1100.0, 320.0), Vector2(2350.0, 300.0), Vector2(3650.0, 290.0), Vector2(4900.0, 310.0), Vector2(6250.0, 290.0), Vector2(7600.0, 320.0)])
 			_spawn_sensors([
-				{"pos": Vector2(250.0, 350.0), "weapon": Global.WeaponType.SPREAD},
-				{"pos": Vector2(1400.0, 320.0), "weapon": Global.WeaponType.MACHINE},
-				{"pos": Vector2(2600.0, 340.0), "weapon": Global.WeaponType.LASER},
-				{"pos": Vector2(3900.0, 340.0), "weapon": Global.WeaponType.SPREAD},
-				{"pos": Vector2(5200.0, 250.0), "weapon": Global.WeaponType.LASER}
+				{"pos": Vector2(250.0, 348.0), "weapon": Global.WeaponType.SPREAD},
+				{"pos": Vector2(1400.0, 348.0), "weapon": Global.WeaponType.MACHINE},
+				{"pos": Vector2(2600.0, 348.0), "weapon": Global.WeaponType.LASER},
+				{"pos": Vector2(3900.0, 348.0), "weapon": Global.WeaponType.SPREAD},
+				{"pos": Vector2(5200.0, 348.0), "weapon": Global.WeaponType.LASER},
+				{"pos": Vector2(6550.0, 348.0), "weapon": Global.WeaponType.MACHINE},
+				{"pos": Vector2(7900.0, 348.0), "weapon": Global.WeaponType.SPREAD},
+				{"pos": Vector2(8350.0, 248.0), "weapon": Global.WeaponType.LASER}
 			])
+
+
+func _find_valid_surface_at(pos: Vector2, y_offset: float = 0.0) -> Vector2:
+	var best_surf_y: float = -99999.0
+	var best_surf_x: float = pos.x
+	var min_gap: float = 99999.0
+	var found_direct: bool = false
+	
+	# 1. Check if pos.x directly overlaps a platform or ground segment
+	for p in platforms:
+		var pr: Rect2 = p.get("rect", Rect2())
+		if pos.x >= pr.position.x + 8.0 and pos.x <= pr.end.x - 8.0:
+			var gap: float = absf(pr.position.y - pos.y)
+			if not found_direct or gap < min_gap:
+				found_direct = true
+				min_gap = gap
+				best_surf_y = pr.position.y
+				best_surf_x = pos.x
+				
+	for g in ground_segments:
+		if pos.x >= g.position.x + 12.0 and pos.x <= g.end.x - 12.0:
+			var gap: float = absf(g.position.y - pos.y)
+			if not found_direct or gap < min_gap:
+				found_direct = true
+				min_gap = gap
+				best_surf_y = g.position.y
+				best_surf_x = pos.x
+				
+	if found_direct:
+		return Vector2(best_surf_x, best_surf_y - y_offset)
+		
+	# 2. If pos.x is near a chasm or edge gap, search within 85px for a solid surface
+	var search_radius := 85.0
+	var best_score := 99999.0
+	
+	for p in platforms:
+		var pr: Rect2 = p.get("rect", Rect2())
+		var clamped_x := clampf(pos.x, pr.position.x + 12.0, pr.end.x - 12.0)
+		var x_dist := absf(clamped_x - pos.x)
+		if x_dist <= search_radius:
+			var score := x_dist * 0.4 + absf(pr.position.y - pos.y)
+			if score < best_score:
+				best_score = score
+				best_surf_y = pr.position.y
+				best_surf_x = clamped_x
+				
+	for g in ground_segments:
+		var clamped_x := clampf(pos.x, g.position.x + 16.0, g.end.x - 16.0)
+		var x_dist := absf(clamped_x - pos.x)
+		if x_dist <= search_radius:
+			var score := x_dist * 0.4 + absf(g.position.y - pos.y)
+			if score < best_score:
+				best_score = score
+				best_surf_y = g.position.y
+				best_surf_x = clamped_x
+				
+	if best_surf_y > -90000.0:
+		return Vector2(best_surf_x, best_surf_y - y_offset)
+		
+	# Over empty abyss or chasm with no valid platform/ground
+	return Vector2.ZERO
 
 func _is_over_ground_or_platform(pos_x: float) -> bool:
 	for g in ground_segments:
-		if pos_x >= g.position.x - 12.0 and pos_x <= g.end.x + 12.0:
+		if pos_x >= g.position.x - 10.0 and pos_x <= g.end.x + 10.0:
 			return true
 	for p in platforms:
 		var pr: Rect2 = p.get("rect", Rect2())
-		if pos_x >= pr.position.x - 12.0 and pos_x <= pr.end.x + 12.0:
+		if pos_x >= pr.position.x - 8.0 and pos_x <= pr.end.x + 8.0:
 			return true
 	return false
 
 func _spawn_turrets(positions: Array[Vector2]) -> void:
 	if turret_scene == null: return
 	for pos in positions:
-		if pos.x < BOSS_TRIGGER_X - 100.0 and _is_over_ground_or_platform(pos.x):
+		var valid_pos := _find_valid_surface_at(pos, 5.0)
+		if valid_pos != Vector2.ZERO and valid_pos.x < BOSS_TRIGGER_X - 100.0:
 			var t = turret_scene.instantiate()
-			t.global_position = pos
+			t.global_position = valid_pos
 			add_child(t)
 
 func _get_ground_or_platform_y(pos_x: float, default_y: float) -> float:
-	var best_y: float = default_y
-	var min_gap: float = 99999.0
-	for p in platforms:
-		var pr: Rect2 = p.get("rect", Rect2())
-		if pos_x >= pr.position.x - 10.0 and pos_x <= pr.position.x + pr.size.x + 10.0:
-			var gap: float = absf(pr.position.y - default_y)
-			if gap < min_gap:
-				min_gap = gap
-				best_y = pr.position.y - 10.0
-	for g in ground_segments:
-		if pos_x >= g.position.x - 10.0 and pos_x <= g.position.x + g.size.x + 10.0:
-			var gap: float = absf(g.position.y - default_y)
-			if gap < min_gap:
-				min_gap = gap
-				best_y = g.position.y - 10.0
-	return best_y
+	var valid := _find_valid_surface_at(Vector2(pos_x, default_y), 6.0)
+	return valid.y if valid != Vector2.ZERO else default_y
 
 func _spawn_snipers(positions: Array[Vector2]) -> void:
 	if sniper_scene == null: return
 	for pos in positions:
-		if pos.x < BOSS_TRIGGER_X - 100.0 and _is_over_ground_or_platform(pos.x):
+		var valid_pos := _find_valid_surface_at(pos, 6.0)
+		if valid_pos != Vector2.ZERO and valid_pos.x < BOSS_TRIGGER_X - 100.0:
 			var s = sniper_scene.instantiate()
-			var valid_y := _get_ground_or_platform_y(pos.x, pos.y)
-			s.global_position = Vector2(pos.x, valid_y)
+			s.global_position = valid_pos
 			add_child(s)
 
 func _spawn_grenadiers(positions: Array[Vector2]) -> void:
 	if grenadier_scene == null: return
 	for pos in positions:
-		if pos.x < BOSS_TRIGGER_X - 120.0 and _is_over_ground_or_platform(pos.x):
+		var valid_pos := _find_valid_surface_at(pos, 8.0)
+		if valid_pos != Vector2.ZERO and valid_pos.x < BOSS_TRIGGER_X - 120.0:
 			var gr = grenadier_scene.instantiate()
-			gr.global_position = pos
+			gr.global_position = valid_pos
 			add_child(gr)
 
 func _spawn_crawlers(positions: Array[Vector2]) -> void:
 	if crawler_scene == null: return
 	for pos in positions:
-		if pos.x < BOSS_TRIGGER_X - 150.0 and _is_over_ground_or_platform(pos.x):
+		var valid_pos := _find_valid_surface_at(pos, 6.0)
+		if valid_pos != Vector2.ZERO and valid_pos.x < BOSS_TRIGGER_X - 150.0:
 			var cr = crawler_scene.instantiate()
-			cr.global_position = pos
+			cr.global_position = valid_pos
 			add_child(cr)
 
 func _spawn_sensors(sensor_pods: Array[Dictionary]) -> void:
 	if sensor_scene == null: return
 	for pod_info in sensor_pods:
-		if pod_info["pos"].x < BOSS_TRIGGER_X - 150.0 and _is_over_ground_or_platform(pod_info["pos"].x):
+		var pos: Vector2 = pod_info["pos"]
+		var valid_pos := _find_valid_surface_at(pos, 12.0)
+		if valid_pos != Vector2.ZERO and valid_pos.x < BOSS_TRIGGER_X - 150.0:
 			var pod = sensor_scene.instantiate()
-			pod.global_position = pod_info["pos"]
+			pod.global_position = valid_pos
 			pod.weapon_type = pod_info["weapon"]
 			add_child(pod)
 
 func _spawn_spore_pods(positions: Array[Vector2]) -> void:
 	if spore_pod_script == null: return
 	for pos in positions:
-		if pos.x < BOSS_TRIGGER_X - 120.0 and _is_over_ground_or_platform(pos.x):
+		var valid_pos := _find_valid_surface_at(pos, 2.0)
+		if valid_pos != Vector2.ZERO and valid_pos.x < BOSS_TRIGGER_X - 120.0:
 			var pod = spore_pod_script.new()
-			pod.global_position = pos
+			pod.global_position = valid_pos
 			add_child(pod)
 
 func _spawn_bio_eyes(positions: Array[Vector2]) -> void:
 	if bio_eye_script == null: return
 	for pos in positions:
-		if pos.x < BOSS_TRIGGER_X - 120.0 and _is_over_ground_or_platform(pos.x):
+		var valid_pos := _find_valid_surface_at(pos, 14.0)
+		if valid_pos != Vector2.ZERO and valid_pos.x < BOSS_TRIGGER_X - 120.0:
 			var eye = bio_eye_script.new()
-			eye.global_position = pos
+			eye.global_position = valid_pos
 			add_child(eye)
+
+func _spawn_guerrilla_gunners(positions: Array[Vector2]) -> void:
+	if guerrilla_gunner_scene == null: return
+	for pos in positions:
+		var valid_pos := _find_valid_surface_at(pos, 6.0)
+		if valid_pos != Vector2.ZERO and valid_pos.x < BOSS_TRIGGER_X - 120.0:
+			var e = guerrilla_gunner_scene.instantiate()
+			e.global_position = valid_pos
+			add_child(e)
+
+func _spawn_flame_troopers(positions: Array[Vector2]) -> void:
+	if flame_trooper_scene == null: return
+	for pos in positions:
+		var valid_pos := _find_valid_surface_at(pos, 8.0)
+		if valid_pos != Vector2.ZERO and valid_pos.x < BOSS_TRIGGER_X - 120.0:
+			var e = flame_trooper_scene.instantiate()
+			e.global_position = valid_pos
+			add_child(e)
+
+func _spawn_scuba_commandos(positions: Array[Vector2]) -> void:
+	if scuba_commando_scene == null: return
+	for pos in positions:
+		var valid_pos := _find_valid_surface_at(pos, 6.0)
+		if valid_pos != Vector2.ZERO and valid_pos.x < BOSS_TRIGGER_X - 120.0:
+			var e = scuba_commando_scene.instantiate()
+			e.global_position = valid_pos
+			add_child(e)
+
+func _spawn_torpedo_drones(positions: Array[Vector2]) -> void:
+	if torpedo_drone_scene == null: return
+	for pos in positions:
+		if _is_over_ground_or_platform(pos.x) and pos.x < BOSS_TRIGGER_X - 120.0:
+			var e = torpedo_drone_scene.instantiate()
+			e.global_position = pos
+			add_child(e)
+
+func _spawn_acid_spitters(positions: Array[Vector2]) -> void:
+	if acid_spitter_scene == null: return
+	for pos in positions:
+		var valid_pos := _find_valid_surface_at(pos, 6.0)
+		if valid_pos != Vector2.ZERO and valid_pos.x < BOSS_TRIGGER_X - 120.0:
+			var e = acid_spitter_scene.instantiate()
+			e.global_position = valid_pos
+			add_child(e)
+
+func _spawn_ceiling_stalkers(positions: Array[Vector2]) -> void:
+	if ceiling_stalker_scene == null: return
+	for pos in positions:
+		if pos.x < BOSS_TRIGGER_X - 120.0:
+			var e = ceiling_stalker_scene.instantiate()
+			e.global_position = pos
+			add_child(e)
+
+func _spawn_cryo_troopers(positions: Array[Vector2]) -> void:
+	if cryo_trooper_scene == null: return
+	for pos in positions:
+		var valid_pos := _find_valid_surface_at(pos, 6.0)
+		if valid_pos != Vector2.ZERO and valid_pos.x < BOSS_TRIGGER_X - 120.0:
+			var e = cryo_trooper_scene.instantiate()
+			e.global_position = valid_pos
+			add_child(e)
+
+func _spawn_sled_raiders(positions: Array[Vector2]) -> void:
+	if sled_raider_scene == null: return
+	for pos in positions:
+		var valid_pos := _find_valid_surface_at(pos, 6.0)
+		if valid_pos != Vector2.ZERO and valid_pos.x < BOSS_TRIGGER_X - 120.0:
+			var e = sled_raider_scene.instantiate()
+			e.global_position = valid_pos
+			add_child(e)
+
+func _spawn_slag_mechs(positions: Array[Vector2]) -> void:
+	if slag_mech_scene == null: return
+	for pos in positions:
+		var valid_pos := _find_valid_surface_at(pos, 10.0)
+		if valid_pos != Vector2.ZERO and valid_pos.x < BOSS_TRIGGER_X - 120.0:
+			var e = slag_mech_scene.instantiate()
+			e.global_position = valid_pos
+			add_child(e)
+
+func _spawn_conveyor_droids(positions: Array[Vector2]) -> void:
+	if conveyor_droid_scene == null: return
+	for pos in positions:
+		var valid_pos := _find_valid_surface_at(pos, 6.0)
+		if valid_pos != Vector2.ZERO and valid_pos.x < BOSS_TRIGGER_X - 120.0:
+			var e = conveyor_droid_scene.instantiate()
+			e.global_position = valid_pos
+			add_child(e)
+
+func _spawn_tesla_troopers(positions: Array[Vector2]) -> void:
+	if tesla_trooper_scene == null: return
+	for pos in positions:
+		var valid_pos := _find_valid_surface_at(pos, 6.0)
+		if valid_pos != Vector2.ZERO and valid_pos.x < BOSS_TRIGGER_X - 120.0:
+			var e = tesla_trooper_scene.instantiate()
+			e.global_position = valid_pos
+			add_child(e)
+
+func _spawn_spark_drones(positions: Array[Vector2]) -> void:
+	if spark_drone_scene == null: return
+	for pos in positions:
+		if _is_over_ground_or_platform(pos.x) and pos.x < BOSS_TRIGGER_X - 120.0:
+			var e = spark_drone_scene.instantiate()
+			e.global_position = pos
+			add_child(e)
+
+func _spawn_jetpack_marines(positions: Array[Vector2]) -> void:
+	if jetpack_marine_scene == null: return
+	for pos in positions:
+		if _is_over_ground_or_platform(pos.x) and pos.x < BOSS_TRIGGER_X - 120.0:
+			var e = jetpack_marine_scene.instantiate()
+			e.global_position = pos
+			add_child(e)
+
+func _spawn_rail_turrets(positions: Array[Vector2]) -> void:
+	if rail_turret_scene == null: return
+	for pos in positions:
+		if pos.x < BOSS_TRIGGER_X - 120.0:
+			var e = rail_turret_scene.instantiate()
+			e.global_position = pos
+			add_child(e)
+
+func _spawn_tentacle_whippers(positions: Array[Vector2]) -> void:
+	if tentacle_whipper_scene == null: return
+	for pos in positions:
+		var valid_pos := _find_valid_surface_at(pos, 6.0)
+		if valid_pos != Vector2.ZERO and valid_pos.x < BOSS_TRIGGER_X - 120.0:
+			var e = tentacle_whipper_scene.instantiate()
+			e.global_position = valid_pos
+			add_child(e)
+
+func _spawn_psychic_orbs(positions: Array[Vector2]) -> void:
+	if psychic_orb_scene == null: return
+	for pos in positions:
+		if _is_over_ground_or_platform(pos.x) and pos.x < BOSS_TRIGGER_X - 120.0:
+			var e = psychic_orb_scene.instantiate()
+			e.global_position = pos
+			add_child(e)
 
 func _setup_animated_bg_props() -> void:
 	for c in get_children():
@@ -1222,8 +1475,8 @@ func _setup_animated_bg_props() -> void:
 
 
 func get_safe_respawn_position(target_x: float) -> Vector2:
-	if Global.current_stage == 1 and target_x >= 3880.0 and target_x <= 5140.0:
-		return Vector2(3820.0, 360.0)
+	if Global.current_stage == 1 and target_x >= 6220.0 and target_x <= 7720.0:
+		return Vector2(6160.0, 360.0)
 	for g in ground_segments:
 		if target_x >= g.position.x + 40.0 and target_x <= g.end.x - 40.0:
 			return Vector2(target_x, 80.0)
@@ -1252,11 +1505,7 @@ func _spawn_soldier_wave() -> void:
 	if soldier_scene == null or camera == null or player == null or not is_instance_valid(player):
 		return
 	
-	# Prevent running soldiers from spawning into the abyss during platform sequence
 	var player_x := player.global_position.x
-	if Global.current_stage == 1 and player_x > 3880.0 and player_x < 5140.0:
-		soldier_spawn_timer = 2.0
-		return
 	
 	# Cap maximum simultaneous active foot soldiers to 4
 	var active_soldiers: int = 0
@@ -1268,54 +1517,71 @@ func _spawn_soldier_wave() -> void:
 		return
 	
 	var cam_x := camera.global_position.x
-	if ground_segments.is_empty():
-		return
-	var cur_seg: Rect2 = ground_segments[0]
-	for g in ground_segments:
-		if player_x >= g.position.x - 80.0 and player_x <= g.end.x + 80.0:
-			cur_seg = g
-			break
 	
-	# 85% spawn ahead running left, 15% spawn behind running right
+	# Find all valid ground segments within or near camera view
+	var valid_ground_segs: Array[Rect2] = []
+	for g in ground_segments:
+		if g.end.x >= cam_x - 520.0 and g.position.x <= cam_x + 520.0:
+			if g.size.x >= 140.0:
+				valid_ground_segs.append(g)
+	
+	# If player is over a pure bottomless abyss or high platform route with no ground below, do not spawn foot soldiers in air!
+	if valid_ground_segs.is_empty():
+		soldier_spawn_timer = 1.5
+		return
+	
+	# Determine spawn direction: 85% spawn ahead running left, 15% spawn behind running right
 	var spawn_from_right: bool = randf() > 0.15
-	var spawn_x: float
-	var initial_facing: int
+	var target_seg: Rect2 = Rect2()
+	var initial_facing: int = -1
 	
 	if spawn_from_right:
-		var target_x := minf(cam_x + 460.0, cur_seg.end.x - 40.0)
-		if target_x <= player_x + 100.0:
-			target_x = cam_x + 460.0
-		spawn_x = target_x
+		for g in valid_ground_segs:
+			if g.end.x > player_x + 80.0:
+				target_seg = g
+				break
+		if target_seg.size.x == 0.0:
+			target_seg = valid_ground_segs.back()
 		initial_facing = -1
 	else:
-		var target_x := maxf(cam_x - 460.0, cur_seg.position.x + 40.0)
-		if target_x >= player_x - 100.0:
-			target_x = cam_x - 460.0
-		spawn_x = target_x
+		for g in valid_ground_segs:
+			if g.position.x < player_x - 80.0:
+				target_seg = g
+				break
+		if target_seg.size.x == 0.0:
+			target_seg = valid_ground_segs.front()
 		initial_facing = 1
+		
+	if target_seg.size.x == 0.0:
+		soldier_spawn_timer = 1.5
+		return
 	
-	for i in range(ground_segments.size() - 1):
-		var pit_start := ground_segments[i].end.x
-		var pit_end := ground_segments[i + 1].position.x
-		if spawn_x >= pit_start - 20.0 and spawn_x <= pit_end + 20.0:
-			spawn_x = pit_end + 40.0 if initial_facing == -1 else pit_start - 40.0
-			break
+	# Clamp spawn_x securely inside the target ground segment (away from pit edges)
+	var spawn_x: float
+	if initial_facing == -1: # Spawning on right, running left
+		var ideal_x := cam_x + 460.0
+		spawn_x = clampf(ideal_x, target_seg.position.x + 35.0, target_seg.end.x - 30.0)
+	else: # Spawning on left, running right
+		var ideal_x := cam_x - 460.0
+		spawn_x = clampf(ideal_x, target_seg.position.x + 30.0, target_seg.end.x - 35.0)
+	
+	var spawn_y: float = target_seg.position.y - 18.0
 	
 	var s: Node2D
 	if Global.current_stage == 3 and crawler_scene != null:
 		s = crawler_scene.instantiate()
 		s.facing_dir = initial_facing
-		s.global_position = Vector2(spawn_x, 420.0)
+		s.global_position = Vector2(spawn_x, spawn_y)
 		s.add_to_group("foot_soldiers")
 	elif Global.current_stage == 8 and crawler_scene != null and randf() < 0.65:
 		s = crawler_scene.instantiate()
 		s.facing_dir = initial_facing
-		s.global_position = Vector2(spawn_x, 420.0)
+		s.global_position = Vector2(spawn_x, spawn_y)
 		s.add_to_group("foot_soldiers")
 	else:
 		s = soldier_scene.instantiate()
 		s.facing_dir = initial_facing
-		s.global_position = Vector2(spawn_x, 420.0)
+		s.global_position = Vector2(spawn_x, spawn_y)
 	add_child(s)
 
 func _spawn_drone_wave() -> void:
@@ -1593,8 +1859,8 @@ func _draw_platforms(view_left: float, view_right: float) -> void:
 			active_ground_tex = ground_tile_texture
 
 		if active_ground_tex != null:
-			if Global.current_stage == 1 and g.end.x >= 5800.0 and boss_ground_texture != null:
-				var boss_floor_start_x: float = 5780.0
+			if Global.current_stage == 1 and g.end.x >= BOSS_TRIGGER_X and boss_ground_texture != null:
+				var boss_floor_start_x: float = BOSS_TRIGGER_X - 20.0
 				
 				# 1. Approach Jungle Ground (mid_start_x to boss_floor_start_x)
 				var jungle_w: float = maxf(0.0, minf(mid_end_x, boss_floor_start_x) - mid_start_x)
@@ -1819,187 +2085,58 @@ func _draw_platforms(view_left: float, view_right: float) -> void:
 				_draw_platform_bio_rib(b, p_tint)
 
 func _draw_platform_ice_slab(b: Rect2, p_tint: Color) -> void:
-	# Crystalline translucent glacier ice core
-	draw_rect(Rect2(b.position.x, b.position.y, b.size.x, 20.0), Color(0.22, 0.46, 0.68, 0.90) * p_tint)
-	draw_rect(Rect2(b.position.x + 2.0, b.position.y + 3.0, b.size.x - 4.0, 14.0), Color(0.45, 0.78, 0.95, 0.75) * p_tint)
-	
-	# Powder snow mantle layer on top
-	draw_rect(Rect2(b.position.x - 2.0, b.position.y - 2.0, b.size.x + 4.0, 6.0), Color(0.95, 0.98, 1.0) * p_tint)
-	draw_line(Vector2(b.position.x + 8.0, b.position.y + 4.0), Vector2(b.end.x - 8.0, b.position.y + 4.0), Color(1.0, 1.0, 1.0, 0.85), 1.5)
-	
-	# Sharp crystalline icicles hanging below
-	var icicle_spacing := 16.0
-	var count := int(b.size.x / icicle_spacing)
-	for i in range(count):
-		var ix := b.position.x + float(i) * icicle_spacing + 8.0
-		var hash_val := fmod(ix * 0.17 + 23.0, 1.0)
-		var icicle_len := 8.0 + hash_val * 16.0 + 2.0 * sin(anim_timer * 2.0 + float(i))
-		var w := 4.0
-		var pts := PackedVector2Array([
-			Vector2(ix - w, b.position.y + 20.0),
-			Vector2(ix + w, b.position.y + 20.0),
-			Vector2(ix, b.position.y + 20.0 + icicle_len)
-		])
-		draw_colored_polygon(pts, Color(0.60, 0.88, 1.0, 0.85) * p_tint)
-		draw_line(Vector2(ix, b.position.y + 20.0), Vector2(ix, b.position.y + 20.0 + icicle_len), Color(1.0, 1.0, 1.0, 0.90), 1.0)
+	if platform_ice_slab_texture != null:
+		draw_texture_rect(platform_ice_slab_texture, Rect2(b.position.x, b.position.y - 4.0, b.size.x, 38.0), false, p_tint)
+	else:
+		# Fallback procedural
+		draw_rect(Rect2(b.position.x, b.position.y, b.size.x, 20.0), Color(0.22, 0.46, 0.68, 0.90) * p_tint)
+		draw_rect(Rect2(b.position.x - 2.0, b.position.y - 2.0, b.size.x + 4.0, 6.0), Color(0.95, 0.98, 1.0) * p_tint)
 
 func _draw_platform_lava_grate(b: Rect2, p_tint: Color) -> void:
-	# Heavy cast-iron blast furnace framework
-	draw_rect(Rect2(b.position.x, b.position.y, b.size.x, 24.0), Color(0.14, 0.11, 0.11))
-	draw_rect(Rect2(b.position.x + 2.0, b.position.y + 2.0, b.size.x - 4.0, 20.0), Color(0.08, 0.06, 0.06))
-	
-	# Molten thermal exhaust vents pulsing with superheated magma
-	var vent_w := 14.0
-	var vent_gap := 8.0
-	var total_step := vent_w + vent_gap
-	var num_vents := int((b.size.x - 12.0) / total_step)
-	for v in range(num_vents):
-		var vx := b.position.x + 8.0 + float(v) * total_step
-		var pulse := 0.75 + 0.25 * sin(anim_timer * 6.0 + float(v) * 0.8)
-		var magma_col := Color(1.0 * pulse, 0.42 * pulse, 0.08)
-		draw_rect(Rect2(vx, b.position.y + 4.0, vent_w, 15.0), magma_col)
-		draw_line(Vector2(vx + vent_w * 0.5, b.position.y + 6.0), Vector2(vx + vent_w * 0.5, b.position.y + 17.0), Color(1.0, 0.95, 0.60, pulse), 2.0)
-	
-	# Heavy iron top border and rivet studs
-	draw_rect(Rect2(b.position.x, b.position.y, b.size.x, 4.0), Color(0.45, 0.35, 0.30))
-	for r in range(int(b.size.x / 24.0)):
-		draw_circle(Vector2(b.position.x + 12.0 + float(r) * 24.0, b.position.y + 2.0), 1.5, Color(0.75, 0.65, 0.55))
-	
-	# Animated conveyor chevrons in Stage 5 Refinery
-	if Global.current_stage == 5:
-		var c_dir: float = 1.0 if (int(b.position.x) % 2 == 0) else -1.0
-		var scroll := fmod(anim_timer * 45.0 * c_dir, 20.0)
-		var num_ch := int(b.size.x / 20.0)
-		for ch in range(num_ch):
-			var ch_x := b.position.x + float(ch) * 20.0 + scroll
-			if ch_x >= b.position.x + 4.0 and ch_x <= b.end.x - 12.0:
-				var tip_x := ch_x + (6.0 * c_dir)
-				draw_line(Vector2(ch_x, b.position.y + 3.0), Vector2(tip_x, b.position.y + 7.0), Color(1.0, 0.85, 0.2, 0.85), 2.0)
-				draw_line(Vector2(ch_x, b.position.y + 11.0), Vector2(tip_x, b.position.y + 7.0), Color(1.0, 0.85, 0.2, 0.85), 2.0)
-
-	# Hanging fiery slag chains underneath
-	var chain_lx: float = b.position.x + 18.0
-	var chain_rx: float = b.end.x - 18.0
-	_draw_vertical_chain(Vector2(chain_lx, -12.0), Vector2(chain_lx, b.position.y + 4.0), 12.0, Color(1.2, 0.8, 0.5))
-	_draw_vertical_chain(Vector2(chain_rx, -12.0), Vector2(chain_rx, b.position.y + 4.0), 12.0, Color(1.2, 0.8, 0.5))
+	if platform_lava_grate_texture != null:
+		draw_texture_rect(platform_lava_grate_texture, Rect2(b.position.x, b.position.y - 4.0, b.size.x, 34.0), false, p_tint)
+	else:
+		draw_rect(Rect2(b.position.x, b.position.y, b.size.x, 24.0), Color(0.14, 0.11, 0.11))
+		draw_rect(Rect2(b.position.x, b.position.y, b.size.x, 4.0), Color(0.45, 0.35, 0.30))
 
 func _draw_platform_energy_barrier(b: Rect2, p_tint: Color) -> void:
-	# High-voltage busbar chassis
-	draw_rect(Rect2(b.position.x, b.position.y, b.size.x, 22.0), Color(0.08, 0.12, 0.18))
-	draw_rect(Rect2(b.position.x, b.position.y, b.size.x, 5.0), Color(0.85, 0.65, 0.20))
+	if platform_energy_barrier_texture != null:
+		draw_texture_rect(platform_energy_barrier_texture, Rect2(b.position.x, b.position.y - 6.0, b.size.x, 36.0), false, p_tint)
+	else:
+		draw_rect(Rect2(b.position.x, b.position.y, b.size.x, 22.0), Color(0.08, 0.12, 0.18))
+		draw_rect(Rect2(b.position.x, b.position.y, b.size.x, 5.0), Color(0.85, 0.65, 0.20))
 	
-	# Central plasma core conduit
-	var plasma_glow := 0.80 + 0.20 * sin(anim_timer * 9.0)
-	var plasma_col := Color(0.15, 0.85 * plasma_glow, 1.0 * plasma_glow, 0.9)
-	draw_rect(Rect2(b.position.x + 4.0, b.position.y + 8.0, b.size.x - 8.0, 8.0), plasma_col)
-	draw_line(Vector2(b.position.x + 6.0, b.position.y + 12.0), Vector2(b.end.x - 6.0, b.position.y + 12.0), Color.WHITE, 1.5)
-	
-	# Dynamic electric arc lightning discharges crackling across the surface
-	var arc_phase := int(anim_timer * 15.0)
-	for a in range(3):
-		var arc_seed := float((arc_phase + a * 7) % 19) / 19.0
-		var ax1 := b.position.x + arc_seed * (b.size.x - 40.0)
-		var ax2 := ax1 + 25.0
-		var ay_mid := b.position.y - 4.0 - 3.0 * sin(anim_timer * 20.0 + float(a))
-		draw_line(Vector2(ax1, b.position.y), Vector2((ax1 + ax2) * 0.5, ay_mid), Color(0.7, 0.95, 1.0), 1.5)
-		draw_line(Vector2((ax1 + ax2) * 0.5, ay_mid), Vector2(ax2, b.position.y), Color(0.7, 0.95, 1.0), 1.5)
-	
-	# Blinding high-voltage yellow lightning arcs when surging in Stage 6 Dynamo
+	# Electric spark discharge overlay
 	if Global.current_stage == 6:
 		var surge_phase := fmod(anim_timer, 2.8)
 		if surge_phase >= 1.8:
-			for a in range(4):
+			for a in range(3):
 				var ax1 := b.position.x + fmod(float(a) * 55.0 + anim_timer * 95.0, b.size.x - 30.0)
 				var ax2 := ax1 + 25.0
-				var ay_top := b.position.y - 12.0 - sin(anim_timer * 32.0 + float(a)) * 8.0
+				var ay_top := b.position.y - 10.0 - sin(anim_timer * 32.0 + float(a)) * 6.0
 				draw_line(Vector2(ax1, b.position.y), Vector2((ax1 + ax2) * 0.5, ay_top), Color(1.0, 0.95, 0.35), 2.5)
 				draw_line(Vector2((ax1 + ax2) * 0.5, ay_top), Vector2(ax2, b.position.y), Color(1.0, 0.95, 0.35), 2.5)
-				draw_line(Vector2(ax1, b.position.y), Vector2((ax1 + ax2) * 0.5, ay_top), Color(1.0, 0.6, 0.1, 0.4), 4.5)
-
-	# Ceramic high-voltage disc insulators beneath
-	for ins in range(int(b.size.x / 40.0)):
-		var inx := b.position.x + 20.0 + float(ins) * 40.0
-		draw_circle(Vector2(inx, b.position.y + 25.0), 4.5, Color(0.25, 0.40, 0.55))
-		draw_circle(Vector2(inx, b.position.y + 30.0), 3.5, Color(0.18, 0.28, 0.40))
-		draw_line(Vector2(inx, b.position.y + 22.0), Vector2(inx, b.position.y + 34.0), Color.WHITE, 1.0)
 
 func _draw_platform_tech_catwalk(b: Rect2, p_tint: Color) -> void:
-	# Spaceport dark carbon-composite launch deck
-	draw_rect(Rect2(b.position.x, b.position.y, b.size.x, 24.0), Color(0.12, 0.14, 0.18))
-	draw_rect(Rect2(b.position.x, b.position.y + 20.0, b.size.x, 4.0), Color(0.22, 0.28, 0.38))
+	if platform_tech_catwalk_texture != null:
+		draw_texture_rect(platform_tech_catwalk_texture, Rect2(b.position.x, b.position.y - 6.0, b.size.x, 36.0), false, p_tint)
+	else:
+		draw_rect(Rect2(b.position.x, b.position.y, b.size.x, 24.0), Color(0.12, 0.14, 0.18))
 	
-	# Hazard warning chevron stripe border (Yellow & Black angled stripes)
-	var stripe_w := 14.0
-	var num_stripes := int(b.size.x / stripe_w)
-	for s in range(num_stripes):
-		var sx := b.position.x + float(s) * stripe_w
-		var col_st := Color(0.95, 0.80, 0.15) if (s % 2 == 0) else Color(0.10, 0.10, 0.12)
-		var pts := PackedVector2Array([
-			Vector2(sx, b.position.y),
-			Vector2(sx + stripe_w, b.position.y),
-			Vector2(sx + stripe_w - 4.0, b.position.y + 6.0),
-			Vector2(sx - 4.0, b.position.y + 6.0)
-		])
-		draw_colored_polygon(pts, col_st)
-	
-	# Runway LED navigation beacon lights (flashing amber & green)
-	for led in range(int(b.size.x / 36.0)):
-		var lx := b.position.x + 18.0 + float(led) * 36.0
-		var is_amber := (led % 2 == 0)
+	# Blinking navigation LED beacon
+	for led in range(int(b.size.x / 40.0)):
+		var lx := b.position.x + 20.0 + float(led) * 40.0
 		var flash := sin(anim_timer * 6.0 + float(led) * 1.5) > 0.0
-		var l_col := (Color(1.0, 0.75, 0.15) if is_amber else Color(0.25, 1.0, 0.45)) if flash else Color(0.15, 0.20, 0.22)
-		draw_circle(Vector2(lx, b.position.y + 13.0), 3.0, l_col)
-		if flash:
-			draw_circle(Vector2(lx, b.position.y + 13.0), 5.5, Color(l_col.r, l_col.g, l_col.b, 0.3))
-	
-	# Under-slung pneumatic support struts
-	draw_line(Vector2(b.position.x + 16.0, b.position.y + 24.0), Vector2(b.position.x + 8.0, b.position.y + 44.0), Color(0.35, 0.42, 0.52), 2.5)
-	draw_line(Vector2(b.end.x - 16.0, b.position.y + 24.0), Vector2(b.end.x - 8.0, b.position.y + 44.0), Color(0.35, 0.42, 0.52), 2.5)
-
-	# Animated conveyor chevrons in Stage 5 Refinery
-	if Global.current_stage == 5:
-		var c_dir: float = 1.0 if (int(b.position.x) % 2 == 0) else -1.0
-		var scroll := fmod(anim_timer * 45.0 * c_dir, 20.0)
-		var num_ch := int(b.size.x / 20.0)
-		for ch in range(num_ch):
-			var ch_x := b.position.x + float(ch) * 20.0 + scroll
-			if ch_x >= b.position.x + 4.0 and ch_x <= b.end.x - 12.0:
-				var tip_x := ch_x + (6.0 * c_dir)
-				draw_line(Vector2(ch_x, b.position.y + 6.0), Vector2(tip_x, b.position.y + 10.0), Color(1.0, 0.85, 0.2, 0.85), 2.0)
-				draw_line(Vector2(ch_x, b.position.y + 14.0), Vector2(tip_x, b.position.y + 10.0), Color(1.0, 0.85, 0.2, 0.85), 2.0)
+		var l_col := Color(1.0, 0.75, 0.15) if flash else Color(0.15, 0.20, 0.22)
+		draw_circle(Vector2(lx, b.position.y + 10.0), 2.5, l_col)
 
 func _draw_platform_bio_rib(b: Rect2, p_tint: Color) -> void:
-	var pulse := 0.85 + 0.15 * sin(anim_timer * 4.0)
-	var col_flesh := Color(0.60 * pulse, 0.10, 0.22)
-	var col_chitin := Color(0.88, 0.82, 0.70)
-	
-	# Throbbing organic flesh foundation
-	draw_rect(Rect2(b.position.x, b.position.y, b.size.x, 24.0), col_flesh)
-	
-	# Glowing bio-luminescent neural capillaries running through flesh
-	draw_line(Vector2(b.position.x + 6.0, b.position.y + 8.0), Vector2(b.end.x - 6.0, b.position.y + 8.0), Color(1.0, 0.40, 0.65, 0.8), 2.0)
-	draw_line(Vector2(b.position.x + 12.0, b.position.y + 15.0), Vector2(b.end.x - 12.0, b.position.y + 15.0), Color(0.80, 0.25, 0.45, 0.6), 1.5)
-	
-	# Curving skeletal chitin rib cages wrapping around the platform
-	var rib_spacing := 28.0
-	var num_ribs := int(b.size.x / rib_spacing)
-	for r in range(num_ribs):
-		var rx := b.position.x + 14.0 + float(r) * rib_spacing
-		var pts := PackedVector2Array([
-			Vector2(rx - 5.0, b.position.y + 24.0),
-			Vector2(rx - 2.0, b.position.y),
-			Vector2(rx + 2.0, b.position.y),
-			Vector2(rx + 5.0, b.position.y + 24.0)
-		])
-		draw_colored_polygon(pts, col_chitin)
-		draw_circle(Vector2(rx, b.position.y - 1.0), 3.0, Color.WHITE)
-	
-	# Hanging organic slime stalactites and venom droplets
-	for s in range(int(b.size.x / 32.0)):
-		var sx := b.position.x + 16.0 + float(s) * 32.0
-		var s_len := 10.0 + 4.0 * sin(anim_timer * 3.0 + float(s))
-		draw_line(Vector2(sx, b.position.y + 24.0), Vector2(sx, b.position.y + 24.0 + s_len), Color(0.65, 0.15, 0.30), 2.0)
-		draw_circle(Vector2(sx, b.position.y + 24.0 + s_len), 2.5, Color(0.55, 1.0, 0.25, 0.85))
+	if platform_bio_rib_texture != null:
+		var pulse := 1.0 + 0.04 * sin(anim_timer * 4.0)
+		draw_texture_rect(platform_bio_rib_texture, Rect2(b.position.x, b.position.y - 14.0 * pulse, b.size.x, 48.0 * pulse), false, p_tint)
+	else:
+		var col_flesh := Color(0.60, 0.10, 0.22)
+		draw_rect(Rect2(b.position.x, b.position.y, b.size.x, 24.0), col_flesh)
 
 func _draw_vertical_chain(top_pos: Vector2, bottom_pos: Vector2, chain_w: float = 12.0, tint: Color = Color.WHITE) -> void:
 	if platform_chain_texture == null:

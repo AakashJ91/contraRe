@@ -46,7 +46,7 @@ static func get_map_data(stage_id: int) -> Dictionary:
 			data["diff"] = "NORMAL"
 			data["boss"] = "WALL DEFENSE CORE"
 			data["hazard"] = "RIVER CHASMS & JUNGLE TURF CRAGS"
-			data["intel"] = "Infiltrate perimeter via coastline sandbars. Leap across river chasms using floating turf ledges and eliminate outer fortress turrets."
+			data["intel"] = "Infiltrate perimeter via coastline sandbars. Destroy the Titan Goliath mech at Sector 5, leap across river chasms using floating turf ledges and eliminate outer fortress turrets."
 			data["primary_color"] = Color(0.25, 0.75, 0.35)
 			data["accent_color"] = Color(0.95, 0.85, 0.20)
 			data["ground_segments"] = [
@@ -132,7 +132,7 @@ static func get_map_data(stage_id: int) -> Dictionary:
 			data["diff"] = "HARD"
 			data["boss"] = "HYDRO-GOLIATH MECH"
 			data["hazard"] = "RUSHING WATERFALLS & CLIFF PITS"
-			data["intel"] = "Ascend vertical granite escarpments over raging torrents. Leap across cataract chasms using high thermal updrafts while dodging sniper fire."
+			data["intel"] = "Ascend vertical granite escarpments over raging torrents. Destroy the Aqua Assault Rig at Sector 5, traverse cataract chasms and bring down the Hydro-Goliath Mech."
 			data["primary_color"] = Color(0.20, 0.65, 0.95)
 			data["accent_color"] = Color(0.60, 0.90, 1.0)
 			data["ground_segments"] = [
@@ -177,7 +177,7 @@ static func get_map_data(stage_id: int) -> Dictionary:
 			data["diff"] = "HARD"
 			data["boss"] = "GIGA BIO-HEART"
 			data["hazard"] = "ORGANIC ACID PITS & CHITIN CHASM"
-			data["intel"] = "Sub-surface breach into the organic nest. Avoid falling into corrosive digestive fluids and rupture the throbbing bio-heart chamber."
+			data["intel"] = "Sub-surface breach into the organic nest. Slay the Chitin Behemoth at Sector 5, avoid falling into corrosive digestive fluids and rupture the throbbing bio-heart chamber."
 			data["primary_color"] = Color(0.85, 0.25, 0.40)
 			data["accent_color"] = Color(1.0, 0.60, 0.70)
 			data["ground_segments"] = [
@@ -220,7 +220,7 @@ static func get_map_data(stage_id: int) -> Dictionary:
 			data["diff"] = "EXPERT"
 			data["boss"] = "FROSTBITE SIEGE TANK"
 			data["hazard"] = "SUB-ZERO GLACIAL CREVASSES"
-			data["intel"] = "Traverse gale-force snowfields and icy steel gantries. Demolish the entrenched heavy armored siege crawler guarding the mountain pass."
+			data["intel"] = "Traverse gale-force snowfields and icy steel gantries. Crush the Polar Siege Colossus at Sector 5, then demolish the entrenched heavy armored siege crawler guarding the mountain pass."
 			data["primary_color"] = Color(0.40, 0.85, 1.0)
 			data["accent_color"] = Color(0.85, 0.95, 1.0)
 			data["ground_segments"] = [
@@ -262,7 +262,7 @@ static func get_map_data(stage_id: int) -> Dictionary:
 			data["diff"] = "EXPERT"
 			data["boss"] = "MAGMA FORGE GOLEM"
 			data["hazard"] = "MOLTEN LAVA POOLS & CHAIN GIRDERS"
-			data["intel"] = "Infiltrate heavy metal foundry. Scale overhead cargo chains above superheated magma trenches and destroy the walking incinerator golem."
+			data["intel"] = "Infiltrate heavy metal foundry. Break the Vulcan Foundry Dreadnought at Sector 5, scale overhead cargo chains above superheated magma trenches and destroy the walking incinerator golem."
 			data["primary_color"] = Color(1.0, 0.50, 0.15)
 			data["accent_color"] = Color(1.0, 0.85, 0.20)
 			data["ground_segments"] = [
@@ -305,7 +305,7 @@ static func get_map_data(stage_id: int) -> Dictionary:
 			data["diff"] = "EXPERT"
 			data["boss"] = "THUNDER DYNAMO"
 			data["hazard"] = "ARC DISCHARGE CHASM & CONDENSERS"
-			data["intel"] = "Scale megavolt distribution towers and lightning coils. High static conductivity across all steel scaffolding. Short-circuit the core generator."
+			data["intel"] = "Scale megavolt distribution towers and lightning coils. Neutralize the Tesla Storm Overlord at Sector 5, then short-circuit the Thunder Dynamo core generator."
 			data["primary_color"] = Color(0.95, 0.85, 0.20)
 			data["accent_color"] = Color(0.40, 0.90, 1.0)
 			data["ground_segments"] = [
@@ -347,7 +347,7 @@ static func get_map_data(stage_id: int) -> Dictionary:
 			data["diff"] = "NIGHTMARE"
 			data["boss"] = "VANGUARD STAR CRUISER"
 			data["hazard"] = "VACUUM EXHAUST DUCTS & TURRETS"
-			data["intel"] = "Infiltrate orbital launch deck. Navigate heavy hydraulic gantries across high-altitude docking trenches and bring down the alien command cruiser."
+			data["intel"] = "Infiltrate orbital launch deck. Defeat the Orbital Strike Vanguard at Sector 5, navigate heavy hydraulic gantries across high-altitude docking trenches and bring down the alien command cruiser."
 			data["primary_color"] = Color(0.70, 0.45, 0.95)
 			data["accent_color"] = Color(0.35, 0.85, 1.0)
 			data["ground_segments"] = [
@@ -388,7 +388,7 @@ static func get_map_data(stage_id: int) -> Dictionary:
 			data["diff"] = "APOCALYPSE"
 			data["boss"] = "EMPEROR MOTHER BRAIN"
 			data["hazard"] = "BIO-NEURAL ACID CHASMS"
-			data["intel"] = "Final assault on the central neural hive. Penetrate defensive optic laser screens and eradicate the Emperor Mother Brain to save Earth!"
+			data["intel"] = "Final assault on the central neural hive. Purge the Psionic Hive Leviathan at Sector 5, penetrate defensive optic laser screens and eradicate the Emperor Mother Brain to save Earth!"
 			data["primary_color"] = Color(1.0, 0.25, 0.35)
 			data["accent_color"] = Color(0.95, 0.85, 0.20)
 			data["ground_segments"] = [

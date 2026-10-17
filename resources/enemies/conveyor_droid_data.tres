@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="EnemyData" format=3 uid="uid://lhggmlmf6e3y"]
+
+[ext_resource type="Script" path="res://scripts/enemy_data.gd" id="1_data"]
+[ext_resource type="Texture2D" path="res://assets/enemies/conveyor_droid/conveyor_droid.png" id="2_tex"]
+
+[resource]
+script = ExtResource("1_data")
+enemy_name = "Conveyor Sentry Droid"
+max_health = 3.5
+move_speed = 80.0
+score_reward = 300
+contact_damage = 1.0
+sprite_texture = ExtResource("2_tex")
+sprite_size = Vector2(52.0, 52.0)
+attack_interval_min = 2.0
+attack_interval_max = 3.5

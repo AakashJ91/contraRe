@@ -416,7 +416,7 @@ func _draw() -> void:
 			draw_circle(Vector2(cx + card_w - 18.0, cy + 17.5), 3.0, Color(s["color"].r, s["color"].g, s["color"].b, blip))
 			draw_string(font, Vector2(cx + card_w - 48.0, cy + 21.0), "ACTIVE", HORIZONTAL_ALIGNMENT_LEFT, -1, 8, s["color"])
 		else:
-			draw_string(font, Vector2(cx + card_w - 46.0, cy + 21.0), "5800M", HORIZONTAL_ALIGNMENT_LEFT, -1, 8, Color(0.65, 0.75, 0.90, 0.60))
+			draw_string(font, Vector2(cx + card_w - 46.0, cy + 21.0), "8800M", HORIZONTAL_ALIGNMENT_LEFT, -1, 8, Color(0.65, 0.75, 0.90, 0.60))
 
 		# Stage Title
 		var title_col := Color(1.0, 0.92, 0.45) if is_sel else Color(0.92, 0.95, 1.0)
@@ -529,7 +529,7 @@ func _draw_full_level_map_view(font: Font, w: float, ox: float) -> void:
 	draw_string(font, Vector2(190.0 + ox, 412.0), m["hazard"], HORIZONTAL_ALIGNMENT_LEFT, -1, 12, Color(1.0, 0.75, 0.75))
 	
 	draw_string(font, Vector2(48.0 + ox, 436.0), "PRIMARY OBJECTIVE:", HORIZONTAL_ALIGNMENT_LEFT, -1, 12, Color(0.40, 0.85, 1.0))
-	draw_string(font, Vector2(190.0 + ox, 436.0), "DESTROY " + m["boss"] + " AT 5800 METERS", HORIZONTAL_ALIGNMENT_LEFT, -1, 12, Color.WHITE)
+	draw_string(font, Vector2(190.0 + ox, 436.0), "DESTROY " + m["boss"] + " AT 8800 METERS", HORIZONTAL_ALIGNMENT_LEFT, -1, 12, Color.WHITE)
 	
 	draw_string(font, Vector2(620.0 + ox, 436.0), "PLATFORMS: " + str(m["platforms"].size()) + " • CHASMS: " + str(m["ground_segments"].size() - 1), HORIZONTAL_ALIGNMENT_LEFT, -1, 11, Color(0.6, 0.8, 1.0))
 	

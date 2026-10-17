@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="EnemyData" format=3 uid="uid://dnbbvdk6r7e1m"]
+
+[ext_resource type="Script" path="res://scripts/enemy_data.gd" id="1_data"]
+[ext_resource type="Texture2D" path="res://assets/enemies/jetpack_marine/jetpack_marine.png" id="2_tex"]
+
+[resource]
+script = ExtResource("1_data")
+enemy_name = "Aerospace Jetpack Marine"
+max_health = 4.5
+move_speed = 115.0
+score_reward = 450
+contact_damage = 1.5
+sprite_texture = ExtResource("2_tex")
+sprite_size = Vector2(56.0, 60.0)
+attack_interval_min = 1.6
+attack_interval_max = 3.0

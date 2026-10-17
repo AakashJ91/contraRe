@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="EnemyData" format=3 uid="uid://cminiboss_stg8_001"]
+
+[ext_resource type="Script" path="res://scripts/enemy_data.gd" id="1_data"]
+[ext_resource type="Texture2D" path="res://assets/enemies/mini_boss_stage8/mini_boss_stage8.png" id="2_tex"]
+
+[resource]
+script = ExtResource("1_data")
+enemy_name = "Psionic Leviathan"
+max_health = 50.0
+move_speed = 56.0
+score_reward = 16000
+contact_damage = 2.0
+sprite_texture = ExtResource("2_tex")
+sprite_size = Vector2(124, 142)
+attack_interval_min = 0.9
+attack_interval_max = 2.0

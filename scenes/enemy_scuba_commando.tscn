@@ -1,0 +1,16 @@
+[gd_scene load_steps=3 format=3 uid="uid://cscenescuba_comm001"]
+
+[ext_resource type="Script" path="res://scripts/enemy_scuba_commando.gd" id="1_scuba_commando"]
+
+[sub_resource type="CapsuleShape2D" id="CapsuleShape2D_1"]
+radius = 8.0
+height = 30.0
+
+[node name="EnemyScubaCommando" type="CharacterBody2D"]
+collision_layer = 4
+collision_mask = 2
+script = ExtResource("1_scuba_commando")
+
+<node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+position = Vector2(0, -2)
+shape = SubResource("CapsuleShape2D_1")
