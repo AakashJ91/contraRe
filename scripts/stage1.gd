@@ -115,6 +115,7 @@ var ground_segments: Array[Rect2] = []
 var platforms: Array[Dictionary] = []
 
 func _ready() -> void:
+	add_to_group("stage")
 	Global.screen_shake_requested.connect(_on_screen_shake)
 	Global.maker_mode_toggled.connect(_on_maker_mode_toggled)
 	Global.mini_boss_defeated.connect(_on_mini_boss_defeated)
@@ -1869,6 +1870,52 @@ func is_position_over_ground(pos_x: float) -> bool:
 			return true
 	return false
 
+func get_landing_surface(pos_x: float, from_y: float) -> Dictionary:
+	var best_surf_y: float = 999999.0
+	var found: bool = false
+	var is_platform: bool = false
+	var best_p: Dictionary = {}
+	
+	# 1. Check all active platforms
+	for p in platforms:
+		var pr: Rect2 = p.get("rect", Rect2())
+		if pos_x >= pr.position.x - 6.0 and pos_x <= pr.end.x + 6.0:
+			var col: CollisionShape2D = p.get("collider", null)
+			if col != null and col.disabled:
+				continue
+			var py: float = pr.position.y
+			if col != null:
+				py = col.position.y - pr.size.y * 0.5
+			if py >= from_y - 8.0:
+				if py < best_surf_y:
+					best_surf_y = py
+					found = true
+					is_platform = true
+					best_p = p
+	
+	# 2. Check all ground segments
+	for g in ground_segments:
+		if pos_x >= g.position.x - 6.0 and pos_x <= g.end.x + 6.0:
+			var gy: float = g.position.y
+			if gy >= from_y - 8.0:
+				if gy < best_surf_y:
+					best_surf_y = gy
+					found = true
+					is_platform = false
+					best_p = {}
+	
+	if found:
+		return {
+			"found": true,
+			"surface_y": best_surf_y,
+			"landing_y": best_surf_y - 8.0,
+			"is_platform": is_platform,
+			"platform": best_p
+		}
+	
+	return {"found": false, "surface_y": 0.0, "landing_y": 0.0, "is_platform": false, "platform": {}}
+
+
 func _spawn_soldier_wave() -> void:
 	if soldier_scene == null or camera == null or player == null or not is_instance_valid(player):
 		return
@@ -2194,7 +2241,7 @@ func _draw_platforms(view_left: float, view_right: float) -> void:
 			draw_line(Vector2(pit_left, pit_base_y), Vector2(pit_right, pit_base_y), Color(0.2, 0.8, 1.0, 0.8), 2.5)
 
 	# Ground segments
-	var edge_w: float = 96.0
+	var edge_w: float = 128.0 if Global.current_stage == 1 else 96.0
 	for g in ground_segments:
 		if g.end.x < view_left - 50.0 or g.position.x > view_right + 50.0:
 			continue
@@ -2243,7 +2290,7 @@ func _draw_platforms(view_left: float, view_right: float) -> void:
 				if jungle_w > 0.0:
 					var gw: float = float(active_ground_tex.get_width())
 					var gh: float = float(active_ground_tex.get_height())
-					var tile_w: float = 128.0 if gh > 100.0 else gw
+					var tile_w: float = 256.0 if (Global.current_stage == 1 and gh > 100.0) else (128.0 if gh > 100.0 else gw)
 					var num_tiles: int = int(ceil(jungle_w / tile_w))
 					for j in range(num_tiles):
 						var tx: float = mid_start_x + float(j) * tile_w
@@ -2281,7 +2328,7 @@ func _draw_platforms(view_left: float, view_right: float) -> void:
 			else:
 				var gw: float = float(active_ground_tex.get_width())
 				var gh: float = float(active_ground_tex.get_height())
-				var tile_w: float = 128.0 if gh > 100.0 else gw
+				var tile_w: float = 256.0 if (Global.current_stage == 1 and gh > 100.0) else (128.0 if gh > 100.0 else gw)
 				var num_tiles: int = int(ceil(mid_width / tile_w))
 				
 				for j in range(num_tiles):
