@@ -95,7 +95,7 @@ var editor_powerups: Array[Dictionary] = []
 var editor_bg_props: Array[Dictionary] = []
 
 const PLATFORM_NAMES: Array[String] = [
-	"TURF", "GIRDER", "BRIDGE", "PERCH", "ICE", "LAVA", "ENERGY", "TECH", "BIO"
+	"TURF", "GIRDER", "BRIDGE", "PERCH", "ICE", "LAVA", "ENERGY", "TECH", "BIO", "WATERFALL"
 ]
 
 const ENEMY_CATEGORY_NAMES: Array[String] = [
@@ -1719,9 +1719,9 @@ func _handle_bottom_shelf_click(pos: Vector2) -> void:
 	elif current_tool == ToolType.PLATFORM:
 		# Row 1: Platform types (y: 489 to 510)
 		var sub_x: float = 16.0
-		var sub_w: float = 90.0
+		var sub_w: float = 88.0
 		for k in range(PLATFORM_NAMES.size()):
-			var sub_rect := Rect2(sub_x + float(k) * (sub_w + 5.0), 489.0, sub_w, 20.0)
+			var sub_rect := Rect2(sub_x + float(k) * (sub_w + 4.0), 489.0, sub_w, 20.0)
 			if sub_rect.has_point(pos):
 				selected_platform_type = k
 				show_toast("TYPE: " + PLATFORM_NAMES[k])
@@ -2082,9 +2082,9 @@ func _draw_sub_palette_shelf(font: Font) -> void:
 	elif current_tool == ToolType.PLATFORM:
 		# Row 1: Platform types
 		var sub_x: float = 16.0
-		var sub_w: float = 90.0
+		var sub_w: float = 88.0
 		for k in range(PLATFORM_NAMES.size()):
-			var sub_rect := Rect2(sub_x + float(k) * (sub_w + 5.0), 489.0, sub_w, 20.0)
+			var sub_rect := Rect2(sub_x + float(k) * (sub_w + 4.0), 489.0, sub_w, 20.0)
 			var is_p_cur: bool = (selected_platform_type == k)
 			var p_col := Color(0.18, 0.65, 0.40) if is_p_cur else Color(0.14, 0.18, 0.24)
 			_draw_btn(sub_rect, PLATFORM_NAMES[k], p_col, font, is_p_cur, 10)

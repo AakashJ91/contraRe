@@ -124,17 +124,16 @@ func _process(delta: float) -> void:
 			boss_cutscene_ended.emit()
 
 func _notification(what: int) -> void:
-	if what == NOTIFICATION_APPLICATION_RESUMED or what == NOTIFICATION_WM_WINDOW_FOCUS_IN:
-		_enforce_fullscreen()
+	if is_mobile_device():
+		if what == NOTIFICATION_APPLICATION_RESUMED or what == NOTIFICATION_WM_WINDOW_FOCUS_IN:
+			_enforce_fullscreen()
 
 func _enforce_fullscreen() -> void:
-	if OS.has_feature("mobile") or OS.has_feature("android") or OS.get_name() == "Android":
+	if is_mobile_device():
 		DisplayServer.screen_set_orientation(DisplayServer.SCREEN_LANDSCAPE)
 		DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_EXCLUSIVE_FULLSCREEN)
 		# Defer across initial frames to guarantee Android SurfaceView / WindowManager binds sticky immersive mode
 		_deferred_enforce_fullscreen.call_deferred()
-	else:
-		DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_EXCLUSIVE_FULLSCREEN)
 
 func is_mobile_device() -> bool:
 	return OS.has_feature("mobile") or OS.has_feature("android") or OS.get_name() == "Android"
@@ -151,10 +150,10 @@ func _unhandled_input(event: InputEvent) -> void:
 	if event is InputEventKey and event.pressed and not event.echo:
 		if event.keycode == KEY_F11 or (event.keycode == KEY_ENTER and event.alt_pressed):
 			var cur := DisplayServer.window_get_mode()
-			if cur == DisplayServer.WINDOW_MODE_EXCLUSIVE_FULLSCREEN or cur == DisplayServer.WINDOW_MODE_FULLSCREEN:
+			if cur == DisplayServer.WINDOW_MODE_FULLSCREEN or cur == DisplayServer.WINDOW_MODE_EXCLUSIVE_FULLSCREEN:
 				DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_WINDOWED)
 			else:
-				DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_EXCLUSIVE_FULLSCREEN)
+				DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_FULLSCREEN)
 
 func get_stage_name(stage_idx: int = -1) -> String:
 	var idx := (current_stage if stage_idx <= 0 else stage_idx) - 1
