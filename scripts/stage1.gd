@@ -448,6 +448,14 @@ func _setup_background() -> void:
 		var tex_size := bg_texture.get_size()
 		var spr_scale := Vector2(tile_w / tex_size.x, tile_h / tex_size.y)
 		
+		# Load living background shader for Stage 1 Jungle
+		var jungle_mat: ShaderMaterial = null
+		if Global.current_stage == 1 and ResourceLoader.exists("res://shaders/stage1_jungle_bg.gdshader"):
+			var j_shader: Shader = load("res://shaders/stage1_jungle_bg.gdshader")
+			if j_shader != null:
+				jungle_mat = ShaderMaterial.new()
+				jungle_mat.shader = j_shader
+		
 		# Tile contiguous sprites inside the ParallaxLayer so that on any screen aspect ratio
 		# (16:9, ultrawide, mobile 20:9), the background spans seamlessly with zero gaps
 		for s_idx in range(4 if Global.current_stage >= 2 else 3):
@@ -456,7 +464,18 @@ func _setup_background() -> void:
 			spr.scale = spr_scale
 			spr.position = Vector2(float(s_idx) * tile_w, bg_y_offset)
 			spr.centered = false
+			if jungle_mat != null:
+				spr.material = jungle_mat
 			p_layer.add_child(spr)
+		
+		# Stage 1: Add drifting sunset clouds ParallaxLayer in the sky
+		if Global.current_stage == 1:
+			var p_clouds := ParallaxLayer.new()
+			p_clouds.motion_scale = Vector2(0.10, 0.0)
+			p_clouds.motion_mirroring = Vector2(960.0, 0.0)
+			p_bg.add_child(p_clouds)
+			var clouds_node := Stage1SunsetClouds.new()
+			p_clouds.add_child(clouds_node)
 	else:
 		# Procedural Atmospheric Parallax Layers fallback
 		var p_sky := ParallaxLayer.new()
@@ -516,6 +535,37 @@ class ProceduralSkyLayer extends Node2D:
 				for a in range(8):
 					var ax := float(a) * 140.0
 					draw_line(Vector2(ax, 0.0), Vector2(ax + 40.0, 540.0), Color(0.45, 0.10, 0.20, 0.35), 14.0)
+
+class Stage1SunsetClouds extends Node2D:
+	var anim_t: float = 0.0
+	
+	func _process(delta: float) -> void:
+		anim_t += delta
+		queue_redraw()
+	
+	func _draw() -> void:
+		var cloud_data: Array = [
+			{"x": 80.0, "y": 42.0, "w": 180.0, "h": 26.0, "speed": 5.5},
+			{"x": 360.0, "y": 75.0, "w": 220.0, "h": 32.0, "speed": 8.0},
+			{"x": 680.0, "y": 38.0, "w": 190.0, "h": 25.0, "speed": 6.2},
+			{"x": 920.0, "y": 82.0, "w": 170.0, "h": 28.0, "speed": 7.5}
+		]
+		for c in cloud_data:
+			var cx: float = fmod(c["x"] + anim_t * float(c["speed"]), 1050.0) - 50.0
+			var cy: float = c["y"]
+			var cw: float = c["w"]
+			var ch: float = c["h"]
+			
+			var col_base := Color(0.92, 0.52, 0.38, 0.30)
+			var col_rim := Color(1.0, 0.88, 0.55, 0.45)
+			
+			draw_circle(Vector2(cx, cy), ch * 0.7, col_base)
+			draw_circle(Vector2(cx - cw * 0.25, cy + 4.0), ch * 0.55, col_base)
+			draw_circle(Vector2(cx + cw * 0.28, cy + 3.0), ch * 0.60, col_base)
+			draw_circle(Vector2(cx + cw * 0.42, cy + 6.0), ch * 0.45, col_base)
+			
+			draw_arc(Vector2(cx, cy), ch * 0.7, PI * 1.15, PI * 1.85, 12, col_rim, 2.0)
+			draw_arc(Vector2(cx + cw * 0.28, cy + 3.0), ch * 0.60, PI * 1.15, PI * 1.85, 10, col_rim, 1.8)
 
 func _setup_colliders() -> void:
 	if world_colliders == null:
@@ -2497,6 +2547,23 @@ func _draw_hanging_chain_hook(attach_pos: Vector2, chain_len: float = 54.0, tint
 
 func _draw_weather_particles(view_left: float, view_right: float) -> void:
 	match Global.current_stage:
+		1: # JUNGLE: Drifting tropical leaves (12 particles)
+			# Consistent drifting tropical leaves with smooth non-stalling forward motion
+			for l in range(12):
+				var speed_x: float = 68.0 + float(l % 4) * 12.0
+				var fall_speed: float = 36.0 + float(l % 3) * 10.0
+				var sway_x: float = sin(anim_timer * 2.2 + float(l) * 1.6) * 8.0
+				var lx: float = fmod(float(l) * 88.0 + anim_timer * speed_x + sway_x, 1060.0) + view_left - 30.0
+				var ly: float = -20.0 + fmod(float(l) * 47.0 + anim_timer * fall_speed, 560.0)
+				var flutter: float = sin(anim_timer * 4.2 + float(l) * 2.0) * 3.5
+				var tumble: float = cos(anim_timer * 3.0 + float(l) * 1.5) * 2.0
+				var l_color: Color
+				match l % 4:
+					0: l_color = Color(0.28, 0.68, 0.25, 0.75) # Jungle green
+					1: l_color = Color(0.52, 0.80, 0.20, 0.80) # Tropical lime
+					2: l_color = Color(0.88, 0.66, 0.22, 0.75) # Golden amber
+					_: l_color = Color(0.82, 0.48, 0.18, 0.70) # Dry sienna
+				draw_line(Vector2(lx, ly), Vector2(lx + 5.0 + flutter, ly + 3.0 + tumble), l_color, 2.0)
 		2: # Rushing waterfall mist & ambient spray particles
 			for m in range(24):
 				var mx := fmod(float(m) * 88.0 + anim_timer * 75.0 + sin(anim_timer * 1.8 + float(m)) * 22.0, 1050.0) + view_left - 30.0

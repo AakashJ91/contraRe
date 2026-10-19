@@ -137,6 +137,11 @@ func _physics_process(delta: float) -> void:
 	if muzzle_flash_timer > 0.0:
 		muzzle_flash_timer -= delta
 	
+	if is_dead or current_state == State.DEATH:
+		_process_death(delta)
+		queue_redraw()
+		return
+	
 	match current_state:
 		State.INACTIVE:
 			pass
@@ -444,7 +449,15 @@ func take_damage(dmg: float = 1.0) -> void:
 		_trigger_death()
 
 func _trigger_death() -> void:
+	if is_dead:
+		return
 	is_dead = true
+	current_state = State.DEATH
+	vel_x = 0.0
+	vel_y = 0.0
+	is_moving = false
+	burst_count = 0
+	
 	var res_path := "res://resources/enemies/mini_boss_stage%d_data.tres" % Global.current_stage
 	var res: EnemyData = load(res_path) if ResourceLoader.exists(res_path) else null
 	var fallback_score: int = 6000 + (Global.current_stage - 1) * 2000
@@ -455,8 +468,11 @@ func _trigger_death() -> void:
 	death_chain_timer = 0.05
 	
 	if hurtbox != null:
-		hurtbox.monitoring = false
-		hurtbox.monitorable = false
+		hurtbox.set_deferred("monitoring", false)
+		hurtbox.set_deferred("monitorable", false)
+		var col_shape: CollisionShape2D = hurtbox.get_node_or_null("CollisionShape2D")
+		if col_shape != null:
+			col_shape.set_deferred("disabled", true)
 	
 	# Spawn powerup medal reward
 	if powerup_scene != null:
@@ -470,21 +486,30 @@ func _trigger_death() -> void:
 
 func _process_death(delta: float) -> void:
 	death_chain_timer -= delta
-	if death_chain_timer <= 0.0 and death_explosions_left > 0:
-		death_chain_timer = 0.10
-		death_explosions_left -= 1
-		death_frame_index = clampi(int((12 - death_explosions_left) / 3), 0, 3)
-		Global.shake_screen(7.0, 0.2)
-		if explosion_scene != null:
-			var exp_node = explosion_scene.instantiate()
+	if death_chain_timer <= 0.0:
+		if death_explosions_left > 0:
+			death_chain_timer = 0.10
+			death_explosions_left -= 1
+			death_frame_index = clampi(int((12 - death_explosions_left) / 3), 0, 3)
+			Global.shake_screen(6.0, 0.15)
+			Global.play_sfx("explosion")
 			var rx := randf_range(-mech_width * 0.45, mech_width * 0.45)
 			var ry := randf_range(-mech_height * 0.95, -10.0)
-			exp_node.global_position = global_position + Vector2(rx, ry)
-			get_parent().add_child(exp_node)
-	elif death_explosions_left <= 0:
-		# Final smoke puff and removal
-		VFX.spawn_dust_puff(global_position + Vector2(0.0, -40.0), 6, Color(0.2, 0.2, 0.25, 0.8))
-		queue_free()
+			var exp_pos := global_position + Vector2(rx, ry)
+			if has_node("/root/VFX"):
+				VFX.spawn_explosion(exp_pos, 1.2, true, true)
+			elif explosion_scene != null:
+				var exp_node = explosion_scene.instantiate()
+				exp_node.global_position = exp_pos
+				get_parent().add_child(exp_node)
+		else:
+			# Final massive explosion, sound, debris, and destruction
+			Global.play_sfx("boss_defeat")
+			Global.shake_screen(12.0, 0.5)
+			if has_node("/root/VFX"):
+				VFX.spawn_explosion(global_position + Vector2(0.0, -mech_height * 0.5), 2.2, true, true)
+				VFX.spawn_dust_puff(global_position + Vector2(0.0, -30.0), 12, Color(0.2, 0.2, 0.25, 0.8))
+			queue_free()
 
 func _draw() -> void:
 	if current_state == State.INACTIVE:
@@ -511,7 +536,8 @@ func _draw() -> void:
 	if current_tex != null:
 		var col := Color(1.8, 0.4, 0.4) if flash_timer > 0.0 else Color.WHITE
 		if is_dead:
-			col = Color.WHITE if death_textures.size() > 0 else Color(0.4, 0.4, 0.45)
+			var base_death_col := Color.WHITE if death_textures.size() > 0 else Color(0.4, 0.4, 0.45)
+			col = Color(2.0, 0.6, 0.2) if (fmod(anim_timer * 16.0, 1.0) < 0.35) else base_death_col
 		
 		var draw_w := mech_width
 		var draw_h := mech_height
