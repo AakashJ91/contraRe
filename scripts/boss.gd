@@ -12,6 +12,10 @@ var is_dead: bool = false
 var core_flash_timer: float = 0.0
 var attack_timer_1: float = 1.6
 var attack_timer_2: float = 2.4
+var attack_timer_3: float = 4.2
+var is_enraged: bool = false
+var enrage_threshold: float = 0.5
+var enrage_flash_timer: float = 0.0
 var core_pulse: float = 0.0
 var anim_timer: float = 0.0
 
@@ -311,19 +315,31 @@ func _physics_process(delta: float) -> void:
 	if Global.current_stage == 2 and not is_dead and is_active:
 		_process_hydro_goliath_movement(delta)
 	
+	if enrage_flash_timer > 0.0:
+		enrage_flash_timer -= delta
+	
+	var rate_mult: float = 0.75 if is_enraged else 1.0
+	
 	# Attack Pattern 1: Primary side weapons
 	attack_timer_1 -= delta
 	if attack_timer_1 <= 0.0:
-		var interval_1 := 2.2 - float(Global.current_stage) * 0.1
-		attack_timer_1 = maxf(1.1, interval_1)
+		var interval_1 := (2.2 - float(Global.current_stage) * 0.1) * rate_mult
+		attack_timer_1 = maxf(0.9, interval_1)
 		_execute_attack_1()
 	
 	# Attack Pattern 2: Secondary / Core heavy weapon
 	attack_timer_2 -= delta
 	if attack_timer_2 <= 0.0:
-		var interval_2 := 2.6 - float(Global.current_stage) * 0.12
-		attack_timer_2 = maxf(1.3, interval_2)
+		var interval_2 := (2.6 - float(Global.current_stage) * 0.12) * rate_mult
+		attack_timer_2 = maxf(1.1, interval_2)
 		_execute_attack_2()
+	
+	# Attack Pattern 3: Specialized stage tactical weapon
+	attack_timer_3 -= delta
+	if attack_timer_3 <= 0.0:
+		var interval_3 := (4.2 - float(Global.current_stage) * 0.18) * rate_mult
+		attack_timer_3 = maxf(2.0, interval_3)
+		_execute_attack_3()
 	
 	queue_redraw()
 
@@ -571,6 +587,136 @@ func _execute_attack_2() -> void:
 			for angle in [-0.55, -0.28, 0.0, 0.28, 0.55]:
 				_spawn_bullet(global_position + Vector2(0.0, 8.0), dir.rotated(angle), 330.0)
 
+func _execute_attack_3() -> void:
+	if is_dead:
+		return
+	var player_node: Node2D = get_tree().get_first_node_in_group("player") as Node2D
+	if player_node == null or not is_instance_valid(player_node):
+		return
+	var parent_node = get_parent()
+	if parent_node == null:
+		return
+	
+	var p_x: float = player_node.global_position.x
+	var dir_to_p: Vector2 = (player_node.global_position - (global_position + Vector2(0.0, -20.0))).normalized()
+	
+	match Global.current_stage:
+		1: # Stage 1 Wall Fortress: Top Artillery Mortar & Flak Airburst
+			muzzle_flash_top = 0.22
+			Global.play_sfx("shoot_spread")
+			Global.shake_screen(5.0, 0.22)
+			var shell = EnemySpecialProjectile.new()
+			shell.proj_type = EnemySpecialProjectile.ProjectileType.ARTILLERY_SHELL
+			shell.global_position = global_position + Vector2(0.0, -85.0)
+			var dist_x: float = p_x - (global_position.x)
+			shell.velocity = Vector2(clampf(dist_x * 0.85, -340.0, 340.0), -360.0)
+			parent_node.add_child(shell)
+			if is_enraged:
+				for ang in [-0.35, 0.35]:
+					_spawn_bullet(global_position + Vector2(0.0, -40.0), dir_to_p.rotated(ang), 310.0)
+		2: # Stage 2 Hydro-Goliath: High-Pressure Hydro Cutter Beam & Swimming Torpedoes
+			Global.play_sfx("shoot_laser")
+			Global.shake_screen(4.0, 0.2)
+			for i in range(2):
+				var cutter = EnemySpecialProjectile.new()
+				cutter.proj_type = EnemySpecialProjectile.ProjectileType.HYDRO_CUTTER
+				cutter.global_position = global_position + Vector2(-110.0, -25.0)
+				cutter.velocity = dir_to_p.rotated(float(i) * 0.12 - 0.06) * 440.0
+				parent_node.add_child(cutter)
+			var torp = EnemySpecialProjectile.new()
+			torp.proj_type = EnemySpecialProjectile.ProjectileType.WATER_TORPEDO
+			torp.global_position = global_position + Vector2(-90.0, 80.0)
+			torp.velocity = Vector2(-280.0, 0.0)
+			parent_node.add_child(torp)
+		3: # Stage 3 Bio-Heart: Sinusoidal Spore Wave & Chitin Spine Nova
+			Global.play_sfx("shoot_spread")
+			Global.shake_screen(5.0, 0.2)
+			for i in range(8):
+				var ang := float(i) * (TAU / 8.0)
+				var spine = EnemySpecialProjectile.new()
+				spine.proj_type = EnemySpecialProjectile.ProjectileType.CHITIN_SPINE
+				spine.global_position = global_position + Vector2(0.0, 8.0)
+				spine.velocity = Vector2(cos(ang), sin(ang)) * 260.0
+				parent_node.add_child(spine)
+			for i in range(2):
+				var glob = EnemySpecialProjectile.new()
+				glob.proj_type = EnemySpecialProjectile.ProjectileType.ACID_GLOB
+				glob.global_position = global_position + Vector2(-40.0 + float(i) * 80.0, 0.0)
+				glob.velocity = Vector2(-180.0 - float(i) * 60.0, -260.0)
+				parent_node.add_child(glob)
+		4: # Stage 4 Polar Siege Tank: Sub-Zero Cryo Beam Lance & Rolling Frost Mines
+			Global.play_sfx("shoot_laser")
+			Global.shake_screen(5.0, 0.25)
+			for i in range(2):
+				var beam = EnemySpecialProjectile.new()
+				beam.proj_type = EnemySpecialProjectile.ProjectileType.CRYO_BEAM
+				beam.global_position = global_position + Vector2(-70.0, -40.0)
+				beam.velocity = dir_to_p.rotated(float(i) * 0.08 - 0.04) * 450.0
+				parent_node.add_child(beam)
+			var mine = EnemySpecialProjectile.new()
+			mine.proj_type = EnemySpecialProjectile.ProjectileType.FROST_MINE
+			mine.global_position = global_position + Vector2(-60.0, 10.0)
+			mine.velocity = Vector2(-210.0, -100.0)
+			parent_node.add_child(mine)
+		5: # Stage 5 Magma Forge: Rolling Molten Fire Wheels & Magma Bomb
+			Global.play_sfx("shoot")
+			for i in range(2):
+				var wheel = EnemySpecialProjectile.new()
+				wheel.proj_type = EnemySpecialProjectile.ProjectileType.FIRE_WHEEL
+				wheel.global_position = global_position + Vector2(-60.0, 20.0)
+				wheel.velocity = Vector2(-220.0 - float(i) * 80.0, 0.0)
+				parent_node.add_child(wheel)
+			Global.play_sfx("shoot_spread")
+			var bomb = EnemySpecialProjectile.new()
+			bomb.proj_type = EnemySpecialProjectile.ProjectileType.MAGMA_BOMB
+			bomb.global_position = global_position + Vector2(0.0, -50.0)
+			var dist_x: float = p_x - global_position.x
+			bomb.velocity = Vector2(clampf(dist_x * 0.85, -290.0, 290.0), -340.0)
+			parent_node.add_child(bomb)
+		6: # Stage 6 Thunder Dynamo: Lightning Sky Storm & Electric Ring Nova
+			Global.play_sfx("shoot_laser")
+			Global.shake_screen(6.0, 0.25)
+			for offset in [-60.0, 60.0]:
+				var strike = EnemySpecialProjectile.new()
+				strike.proj_type = EnemySpecialProjectile.ProjectileType.LIGHTNING_STRIKE
+				strike.global_position = Vector2(p_x + offset, 440.0)
+				strike.velocity = Vector2.ZERO
+				parent_node.add_child(strike)
+			var ring = EnemySpecialProjectile.new()
+			ring.proj_type = EnemySpecialProjectile.ProjectileType.ELECTRIC_RING
+			ring.global_position = global_position + Vector2(0.0, 8.0)
+			ring.velocity = Vector2(-150.0, 0.0)
+			parent_node.add_child(ring)
+		7: # Stage 7 Star Cruiser: Twin Orbital Laser Sweeps & Plasma Drone
+			Global.play_sfx("shoot_laser")
+			Global.shake_screen(6.0, 0.3)
+			for off_x in [-80.0, 80.0]:
+				var beam = EnemySpecialProjectile.new()
+				beam.proj_type = EnemySpecialProjectile.ProjectileType.ORBITAL_BEAM
+				beam.global_position = Vector2(p_x + off_x, 270.0)
+				beam.velocity = Vector2.ZERO
+				parent_node.add_child(beam)
+			var drone = EnemySpecialProjectile.new()
+			drone.proj_type = EnemySpecialProjectile.ProjectileType.PLASMA_DRONE
+			drone.global_position = global_position + Vector2(-60.0, -40.0)
+			drone.velocity = Vector2(-180.0, -90.0)
+			parent_node.add_child(drone)
+		8: # Stage 8 Mother Brain: Void Spiral Vortex & Mind Blast Pillar
+			Global.play_sfx("shoot_laser")
+			Global.shake_screen(7.0, 0.35)
+			for i in range(8):
+				var ang := float(i) * (TAU / 8.0) + anim_timer * 4.0
+				var orb = EnemySpecialProjectile.new()
+				orb.proj_type = EnemySpecialProjectile.ProjectileType.VOID_ORB
+				orb.global_position = global_position + Vector2(0.0, 8.0)
+				orb.velocity = Vector2(cos(ang), sin(ang)) * 180.0
+				parent_node.add_child(orb)
+			var pillar = EnemySpecialProjectile.new()
+			pillar.proj_type = EnemySpecialProjectile.ProjectileType.MIND_PILLAR
+			pillar.global_position = Vector2(p_x, 440.0)
+			pillar.velocity = Vector2.ZERO
+			parent_node.add_child(pillar)
+
 func _fire_straight_cannons(player_node: Node2D, spd: float) -> void:
 	if left_part_hp > 0.0:
 		muzzle_flash_left = 0.12
@@ -700,6 +846,18 @@ func take_damage(dmg: float = 1.0) -> void:
 	
 	current_health -= actual_dmg
 	Global.boss_health_changed.emit(maxf(0.0, current_health), max_health)
+	
+	if not is_enraged and current_health <= max_health * enrage_threshold:
+		is_enraged = true
+		enrage_flash_timer = 0.5
+		Global.play_sfx("boss_alarm")
+		Global.shake_screen(8.0, 0.45)
+		var is_elec: bool = (Global.current_stage == 6)
+		var is_ali: bool = (Global.current_stage == 3 or Global.current_stage == 8)
+		if has_node("/root/VFX"):
+			VFX.spawn_animated_explosion(global_position, 1.8, is_elec, is_ali, Color(1.8, 0.4, 0.2))
+		attack_timer_3 = 0.1
+	
 	if current_health <= 0.0:
 		_trigger_death()
 
@@ -717,16 +875,29 @@ func _trigger_death() -> void:
 
 func _process_death_sequence(delta: float) -> void:
 	death_chain_timer -= delta
-	if death_chain_timer <= 0.0 and death_explosions_left > 0:
-		death_chain_timer = 0.12
-		death_explosions_left -= 1
-		death_frame_index = clampi(int((18 - death_explosions_left) / 4), 0, 3)
-		Global.shake_screen(10.0, 0.25)
-		if explosion_scene != null:
+	if death_chain_timer <= 0.0:
+		var is_elec: bool = (Global.current_stage == 6)
+		var is_ali: bool = (Global.current_stage == 3 or Global.current_stage == 8)
+		if death_explosions_left > 0:
+			death_chain_timer = 0.11
+			death_explosions_left -= 1
+			death_frame_index = clampi(int((18 - death_explosions_left) / 4), 0, 3)
+			Global.shake_screen(9.0, 0.22)
 			var offset := Vector2(randf_range(-90.0, 90.0), randf_range(-70.0, 70.0))
-			var exp_node = explosion_scene.instantiate()
-			exp_node.global_position = global_position + offset
-			get_parent().add_child(exp_node)
+			var exp_pos := global_position + offset
+			if has_node("/root/VFX"):
+				VFX.spawn_animated_explosion(exp_pos, 1.4, is_elec, is_ali)
+			elif explosion_scene != null:
+				var exp_node = explosion_scene.instantiate()
+				exp_node.global_position = exp_pos
+				get_parent().add_child(exp_node)
+		else:
+			# Final massive boss destruction explosion!
+			Global.play_sfx("boss_defeat")
+			Global.shake_screen(16.0, 0.65)
+			if has_node("/root/VFX"):
+				VFX.spawn_animated_explosion(global_position, 3.2, is_elec, is_ali)
+				VFX.spawn_dust_puff(global_position + Vector2(0.0, 30.0), 20, Color(0.2, 0.2, 0.25, 0.9))
 
 func _draw() -> void:
 	match Global.current_stage:

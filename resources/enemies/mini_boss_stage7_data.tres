@@ -6,11 +6,14 @@
 [resource]
 script = ExtResource("1_data")
 enemy_name = "Orbital Vanguard"
-max_health = 46.0
+max_health = 50.0
 move_speed = 64.0
 score_reward = 14000
 contact_damage = 2.0
 sprite_texture = ExtResource("2_tex")
 sprite_size = Vector2(122, 136)
-attack_interval_min = 1.0
-attack_interval_max = 2.2
+attack_interval_min = 0.9
+attack_interval_max = 2.0
+attack_patterns = ["particle_beam", "homing_missile", "laser_sweep", "plasma_drone"]
+special_attack_cooldown = 3.2
+enrage_health_threshold = 0.5

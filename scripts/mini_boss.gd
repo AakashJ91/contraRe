@@ -36,6 +36,12 @@ var walk_dir: float = -1.0
 var attack_timer: float = 1.4
 var missile_timer: float = 3.6
 var leap_timer: float = 6.2
+var special_attack_timer: float = 3.5
+var special_attack_cooldown: float = 4.0
+var enrage_threshold: float = 0.5
+var is_enraged: bool = false
+var enrage_flash_timer: float = 0.0
+var is_slamming: bool = false
 
 var flash_timer: float = 0.0
 var anim_timer: float = 0.0
@@ -96,6 +102,10 @@ func _ready() -> void:
 		if res.sprite_size != Vector2.ZERO:
 			mech_width = res.sprite_size.x
 			mech_height = res.sprite_size.y
+		if res.special_attack_cooldown > 0.0:
+			special_attack_cooldown = res.special_attack_cooldown
+		if res.enrage_health_threshold > 0.0:
+			enrage_threshold = res.enrage_health_threshold
 	else:
 		max_health = 26.0 + float(stg) * 4.0
 	current_health = max_health
@@ -134,6 +144,8 @@ func _physics_process(delta: float) -> void:
 	
 	if flash_timer > 0.0:
 		flash_timer -= delta
+	if enrage_flash_timer > 0.0:
+		enrage_flash_timer -= delta
 	if muzzle_flash_timer > 0.0:
 		muzzle_flash_timer -= delta
 	
@@ -183,27 +195,42 @@ func _process_combat(delta: float) -> void:
 			vel_y = 0.0
 			vel_x = 0.0
 			is_on_ground = true
-			Global.shake_screen(5.0, 0.2)
-			VFX.spawn_dust_puff(global_position, 4, Color(0.8, 0.7, 0.5))
+			if is_slamming:
+				is_slamming = false
+				Global.shake_screen(9.0, 0.35)
+				VFX.spawn_animated_explosion(global_position, 1.4)
+				var parent_node = get_parent()
+				if parent_node != null:
+					for dir_x in [-1.0, 1.0]:
+						var sw = EnemySpecialProjectile.new()
+						sw.proj_type = EnemySpecialProjectile.ProjectileType.SHOCKWAVE
+						sw.damage = 1.0
+						sw.velocity = Vector2(dir_x * 240.0, 0.0)
+						sw.global_position = global_position + Vector2(dir_x * 20.0, -8.0)
+						parent_node.add_child(sw)
+			else:
+				Global.shake_screen(5.0, 0.2)
+				VFX.spawn_dust_puff(global_position, 4, Color(0.8, 0.7, 0.5))
 	else:
 		# Pacing ground movement
 		walk_timer -= delta
 		if walk_timer <= 0.0:
-			walk_timer = randf_range(1.5, 3.0)
+			walk_timer = randf_range(1.5, 3.0) * (0.75 if is_enraged else 1.0)
 			walk_dir = -1.0 if randf() < 0.6 else 1.0
 		
 		# Move within arena boundary
-		var target_speed: float = walk_dir * 55.0
+		var spd: float = 55.0 * (1.35 if is_enraged else 1.0)
+		var target_speed: float = walk_dir * spd
 		if (walk_dir < 0 and global_position.x <= arena_min_x) or (walk_dir > 0 and global_position.x >= arena_max_x):
 			walk_dir *= -1.0
-			target_speed = walk_dir * 55.0
+			target_speed = walk_dir * spd
 		
 		global_position.x += target_speed * delta
 		global_position.x = clampf(global_position.x, arena_min_x, arena_max_x)
 		is_moving = abs(target_speed) > 1.0
 		
 		if is_moving:
-			walk_anim_timer += delta * walk_cycle_speed
+			walk_anim_timer += delta * walk_cycle_speed * (1.3 if is_enraged else 1.0)
 			var prev_frame := walk_frame_index
 			walk_frame_index = int(walk_anim_timer) % 4
 			
@@ -225,26 +252,34 @@ func _process_combat(delta: float) -> void:
 	if burst_count > 0:
 		burst_timer -= delta
 		if burst_timer <= 0.0:
-			burst_timer = 0.14
+			burst_timer = 0.12 if is_enraged else 0.14
 			burst_count -= 1
 			_fire_gatling_bullet(player_node)
 	else:
 		attack_timer -= delta
 		if attack_timer <= 0.0:
-			attack_timer = randf_range(1.8, 2.8)
-			burst_count = 4
+			var cad := randf_range(1.6, 2.5) * (0.75 if is_enraged else 1.0)
+			attack_timer = cad
+			burst_count = 5 if is_enraged else 4
 			burst_timer = 0.05
 	
 	# Shoulder micro-missiles
 	missile_timer -= delta
 	if missile_timer <= 0.0:
-		missile_timer = randf_range(4.0, 6.0)
+		missile_timer = randf_range(3.8, 5.5) * (0.8 if is_enraged else 1.0)
 		_fire_shoulder_missiles(player_node)
+	
+	# Special signature attack pattern
+	special_attack_timer -= delta
+	if special_attack_timer <= 0.0:
+		var cd := special_attack_cooldown * (0.7 if is_enraged else 1.0)
+		special_attack_timer = randf_range(cd * 0.85, cd * 1.15)
+		_execute_special_attack(player_node)
 	
 	# Jet thruster leap reposition
 	leap_timer -= delta
 	if leap_timer <= 0.0 and is_on_ground:
-		leap_timer = randf_range(6.5, 9.0)
+		leap_timer = randf_range(5.5, 8.0) * (0.8 if is_enraged else 1.0)
 		_execute_jet_leap(player_node)
 
 func get_muzzle_pos() -> Vector2:
@@ -445,8 +480,186 @@ func take_damage(dmg: float = 1.0) -> void:
 	Global.play_sfx("hit")
 	Global.boss_health_changed.emit(maxf(0.0, current_health), max_health)
 	
+	if not is_enraged and current_health <= max_health * enrage_threshold:
+		is_enraged = true
+		enrage_flash_timer = 0.45
+		Global.play_sfx("boss_alarm")
+		Global.shake_screen(8.0, 0.4)
+		if has_node("/root/VFX"):
+			var is_elec: bool = (Global.current_stage == 6)
+			var is_ali: bool = (Global.current_stage == 3 or Global.current_stage == 8)
+			VFX.spawn_animated_explosion(global_position + Vector2(0.0, -mech_height * 0.5), 1.5, is_elec, is_ali, Color(1.8, 0.4, 0.2))
+		special_attack_timer = 0.1
+	
 	if current_health <= 0.0:
 		_trigger_death()
+
+func _execute_special_attack(player_node: Node2D) -> void:
+	if is_dead:
+		return
+	var parent_node = get_parent()
+	if parent_node == null:
+		return
+	var muzzle_p := get_muzzle_pos()
+	var pod_p := get_missile_pod_pos()
+	var p_x: float = player_node.global_position.x if (player_node != null and is_instance_valid(player_node)) else (global_position.x + facing * 200.0)
+	var dir_to_p := (player_node.global_position - muzzle_p).normalized() if (player_node != null and is_instance_valid(player_node)) else Vector2(facing, 0.0)
+	
+	match Global.current_stage:
+		1: # Titan Goliath
+			if is_enraged or randf() < 0.5:
+				# Tremor Ground Slam
+				is_on_ground = false
+				is_slamming = true
+				vel_y = -420.0
+				vel_x = facing * 140.0
+				Global.play_sfx("shoot_laser")
+				VFX.spawn_animated_explosion(global_position + Vector2(0.0, -20.0), 0.8)
+			else:
+				# Flak Artillery Shell
+				Global.play_sfx("shoot_spread")
+				var shell = EnemySpecialProjectile.new()
+				shell.proj_type = EnemySpecialProjectile.ProjectileType.ARTILLERY_SHELL
+				shell.global_position = pod_p
+				var dist_x: float = p_x - pod_p.x
+				shell.velocity = Vector2(clampf(dist_x * 0.9, -280.0, 280.0), -340.0)
+				parent_node.add_child(shell)
+		2: # Aqua Assault Rig
+			if is_enraged or randf() < 0.5:
+				# Whirlpool Water Torpedoes
+				Global.play_sfx("shoot")
+				for i in range(2):
+					var torp = EnemySpecialProjectile.new()
+					torp.proj_type = EnemySpecialProjectile.ProjectileType.WATER_TORPEDO
+					torp.global_position = muzzle_p + Vector2(0.0, float(i) * 20.0 - 10.0)
+					torp.velocity = Vector2(facing * 280.0, 0.0)
+					parent_node.add_child(torp)
+			else:
+				# High-Pressure Hydro Cutter Beam
+				Global.play_sfx("shoot_laser")
+				for i in range(2):
+					var cutter = EnemySpecialProjectile.new()
+					cutter.proj_type = EnemySpecialProjectile.ProjectileType.HYDRO_CUTTER
+					cutter.global_position = muzzle_p
+					cutter.velocity = dir_to_p.rotated(randf_range(-0.1, 0.1)) * 420.0
+					parent_node.add_child(cutter)
+		3: # Chitin Behemoth
+			if is_enraged or randf() < 0.5:
+				# Chitin Spine 8-way Nova Burst
+				Global.play_sfx("shoot_spread")
+				Global.shake_screen(4.0, 0.2)
+				for i in range(8):
+					var ang := float(i) * (TAU / 8.0)
+					var sp = EnemySpecialProjectile.new()
+					sp.proj_type = EnemySpecialProjectile.ProjectileType.CHITIN_SPINE
+					sp.global_position = pod_p
+					sp.velocity = Vector2(cos(ang), sin(ang)) * 250.0
+					parent_node.add_child(sp)
+			else:
+				# Vile Acid Spray Sweep
+				Global.play_sfx("shoot")
+				for i in range(3):
+					var glob = EnemySpecialProjectile.new()
+					glob.proj_type = EnemySpecialProjectile.ProjectileType.ACID_GLOB
+					glob.global_position = muzzle_p
+					glob.velocity = Vector2(facing * (160.0 + float(i) * 60.0), -240.0 - float(i) * 30.0)
+					parent_node.add_child(glob)
+		4: # Polar Siege Colossus
+			if is_enraged or randf() < 0.5:
+				# Glacial Avalanche Slam: Stomp + Rolling Frost Mines
+				Global.play_sfx("explosion")
+				Global.shake_screen(6.0, 0.25)
+				for dir_x in [-1.0, 1.0]:
+					var mine = EnemySpecialProjectile.new()
+					mine.proj_type = EnemySpecialProjectile.ProjectileType.FROST_MINE
+					mine.global_position = global_position + Vector2(dir_x * 20.0, -10.0)
+					mine.velocity = Vector2(dir_x * 190.0, -120.0)
+					parent_node.add_child(mine)
+			else:
+				# Sub-Zero Cryo Beam Lance
+				Global.play_sfx("shoot_laser")
+				for i in range(2):
+					var beam = EnemySpecialProjectile.new()
+					beam.proj_type = EnemySpecialProjectile.ProjectileType.CRYO_BEAM
+					beam.global_position = muzzle_p
+					beam.velocity = dir_to_p.rotated(float(i) * 0.08 - 0.04) * 440.0
+					parent_node.add_child(beam)
+		5: # Vulcan Dreadnought
+			if is_enraged or randf() < 0.5:
+				# Volcanic Magma Bombardment
+				Global.play_sfx("shoot_spread")
+				for i in range(2):
+					var bomb = EnemySpecialProjectile.new()
+					bomb.proj_type = EnemySpecialProjectile.ProjectileType.MAGMA_BOMB
+					bomb.global_position = pod_p
+					var dist_x: float = p_x - pod_p.x + randf_range(-50.0, 50.0)
+					bomb.velocity = Vector2(clampf(dist_x * 0.85, -270.0, 270.0), -310.0 - float(i) * 50.0)
+					parent_node.add_child(bomb)
+			else:
+				# Rolling Molten Fire Wheels
+				Global.play_sfx("shoot")
+				for i in range(2):
+					var wheel = EnemySpecialProjectile.new()
+					wheel.proj_type = EnemySpecialProjectile.ProjectileType.FIRE_WHEEL
+					wheel.global_position = global_position + Vector2(facing * 30.0, -12.0)
+					wheel.velocity = Vector2(facing * (220.0 + float(i) * 80.0), 0.0)
+					parent_node.add_child(wheel)
+		6: # Tesla Overlord
+			if is_enraged or randf() < 0.5:
+				# Overcharged EMP Nova (12-spark ring)
+				Global.play_sfx("shoot_laser")
+				Global.shake_screen(5.0, 0.25)
+				var ring = EnemySpecialProjectile.new()
+				ring.proj_type = EnemySpecialProjectile.ProjectileType.ELECTRIC_RING
+				ring.global_position = global_position + Vector2(0.0, -mech_height * 0.5)
+				ring.velocity = Vector2(facing * 140.0, 0.0)
+				parent_node.add_child(ring)
+			else:
+				# Electrostatic Sky Strikes (vertical lightning bolts)
+				Global.play_sfx("shoot_laser")
+				for offset in [-40.0, 40.0]:
+					var strike = EnemySpecialProjectile.new()
+					strike.proj_type = EnemySpecialProjectile.ProjectileType.LIGHTNING_STRIKE
+					strike.global_position = Vector2(p_x + offset, ground_y - 10.0)
+					strike.velocity = Vector2.ZERO
+					parent_node.add_child(strike)
+		7: # Orbital Vanguard
+			if is_enraged or randf() < 0.5:
+				# Plasma Drone Swarm
+				Global.play_sfx("shoot_spread")
+				for i in range(2):
+					var drone = EnemySpecialProjectile.new()
+					drone.proj_type = EnemySpecialProjectile.ProjectileType.PLASMA_DRONE
+					drone.global_position = pod_p + Vector2(randf_range(-15.0, 15.0), randf_range(-15.0, 15.0))
+					drone.velocity = Vector2(facing * 180.0, -100.0 - float(i) * 60.0)
+					parent_node.add_child(drone)
+			else:
+				# Orbital Laser Sweep
+				Global.play_sfx("shoot_laser")
+				var beam = EnemySpecialProjectile.new()
+				beam.proj_type = EnemySpecialProjectile.ProjectileType.ORBITAL_BEAM
+				beam.global_position = Vector2(p_x, 270.0)
+				beam.velocity = Vector2.ZERO
+				parent_node.add_child(beam)
+		8: # Psionic Leviathan
+			if is_enraged or randf() < 0.5:
+				# Mind Blast Ground Pillar
+				Global.play_sfx("shoot_laser")
+				Global.shake_screen(6.0, 0.3)
+				var pillar = EnemySpecialProjectile.new()
+				pillar.proj_type = EnemySpecialProjectile.ProjectileType.MIND_PILLAR
+				pillar.global_position = Vector2(p_x, ground_y)
+				pillar.velocity = Vector2.ZERO
+				parent_node.add_child(pillar)
+			else:
+				# Void Orbs Convergence
+				Global.play_sfx("shoot")
+				for i in range(2):
+					var orb = EnemySpecialProjectile.new()
+					orb.proj_type = EnemySpecialProjectile.ProjectileType.VOID_ORB
+					orb.global_position = pod_p + Vector2(randf_range(-10.0, 10.0), -float(i) * 20.0)
+					orb.velocity = Vector2(facing * 150.0, -60.0 + float(i) * 120.0)
+					parent_node.add_child(orb)
 
 func _trigger_death() -> void:
 	if is_dead:
@@ -497,7 +710,9 @@ func _process_death(delta: float) -> void:
 			var ry := randf_range(-mech_height * 0.95, -10.0)
 			var exp_pos := global_position + Vector2(rx, ry)
 			if has_node("/root/VFX"):
-				VFX.spawn_explosion(exp_pos, 1.2, true, true)
+				var is_elec: bool = (Global.current_stage == 6)
+				var is_ali: bool = (Global.current_stage == 3 or Global.current_stage == 8)
+				VFX.spawn_animated_explosion(exp_pos, 1.25, is_elec, is_ali)
 			elif explosion_scene != null:
 				var exp_node = explosion_scene.instantiate()
 				exp_node.global_position = exp_pos
@@ -507,7 +722,9 @@ func _process_death(delta: float) -> void:
 			Global.play_sfx("boss_defeat")
 			Global.shake_screen(12.0, 0.5)
 			if has_node("/root/VFX"):
-				VFX.spawn_explosion(global_position + Vector2(0.0, -mech_height * 0.5), 2.2, true, true)
+				var is_elec: bool = (Global.current_stage == 6)
+				var is_ali: bool = (Global.current_stage == 3 or Global.current_stage == 8)
+				VFX.spawn_animated_explosion(global_position + Vector2(0.0, -mech_height * 0.5), 2.5, is_elec, is_ali)
 				VFX.spawn_dust_puff(global_position + Vector2(0.0, -30.0), 12, Color(0.2, 0.2, 0.25, 0.8))
 			queue_free()
 
@@ -535,6 +752,9 @@ func _draw() -> void:
 	
 	if current_tex != null:
 		var col := Color(1.8, 0.4, 0.4) if flash_timer > 0.0 else Color.WHITE
+		if is_enraged and not is_dead:
+			var pulse := sin(anim_timer * 12.0) * 0.25 + 0.85
+			col = Color(1.4 * pulse, 0.65 * pulse, 0.65 * pulse) if flash_timer <= 0.0 else Color(2.2, 0.3, 0.3)
 		if is_dead:
 			var base_death_col := Color.WHITE if death_textures.size() > 0 else Color(0.4, 0.4, 0.45)
 			col = Color(2.0, 0.6, 0.2) if (fmod(anim_timer * 16.0, 1.0) < 0.35) else base_death_col

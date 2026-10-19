@@ -21,6 +21,7 @@ var tex_debris: Texture2D = null
 var tex_blood: Texture2D = null
 var tex_sparkle: Texture2D = null
 var tex_shockwave: Texture2D = null
+var tex_explosion_frames: Array[Texture2D] = []
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
@@ -41,6 +42,12 @@ func _load_textures() -> void:
 		tex_sparkle = load("res://assets/vfx/star_sparkle.png")
 	if ResourceLoader.exists("res://assets/vfx/shockwave_ring.png"):
 		tex_shockwave = load("res://assets/vfx/shockwave_ring.png")
+	
+	tex_explosion_frames.clear()
+	for i in range(8):
+		var ep := "res://assets/vfx/explosion_anim_%d.png" % i
+		if ResourceLoader.exists(ep):
+			tex_explosion_frames.append(load(ep))
 
 func _get_vfx_parent() -> Node:
 	var tree := get_tree()
@@ -116,22 +123,43 @@ func spawn_muzzle_flash(pos: Vector2, dir: Vector2 = Vector2.RIGHT, weapon_type:
 	parent.add_child(fx)
 
 # -----------------------------------------------------------------------------
-# 5. FIERY ARCADE EXPLOSION
+# 5. FIERY ARCADE EXPLOSION (ANIMATED & PROCEDURAL)
 # -----------------------------------------------------------------------------
 func spawn_explosion(pos: Vector2, scale_mult: float = 1.0, is_electric: bool = false, is_alien: bool = false) -> void:
+	if tex_explosion_frames.size() > 0:
+		spawn_animated_explosion(pos, scale_mult, is_electric, is_alien)
+	else:
+		var parent := _get_vfx_parent()
+		if parent == null:
+			return
+		var fx := ExplosionEffect.new()
+		fx.global_position = pos
+		fx.scale_mult = scale_mult
+		fx.is_electric = is_electric
+		fx.is_alien = is_alien
+		fx.tex_fire = tex_fire
+		fx.tex_smoke = tex_smoke
+		fx.tex_spark = tex_spark
+		fx.tex_debris = tex_debris
+		fx.tex_shockwave = tex_shockwave
+		parent.add_child(fx)
+
+func spawn_animated_explosion(pos: Vector2, scale_mult: float = 1.0, is_electric: bool = false, is_alien: bool = false, custom_color: Color = Color.WHITE) -> void:
 	var parent := _get_vfx_parent()
 	if parent == null:
 		return
-	var fx := ExplosionEffect.new()
+	var fx := AnimatedExplosionEffect.new()
 	fx.global_position = pos
 	fx.scale_mult = scale_mult
 	fx.is_electric = is_electric
 	fx.is_alien = is_alien
+	fx.custom_color = custom_color
+	fx.explosion_frames = tex_explosion_frames
+	fx.tex_debris = tex_debris
+	fx.tex_spark = tex_spark
+	fx.tex_shockwave = tex_shockwave
 	fx.tex_fire = tex_fire
 	fx.tex_smoke = tex_smoke
-	fx.tex_spark = tex_spark
-	fx.tex_debris = tex_debris
-	fx.tex_shockwave = tex_shockwave
 	parent.add_child(fx)
 
 # -----------------------------------------------------------------------------
@@ -577,6 +605,133 @@ class ExplosionEffect extends Node2D:
 				draw_texture_rect(tex_spark, Rect2(sp["pos"] - sp_dim * 0.5, sp_dim), false, sp_col)
 			else:
 				draw_circle(sp["pos"], 2.0, sp_col)
+
+
+# --- NEW ANIMATED ARCADE EXPLOSION EFFECT ---
+class AnimatedExplosionEffect extends Node2D:
+	var scale_mult: float = 1.0
+	var is_electric: bool = false
+	var is_alien: bool = false
+	var custom_color: Color = Color.WHITE
+	var explosion_frames: Array[Texture2D] = []
+	var tex_debris: Texture2D = null
+	var tex_spark: Texture2D = null
+	var tex_shockwave: Texture2D = null
+	var tex_fire: Texture2D = null
+	var tex_smoke: Texture2D = null
+	
+	var elapsed: float = 0.0
+	var duration: float = 0.52
+	var debris_particles: Array[Dictionary] = []
+	var spark_particles: Array[Dictionary] = []
+	
+	func _ready() -> void:
+		Global.play_sfx("explosion")
+		Global.shake_screen(5.0 * scale_mult, 0.25)
+		
+		# Outward flying metal debris
+		var d_count := int(7.0 * scale_mult)
+		for i in range(d_count):
+			var a := randf_range(0.0, TAU)
+			var spd := randf_range(90.0, 240.0 * scale_mult)
+			debris_particles.append({
+				"pos": Vector2.ZERO,
+				"vel": Vector2(cos(a), sin(a)) * spd,
+				"rot": randf_range(0.0, TAU),
+				"rot_spd": randf_range(-16.0, 16.0),
+				"scale": randf_range(0.8, 1.4)
+			})
+			
+		# Sizzling fire sparks
+		var s_count := int(12.0 * scale_mult)
+		for i in range(s_count):
+			var a := randf_range(0.0, TAU)
+			var spd := randf_range(70.0, 280.0 * scale_mult)
+			spark_particles.append({
+				"pos": Vector2.ZERO,
+				"vel": Vector2(cos(a), sin(a)) * spd,
+				"scale": randf_range(0.6, 1.3)
+			})
+			
+	func _process(delta: float) -> void:
+		elapsed += delta
+		if elapsed >= duration:
+			queue_free()
+			return
+		
+		for d in debris_particles:
+			d["pos"] += d["vel"] * delta
+			d["vel"].y += 450.0 * delta # Gravity
+			d["vel"].x *= 0.94
+			d["rot"] += d["rot_spd"] * delta
+			
+		for s in spark_particles:
+			s["pos"] += s["vel"] * delta
+			s["vel"] *= 0.92
+			
+		queue_redraw()
+		
+	func _draw() -> void:
+		var t := elapsed / duration
+		var num_frames := explosion_frames.size()
+		
+		# 1. Shockwave Flare Ring
+		if t < 0.42:
+			var sw_t := t / 0.42
+			var sw_r := (12.0 + 58.0 * sw_t) * scale_mult
+			var sw_a := (1.0 - sw_t) * 0.85
+			var sw_col := Color(1.0, 0.85, 0.3, sw_a)
+			if is_electric:
+				sw_col = Color(0.3, 0.9, 1.0, sw_a)
+			elif is_alien:
+				sw_col = Color(0.4, 1.0, 0.3, sw_a)
+			elif custom_color != Color.WHITE:
+				sw_col = Color(custom_color.r, custom_color.g, custom_color.b, sw_a)
+			draw_arc(Vector2.ZERO, sw_r, 0.0, TAU, 28, sw_col, 3.5 * scale_mult)
+			draw_arc(Vector2.ZERO, sw_r * 0.75, 0.0, TAU, 24, Color(1.0, 1.0, 1.0, sw_a * 0.9), 2.0 * scale_mult)
+		
+		# 2. 8-Frame High-Definition Pixel-Art Explosion Animation
+		if num_frames > 0:
+			var frame_idx := clampi(int(t * float(num_frames)), 0, num_frames - 1)
+			var tex: Texture2D = explosion_frames[frame_idx]
+			if tex != null:
+				var draw_w := 96.0 * scale_mult
+				var draw_h := 96.0 * scale_mult
+				var mod_col := Color.WHITE
+				if is_electric:
+					mod_col = Color(0.4, 0.9, 1.4)
+				elif is_alien:
+					mod_col = Color(0.5, 1.3, 0.4)
+				elif custom_color != Color.WHITE:
+					mod_col = custom_color
+				
+				# Fade out smoothly at end of animation
+				if t > 0.8:
+					mod_col.a = (1.0 - t) / 0.2
+				
+				draw_texture_rect(tex, Rect2(-draw_w * 0.5, -draw_h * 0.5, draw_w, draw_h), false, mod_col)
+		
+		# 3. Flying Hot Debris Chunks
+		var deb_a := clampf(1.0 - t * 0.85, 0.0, 1.0)
+		for d in debris_particles:
+			var d_dim := Vector2(8.0, 8.0) * float(d["scale"]) * scale_mult
+			if tex_debris != null:
+				draw_set_transform(d["pos"], d["rot"], Vector2.ONE)
+				draw_texture_rect(tex_debris, Rect2(-d_dim * 0.5, d_dim), false, Color(1.0, 1.0, 1.0, deb_a))
+				draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+			else:
+				draw_rect(Rect2(d["pos"] - d_dim * 0.5, d_dim), Color(0.5, 0.5, 0.55, deb_a))
+				
+		# 4. Outward Flying Sizzling Sparks
+		var sp_a := clampf(1.0 - t, 0.0, 1.0)
+		for s in spark_particles:
+			var sp_col := Color(1.0, 0.85, 0.25, sp_a)
+			if is_electric:
+				sp_col = Color(0.4, 0.9, 1.0, sp_a)
+			elif is_alien:
+				sp_col = Color(0.3, 1.0, 0.4, sp_a)
+			var sp_sz := 2.5 * float(s["scale"]) * scale_mult
+			draw_circle(s["pos"], sp_sz, sp_col)
 
 
 # --- POWERUP STARBURST EFFECT ---

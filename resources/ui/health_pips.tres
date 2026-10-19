@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="HealthPipData" load_steps=7 format=3 uid="uid://chealthpips001"]
+
+[ext_resource type="Script" path="res://scripts/health_pip_data.gd" id="1_script"]
+[ext_resource type="Texture2D" path="res://assets/ui/health_pip_full.png" id="2_full"]
+[ext_resource type="Texture2D" path="res://assets/ui/health_pip_warning.png" id="3_warn"]
+[ext_resource type="Texture2D" path="res://assets/ui/health_pip_critical.png" id="4_crit"]
+[ext_resource type="Texture2D" path="res://assets/ui/health_pip_empty.png" id="5_empty"]
+[ext_resource type="Texture2D" path="res://assets/ui/health_pip_strip.png" id="6_strip"]
+
+[resource]
+script = ExtResource("1_script")
+pip_full = ExtResource("2_full")
+pip_warning = ExtResource("3_warn")
+pip_critical = ExtResource("4_crit")
+pip_empty = ExtResource("5_empty")
+spritesheet = ExtResource("6_strip")
+base_size = Vector2(10.0, 14.0)
+mobile_size = Vector2(12.0, 16.0)

@@ -10,3 +10,6 @@ extends Resource
 @export var sprite_size: Vector2 = Vector2(34.0, 34.0)
 @export var attack_interval_min: float = 2.0
 @export var attack_interval_max: float = 3.5
+@export var attack_patterns: Array[String] = []
+@export var special_attack_cooldown: float = 4.0
+@export var enrage_health_threshold: float = 0.5

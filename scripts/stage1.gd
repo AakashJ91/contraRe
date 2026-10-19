@@ -126,6 +126,7 @@ func _ready() -> void:
 	_setup_colliders()
 	_setup_static_enemies()
 	_setup_animated_bg_props()
+	_setup_stage2_fog()
 	
 	if contra_maker_scene != null:
 		contra_maker = contra_maker_scene.instantiate()
@@ -449,13 +450,18 @@ func _setup_background() -> void:
 		var tex_size := bg_texture.get_size()
 		var spr_scale := Vector2(tile_w / tex_size.x, tile_h / tex_size.y)
 		
-		# Load living background shader for Stage 1 Jungle
-		var jungle_mat: ShaderMaterial = null
+		# Load living background shader for Stage 1 Jungle & Stage 2 Waterfall
+		var bg_mat: ShaderMaterial = null
 		if Global.current_stage == 1 and ResourceLoader.exists("res://shaders/stage1_jungle_bg.gdshader"):
 			var j_shader: Shader = load("res://shaders/stage1_jungle_bg.gdshader")
 			if j_shader != null:
-				jungle_mat = ShaderMaterial.new()
-				jungle_mat.shader = j_shader
+				bg_mat = ShaderMaterial.new()
+				bg_mat.shader = j_shader
+		elif Global.current_stage == 2 and ResourceLoader.exists("res://shaders/stage2_waterfall_bg.gdshader"):
+			var w_shader: Shader = load("res://shaders/stage2_waterfall_bg.gdshader")
+			if w_shader != null:
+				bg_mat = ShaderMaterial.new()
+				bg_mat.shader = w_shader
 		
 		# Tile contiguous sprites inside the ParallaxLayer so that on any screen aspect ratio
 		# (16:9, ultrawide, mobile 20:9), the background spans seamlessly with zero gaps
@@ -465,8 +471,8 @@ func _setup_background() -> void:
 			spr.scale = spr_scale
 			spr.position = Vector2(float(s_idx) * tile_w, bg_y_offset)
 			spr.centered = false
-			if jungle_mat != null:
-				spr.material = jungle_mat
+			if bg_mat != null:
+				spr.material = bg_mat
 			p_layer.add_child(spr)
 		
 		# Stage 1: Add drifting sunset clouds ParallaxLayer in the sky
@@ -500,6 +506,8 @@ func _setup_background() -> void:
 		sky_fleet.stage_theme = Global.current_stage
 		sky_fleet.add_to_group("sky_fleet")
 		sky_canvas.add_child(sky_fleet)
+	
+	_setup_stage2_fog()
 
 class ProceduralSkyLayer extends Node2D:
 	var stage_idx: int = 4
@@ -1839,6 +1847,75 @@ func _spawn_custom_bg_props(props_list: Array) -> void:
 			prop.global_position = prop_pos
 			add_child(prop)
 
+func _setup_stage2_fog() -> void:
+	for c in get_children():
+		if c != null and is_instance_valid(c) and c.is_in_group("stage2_fog"):
+			c.queue_free()
+	
+	if Global.current_stage != 2:
+		return
+	
+	if not ResourceLoader.exists("res://shaders/canyon_fog.gdshader"):
+		return
+	
+	var fog_shader: Shader = load("res://shaders/canyon_fog.gdshader")
+	if fog_shader == null:
+		return
+	
+	for i in range(ground_segments.size() - 1):
+		var pit_left := ground_segments[i].end.x
+		var pit_right := ground_segments[i + 1].position.x
+		var pit_w := pit_right - pit_left
+		if pit_w <= 0.0:
+			continue
+		
+		var left_y := ground_segments[i].position.y
+		var right_y := ground_segments[i + 1].position.y
+		var rim_y := minf(left_y, right_y)
+		var base_y := 640.0
+		
+		# 1. Background Volumetric Chasm Fog (Renders behind terrain and platforms, in front of parallax mountains)
+		var bg_fog := ColorRect.new()
+		bg_fog.name = "ChasmFog_BG_%d" % i
+		bg_fog.show_behind_parent = true
+		bg_fog.z_index = -1
+		var bg_pad_x := 40.0
+		var bg_top_y := rim_y - 140.0
+		var bg_h := base_y - bg_top_y
+		bg_fog.position = Vector2(pit_left - bg_pad_x, bg_top_y)
+		bg_fog.size = Vector2(pit_w + bg_pad_x * 2.0, bg_h)
+		
+		var mat_bg := ShaderMaterial.new()
+		mat_bg.shader = fog_shader
+		mat_bg.set_shader_parameter("fog_color_deep", Color(0.62, 0.76, 0.92, 1.0))
+		mat_bg.set_shader_parameter("fog_color_crest", Color(0.92, 0.96, 1.0, 1.0))
+		mat_bg.set_shader_parameter("speed", 0.38 + fmod(float(i) * 0.03, 0.10))
+		mat_bg.set_shader_parameter("turbulence", 0.34)
+		mat_bg.set_shader_parameter("density", 0.95)
+		bg_fog.material = mat_bg
+		bg_fog.add_to_group("stage2_fog")
+		add_child(bg_fog)
+		
+		# 2. Foreground Wisps & Plumes (Subtle translucent mist rising past the cliff lips and stepping crags)
+		var fg_fog := ColorRect.new()
+		fg_fog.name = "ChasmFog_FG_%d" % i
+		fg_fog.z_index = 1
+		var fg_pad_x := 32.0
+		var fg_top_y := rim_y - 110.0
+		var fg_h := base_y - fg_top_y
+		fg_fog.position = Vector2(pit_left - fg_pad_x, fg_top_y)
+		fg_fog.size = Vector2(pit_w + fg_pad_x * 2.0, fg_h)
+		
+		var mat_fg := ShaderMaterial.new()
+		mat_fg.shader = fog_shader
+		mat_fg.set_shader_parameter("fog_color_deep", Color(0.70, 0.82, 0.95, 0.85))
+		mat_fg.set_shader_parameter("fog_color_crest", Color(0.96, 0.98, 1.0, 0.95))
+		mat_fg.set_shader_parameter("speed", 0.46 + fmod(float(i) * 0.04, 0.12))
+		mat_fg.set_shader_parameter("turbulence", 0.42)
+		mat_fg.set_shader_parameter("density", 0.38)
+		fg_fog.material = mat_fg
+		fg_fog.add_to_group("stage2_fog")
+		add_child(fg_fog)
 
 func get_safe_respawn_position(target_x: float) -> Vector2:
 	if Global.current_stage == 1 and target_x >= 6220.0 and target_x <= 7720.0:
@@ -2043,18 +2120,6 @@ func _draw() -> void:
 
 func _draw_stage_mechanics_background(view_left: float, view_right: float) -> void:
 	match Global.current_stage:
-		2: # WATERFALL: Buoyant thermal updraft mist columns over chasms
-			for i in range(ground_segments.size() - 1):
-				var pit_l := ground_segments[i].end.x
-				var pit_r := ground_segments[i + 1].position.x
-				var pit_w := pit_r - pit_l
-				if pit_r >= view_left - 40.0 and pit_l <= view_right + 40.0:
-					var pit_base_y := maxf(ground_segments[i].position.y, ground_segments[i + 1].position.y) + 40.0
-					for m in range(5):
-						var mx := pit_l + float(m + 1) * (pit_w / 6.0)
-						var my := pit_base_y - fmod(anim_timer * 135.0 + float(m) * 55.0, 240.0)
-						var alpha := clampf((pit_base_y - my) / 240.0, 0.0, 1.0) * 0.38
-						draw_circle(Vector2(mx + sin(anim_timer * 2.5 + float(m)) * 12.0, my), 16.0, Color(0.75, 0.92, 1.0, alpha))
 		3, 8: # ALIEN HIVE & SANCTUM: Bubbling corrosive acid chasms
 			for i in range(ground_segments.size() - 1):
 				var pit_l := ground_segments[i].end.x
@@ -2231,11 +2296,6 @@ func _draw_platforms(view_left: float, view_right: float) -> void:
 			# Molten lava pool at bottom of refinery pits
 			var lava_pulse := 0.8 + 0.2 * sin(anim_timer * 6.0 + float(i))
 			draw_rect(Rect2(pit_left, pit_base_y, pit_w, 580.0 - pit_base_y), Color(1.0 * lava_pulse, 0.35, 0.05, 0.85))
-		elif Global.current_stage == 2:
-			# Frothing river mist & turbulent rapids at bottom of waterfall chasms
-			var river_pulse := 0.85 + 0.15 * sin(anim_timer * 8.0 + float(i))
-			draw_rect(Rect2(pit_left, pit_base_y, pit_w, 580.0 - pit_base_y), Color(0.20, 0.55, 0.85, 0.70 * river_pulse))
-			draw_line(Vector2(pit_left, pit_base_y + 1.0), Vector2(pit_right, pit_base_y + 1.0), Color(0.85, 0.95, 1.0, 0.85), 2.0)
 		elif Global.current_stage == 6:
 			# Electric surge sparks at bottom of dynamo voids
 			draw_line(Vector2(pit_left, pit_base_y), Vector2(pit_right, pit_base_y), Color(0.2, 0.8, 1.0, 0.8), 2.5)
@@ -2611,12 +2671,6 @@ func _draw_weather_particles(view_left: float, view_right: float) -> void:
 					2: l_color = Color(0.88, 0.66, 0.22, 0.75) # Golden amber
 					_: l_color = Color(0.82, 0.48, 0.18, 0.70) # Dry sienna
 				draw_line(Vector2(lx, ly), Vector2(lx + 5.0 + flutter, ly + 3.0 + tumble), l_color, 2.0)
-		2: # Rushing waterfall mist & ambient spray particles
-			for m in range(24):
-				var mx := fmod(float(m) * 88.0 + anim_timer * 75.0 + sin(anim_timer * 1.8 + float(m)) * 22.0, 1050.0) + view_left - 30.0
-				var my := fmod(float(m) * 36.0 + anim_timer * 170.0, 550.0)
-				var m_alpha := 0.22 + 0.18 * sin(anim_timer * 3.0 + float(m))
-				draw_circle(Vector2(mx, my), 1.8, Color(0.85, 0.95, 1.0, m_alpha))
 		4: # Falling blizzard snow
 			for s in range(25):
 				var sx := fmod(float(s) * 95.0 + anim_timer * 180.0, 1000.0) + view_left

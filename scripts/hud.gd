@@ -14,6 +14,12 @@ var show_boss_bar: bool = false
 var victory_displayed: bool = false
 var anim_timer: float = 0.0
 
+var health_pip_full: Texture2D = null
+var health_pip_warning: Texture2D = null
+var health_pip_critical: Texture2D = null
+var health_pip_empty: Texture2D = null
+var medal_texture: Texture2D = null
+
 func _ready() -> void:
 	mouse_filter = Control.MOUSE_FILTER_PASS
 	Global.score_changed.connect(_on_score_changed)
@@ -24,6 +30,18 @@ func _ready() -> void:
 	Global.boss_defeated.connect(_on_boss_defeated)
 	Global.mini_boss_defeated.connect(_on_mini_boss_defeated)
 	Global.stage_started.connect(_on_stage_started)
+	
+	if ResourceLoader.exists("res://assets/ui/medal_life.png"):
+		medal_texture = load("res://assets/ui/medal_life.png")
+	if ResourceLoader.exists("res://assets/ui/health_pip_full.png"):
+		health_pip_full = load("res://assets/ui/health_pip_full.png")
+	if ResourceLoader.exists("res://assets/ui/health_pip_warning.png"):
+		health_pip_warning = load("res://assets/ui/health_pip_warning.png")
+	if ResourceLoader.exists("res://assets/ui/health_pip_critical.png"):
+		health_pip_critical = load("res://assets/ui/health_pip_critical.png")
+	if ResourceLoader.exists("res://assets/ui/health_pip_empty.png"):
+		health_pip_empty = load("res://assets/ui/health_pip_empty.png")
+	
 	_update_hud()
 	queue_redraw()
 
@@ -115,15 +133,20 @@ func _draw() -> void:
 	cur_x += 42.0 if is_mob else 38.0
 	
 	var shown_lives := mini(lives, 3)
-	var icon_step: float = 16.0 if is_mob else 14.0
+	var medal_w: float = 12.0 if is_mob else 10.0
+	var medal_h: float = 16.0 if is_mob else 14.0
+	var icon_step: float = medal_w + (4.0 if is_mob else 3.0)
+	var my: float = base_y - (13.0 if is_mob else 11.5)
+	
 	for i in range(shown_lives):
 		var lx: float = cur_x + float(i) * icon_step
-		# Mini commando torso
-		draw_rect(Rect2(lx, 13.0 if is_mob else 11.0, 8.5 if is_mob else 7.0, 10.0 if is_mob else 8.0), Color(0.18, 0.40, 0.90))
-		# Soldier face
-		draw_circle(Vector2(lx + (4.2 if is_mob else 3.5), 11.0 if is_mob else 9.0), 3.0 if is_mob else 2.5, Color(0.96, 0.78, 0.62))
-		# Red bandana
-		draw_rect(Rect2(lx + 0.5, 9.0 if is_mob else 7.5, 7.5 if is_mob else 6.0, 2.5 if is_mob else 2.0), Color(0.95, 0.20, 0.20))
+		if medal_texture != null:
+			draw_texture_rect(medal_texture, Rect2(lx, my, medal_w, medal_h), false)
+		else:
+			# Fallback: Mini commando torso
+			draw_rect(Rect2(lx, 13.0 if is_mob else 11.0, 8.5 if is_mob else 7.0, 10.0 if is_mob else 8.0), Color(0.18, 0.40, 0.90))
+			draw_circle(Vector2(lx + (4.2 if is_mob else 3.5), 11.0 if is_mob else 9.0), 3.0 if is_mob else 2.5, Color(0.96, 0.78, 0.62))
+			draw_rect(Rect2(lx + 0.5, 9.0 if is_mob else 7.5, 7.5 if is_mob else 6.0, 2.5 if is_mob else 2.0), Color(0.95, 0.20, 0.20))
 	cur_x += float(shown_lives) * icon_step + 4.0
 	
 	var lives_str := "x" + str(lives)
@@ -135,40 +158,44 @@ func _draw() -> void:
 	# -------------------------------------------------------------------------
 	_draw_pixel_text("HP", Vector2(cur_x, base_y), Color(1.0, 0.35, 0.35), 13 if is_mob else 11)
 	cur_x += 22.0 if is_mob else 18.0
-	var pip_step: float = 13.0 if is_mob else 11.0
-	var pip_w: float = 10.0 if is_mob else 8.0
-	var pip_h: float = 11.0 if is_mob else 9.0
-	var hy: float = base_y - (10.0 if is_mob else 8.5)
+	var pip_w: float = 11.0 if is_mob else 9.0
+	var pip_h: float = 15.0 if is_mob else 13.0
+	var pip_step: float = pip_w + (4.0 if is_mob else 3.0)
+	var hy: float = base_y - (12.0 if is_mob else 10.5)
+	
 	for i in range(player_max_health):
 		var hx: float = cur_x + float(i) * pip_step
-		# Pip housing
-		draw_rect(Rect2(hx, hy, pip_w, pip_h), Color(0.06, 0.09, 0.14, 0.92))
-		draw_rect(Rect2(hx, hy, pip_w, pip_h), Color(0.30, 0.42, 0.55, 0.85), false, 1.2 if is_mob else 1.0)
+		var pip_rect := Rect2(hx, hy, pip_w, pip_h)
+		
+		var chosen_tex: Texture2D = health_pip_empty
 		if i < player_health:
-			var hp_col := Color(0.20, 0.95, 0.40) # 3 HP: Green
-			if player_health == 2:
-				hp_col = Color(1.0, 0.82, 0.20) # 2 HP: Amber
-			elif player_health <= 1:
-				hp_col = Color(1.0, 0.22, 0.22) # 1 HP: Critical Flashing Red
-				if fmod(anim_timer * 6.0, 1.0) > 0.5:
-					hp_col = Color(1.0, 0.70, 0.70)
-			draw_rect(Rect2(hx + 1.5, hy + 1.5, pip_w - 3.0, pip_h - 3.0), hp_col)
-			draw_line(Vector2(hx + 2.0, hy + 2.0), Vector2(hx + pip_w - 2.0, hy + 2.0), Color(1.0, 1.0, 1.0, 0.55), 1.0)
+			if player_health == 3:
+				chosen_tex = health_pip_full
+			elif player_health == 2:
+				chosen_tex = health_pip_warning
+			else:
+				# 1 HP: Critical Flashing
+				if fmod(anim_timer * 6.0, 1.0) > 0.45:
+					chosen_tex = health_pip_critical
+				else:
+					chosen_tex = health_pip_empty
+		else:
+			chosen_tex = health_pip_empty
+		
+		if chosen_tex != null:
+			draw_texture_rect(chosen_tex, pip_rect, false)
+		else:
+			# Fallback procedural rendering
+			draw_rect(pip_rect, Color(0.06, 0.09, 0.14, 0.92))
+			draw_rect(pip_rect, Color(0.30, 0.42, 0.55, 0.85), false, 1.0)
+			if i < player_health:
+				var hp_col := Color(0.20, 0.95, 0.40)
+				if player_health == 2:
+					hp_col = Color(1.0, 0.82, 0.20)
+				elif player_health <= 1:
+					hp_col = Color(1.0, 0.22, 0.22)
+				draw_rect(Rect2(hx + 1.5, hy + 1.5, pip_w - 3.0, pip_h - 3.0), hp_col)
 	cur_x += float(player_max_health) * pip_step + 12.0
-	
-	# -------------------------------------------------------------------------
-	# MODULE 3: WEAPON
-	# -------------------------------------------------------------------------
-	var coin_rad: float = 8.5 if is_mob else 7.0
-	var coin_x: float = cur_x + coin_rad + 2.0
-	var coin_y: float = base_y - 4.5
-	draw_circle(Vector2(coin_x, coin_y), coin_rad, Color(0.12, 0.16, 0.22, 0.90))
-	draw_circle(Vector2(coin_x, coin_y), coin_rad, Color(weapon_color.r, weapon_color.g, weapon_color.b, 0.25))
-	draw_arc(Vector2(coin_x, coin_y), coin_rad, 0.0, TAU, 18, weapon_color, 1.4 if is_mob else 1.2)
-	_draw_pixel_text(weapon_letter, Vector2(coin_x - (4.0 if is_mob else 3.5), base_y - 0.5), Color.WHITE, 11 if is_mob else 10)
-	cur_x += 24.0 if is_mob else 20.0
-	
-	_draw_pixel_text(weapon_name, Vector2(cur_x, base_y), weapon_color, 13 if is_mob else 11)
 	
 	# -------------------------------------------------------------------------
 	# MODULE 4: CONTRA MAKER LEVEL EDITOR BUTTON

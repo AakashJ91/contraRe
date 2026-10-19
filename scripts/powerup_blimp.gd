@@ -43,15 +43,19 @@ func _pop() -> void:
 
 func _draw() -> void:
 	var flash := fmod(elapsed * 8.0, 1.0) > 0.5
+	var moving_left: bool = speed < 0.0
 	
 	if blimp_texture != null:
 		var spr_w := 46.0
 		var spr_h := 24.0
 		var col: Color = Color(1.2, 1.15, 1.0) if flash else Color.WHITE
-		draw_texture_rect(blimp_texture, Rect2(-spr_w * 0.5, -spr_h * 0.5, spr_w, spr_h), false, col)
+		var draw_x := spr_w * 0.5 if moving_left else -spr_w * 0.5
+		var draw_w := -spr_w if moving_left else spr_w
+		draw_texture_rect(blimp_texture, Rect2(draw_x, -spr_h * 0.5, draw_w, spr_h), false, col)
 		
 		# Glowing propulsion engine light at the tail
-		var thruster_pos := Vector2(-spr_w * 0.5 + 4.0, 0.0)
+		var thruster_x: float = (spr_w * 0.5 - 4.0) if moving_left else (-spr_w * 0.5 + 4.0)
+		var thruster_pos := Vector2(thruster_x, 0.0)
 		var flicker_r := 3.0 + randf() * 2.0
 		draw_circle(thruster_pos, flicker_r, Color(1.0, 0.6, 0.2, 0.8))
 		return

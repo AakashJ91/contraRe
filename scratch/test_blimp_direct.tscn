@@ -1,0 +1,6 @@
+[gd_scene format=3 uid="uid://db0jjx6s244nc"]
+
+[ext_resource type="Script" path="res://scratch/test_blimp_direct.gd" id="1_test"]
+
+[node name="TestBlimpDirect" type="Node2D"]
+script = ExtResource("1_test")

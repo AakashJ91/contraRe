@@ -283,12 +283,7 @@ func _draw() -> void:
 		if tex != null:
 			var ts := tex.get_size()
 			var s: Vector2 = f["scale"]
-			
-			# Draw texture flipped if flying left-to-right (sprites natively face right)
-			# If dir < 0, flip horizontally
-			if dir < 0.0:
-				var dst := Rect2(pos.x + ts.x * s.x * 0.5, pos.y - ts.y * s.y * 0.5, -ts.x * s.x, ts.y * s.y)
-				draw_texture_rect(tex, dst, false, f["tint"])
-			else:
-				var dst := Rect2(pos.x - ts.x * s.x * 0.5, pos.y - ts.y * s.y * 0.5, ts.x * s.x, ts.y * s.y)
-				draw_texture_rect(tex, dst, false, f["tint"])
+			var flip_x: float = -s.x if dir < 0.0 else s.x
+			draw_set_transform(pos, 0.0, Vector2(flip_x, s.y))
+			draw_texture(tex, -ts * 0.5, f["tint"])
+			draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)

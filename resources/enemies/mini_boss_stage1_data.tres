@@ -5,12 +5,15 @@
 
 [resource]
 script = ExtResource("1_data")
-enemy_name = "Assault Heavy Mech"
-max_health = 26.0
+enemy_name = "Titan Goliath Mech"
+max_health = 28.0
 move_speed = 65.0
 score_reward = 6000
 contact_damage = 2.0
 sprite_texture = ExtResource("2_tex")
 sprite_size = Vector2(108, 135)
 attack_interval_min = 1.4
-attack_interval_max = 3.6
+attack_interval_max = 3.2
+attack_patterns = ["quad_gatling", "cluster_grenade", "tremor_slam", "suppression_barrage"]
+special_attack_cooldown = 4.5
+enrage_health_threshold = 0.5

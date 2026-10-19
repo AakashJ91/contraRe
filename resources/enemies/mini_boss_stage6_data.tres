@@ -6,11 +6,14 @@
 [resource]
 script = ExtResource("1_data")
 enemy_name = "Tesla Overlord"
-max_health = 42.0
+max_health = 46.0
 move_speed = 54.0
 score_reward = 12000
 contact_damage = 2.0
 sprite_texture = ExtResource("2_tex")
 sprite_size = Vector2(115, 140)
-attack_interval_min = 1.1
-attack_interval_max = 2.4
+attack_interval_min = 1.0
+attack_interval_max = 2.2
+attack_patterns = ["spark_crossfire", "ball_lightning", "lightning_strike", "emp_nova"]
+special_attack_cooldown = 3.5
+enrage_health_threshold = 0.5

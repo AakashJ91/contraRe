@@ -11,7 +11,7 @@ var sparks: Array[Dictionary] = []
 
 func _ready() -> void:
 	if has_node("/root/VFX"):
-		VFX.spawn_explosion(global_position, 1.0)
+		VFX.spawn_animated_explosion(global_position, 1.0)
 		queue_free()
 		return
 	

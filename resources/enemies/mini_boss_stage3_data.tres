@@ -6,11 +6,14 @@
 [resource]
 script = ExtResource("1_data")
 enemy_name = "Chitin Behemoth"
-max_health = 34.0
+max_health = 36.0
 move_speed = 58.0
 score_reward = 9000
 contact_damage = 2.0
 sprite_texture = ExtResource("2_tex")
 sprite_size = Vector2(120, 135)
-attack_interval_min = 1.4
-attack_interval_max = 2.8
+attack_interval_min = 1.2
+attack_interval_max = 2.6
+attack_patterns = ["spore_needle", "acid_glob", "chitin_spine_nova", "acid_spray_sweep"]
+special_attack_cooldown = 4.0
+enrage_health_threshold = 0.5

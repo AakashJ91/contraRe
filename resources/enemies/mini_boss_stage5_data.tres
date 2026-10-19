@@ -6,11 +6,14 @@
 [resource]
 script = ExtResource("1_data")
 enemy_name = "Vulcan Dreadnought"
-max_health = 40.0
+max_health = 44.0
 move_speed = 50.0
 score_reward = 11000
 contact_damage = 2.0
 sprite_texture = ExtResource("2_tex")
 sprite_size = Vector2(118, 138)
-attack_interval_min = 1.2
-attack_interval_max = 2.5
+attack_interval_min = 1.1
+attack_interval_max = 2.4
+attack_patterns = ["rivet_burst", "slag_wave", "fire_wheel", "magma_bombardment"]
+special_attack_cooldown = 3.6
+enrage_health_threshold = 0.5
