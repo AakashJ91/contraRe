@@ -20,7 +20,7 @@
 [resource]
 script = ExtResource("1_data")
 explosion_name = "BIG APOCALYPSE EXPLOSION"
-category = "Nuclear"
+category = "Big"
 scale_mult = 1.0
 duration = 0.85
 is_electric = false

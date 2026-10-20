@@ -269,7 +269,7 @@ func _handle_world_impact() -> void:
 			_detonate_ice_mortar()
 			queue_free()
 		ProjectileType.HOMING_MISSILE:
-			VFX.spawn_animated_explosion(global_position, 1.1)
+			VFX.spawn_explosion(global_position, 1.1)
 			Global.shake_screen(4.0, 0.2)
 			queue_free()
 		ProjectileType.BALL_LIGHTNING:
@@ -288,7 +288,7 @@ func _handle_world_impact() -> void:
 			_detonate_water_torpedo()
 			queue_free()
 		ProjectileType.PLASMA_DRONE, ProjectileType.VOID_ORB:
-			VFX.spawn_animated_explosion(global_position, 1.0, proj_type == ProjectileType.PLASMA_DRONE, false)
+			VFX.spawn_explosion(global_position, 1.0)
 			queue_free()
 		ProjectileType.LIGHTNING_STRIKE:
 			VFX.spawn_hit_sparks(global_position, Vector2.UP, Color(0.4, 0.9, 1.0))
@@ -314,7 +314,7 @@ func _on_expire() -> void:
 		_detonate_water_torpedo()
 
 func _detonate_depth_charge() -> void:
-	VFX.spawn_animated_explosion(global_position, 1.2)
+	VFX.spawn_explosion(global_position, 1.2)
 	Global.shake_screen(5.0, 0.25)
 	Global.play_sfx("explosion")
 	var parent_node = get_parent()
@@ -355,7 +355,7 @@ func _detonate_ice_mortar() -> void:
 		parent_node.add_child(shard)
 
 func _detonate_magma_bomb() -> void:
-	VFX.spawn_animated_explosion(global_position, 1.4)
+	VFX.spawn_explosion(global_position, 1.4)
 	Global.shake_screen(6.0, 0.3)
 	Global.play_sfx("explosion")
 	var parent_node = get_parent()
@@ -369,7 +369,7 @@ func _detonate_magma_bomb() -> void:
 		parent_node.add_child(sw)
 
 func _detonate_artillery_shell() -> void:
-	VFX.spawn_animated_explosion(global_position, 1.5)
+	VFX.spawn_explosion(global_position, 1.5)
 	Global.shake_screen(6.0, 0.3)
 	Global.play_sfx("explosion")
 	var parent_node = get_parent()
@@ -385,7 +385,7 @@ func _detonate_artillery_shell() -> void:
 		parent_node.add_child(flak)
 
 func _detonate_frost_mine() -> void:
-	VFX.spawn_animated_explosion(global_position, 1.2, false, false, Color(0.5, 0.9, 1.2))
+	VFX.spawn_explosion(global_position, 1.2)
 	Global.shake_screen(5.0, 0.25)
 	Global.play_sfx("explosion")
 	var parent_node = get_parent()
@@ -402,7 +402,7 @@ func _detonate_frost_mine() -> void:
 
 func _detonate_water_torpedo() -> void:
 	VFX.spawn_water_splash(global_position)
-	VFX.spawn_animated_explosion(global_position, 1.1, false, false, Color(0.4, 0.85, 1.2))
+	VFX.spawn_explosion(global_position, 1.1)
 	Global.shake_screen(4.0, 0.2)
 	Global.play_sfx("explosion")
 

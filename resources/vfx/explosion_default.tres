@@ -16,7 +16,7 @@
 [resource]
 script = ExtResource("1_data")
 explosion_name = "ARCADE EXPLOSION"
-category = "Fiery"
+category = "Default"
 scale_mult = 1.0
 duration = 0.50
 is_electric = false

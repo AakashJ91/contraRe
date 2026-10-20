@@ -974,7 +974,7 @@ func _process_stage_mechanics(delta: float) -> void:
 						if p_pos.x >= r.position.x and p_pos.x <= r.end.x and abs(p_pos.y - r.position.y) < 14.0:
 							player.take_damage(1.0)
 							Global.play_sfx("hit")
-							VFX.spawn_explosion(p_pos, 0.85, true, false)
+							VFX.spawn_explosion(p_pos, 0.85)
 							break
 			
 			# Tesla coils across chasms
@@ -990,7 +990,7 @@ func _process_stage_mechanics(delta: float) -> void:
 					if p_pos.x >= t_start.x and p_pos.x <= t_end.x and abs(p_pos.y - t_start.y) < 26.0:
 						player.take_damage(1.0)
 						Global.play_sfx("hit")
-						VFX.spawn_explosion(p_pos, 0.9, true, false)
+						VFX.spawn_explosion(p_pos, 0.9)
 
 		7: # HANGAR: Hydraulic elevator lifts & security laser tripwires
 			for lift in hydraulic_lifts:

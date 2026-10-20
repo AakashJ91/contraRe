@@ -11,9 +11,9 @@ func _ready() -> void:
 func _process(_delta: float) -> void:
 	frames += 1
 	if frames == 20:
-		# Trigger explosion right at the front line where enemies and sensors are
-		VFX.spawn_explosion_by_name(Vector2(460.0, 310.0), "fiery", 1.4)
-		VFX.spawn_explosion_by_name(Vector2(620.0, 260.0), "electric", 1.2)
+		# Trigger standard explosions (explosion.png)
+		VFX.spawn_explosion(Vector2(460.0, 310.0), 1.5)
+		VFX.spawn_explosion(Vector2(620.0, 260.0), 1.2)
 	
 	if frames == 35:
 		var img = get_viewport().get_texture().get_image()
