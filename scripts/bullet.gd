@@ -164,6 +164,7 @@ func _handle_hit(target: Node2D) -> void:
 		_decrement_pierce()
 	elif target.is_in_group("world_solid"):
 		VFX.spawn_hit_sparks(global_position, -direction, Color(0.9, 0.85, 0.5))
+		VFX.spawn_hit_explosion(global_position, 0.75)
 		queue_free()
 
 func _spawn_hit_vfx(hit_target: Node2D) -> void:
@@ -180,13 +181,10 @@ func _spawn_hit_vfx(hit_target: Node2D) -> void:
 				spk_col = Color(1.0, 0.5, 0.2)
 			VFX.spawn_hit_sparks(global_position, hit_norm, spk_col)
 		
-		var is_alien := true
-		var t_name := hit_target.name.to_lower()
-		if t_name.contains("soldier") or t_name.contains("sniper"):
-			is_alien = false
-		VFX.spawn_blood_splatter(global_position, direction, is_alien)
+		# Bullet Hit Explosion (48x48 animation from hitExplosion.png)
+		VFX.spawn_hit_explosion(global_position)
 	else:
-		VFX.spawn_blood_splatter(global_position, direction, false)
+		VFX.spawn_hit_explosion(global_position, 0.8)
 		VFX.spawn_hit_sparks(global_position, -direction, Color(1.0, 0.3, 0.2))
 
 func _decrement_pierce() -> void:

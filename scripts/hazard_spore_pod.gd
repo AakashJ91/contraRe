@@ -76,7 +76,7 @@ func rupture() -> void:
 	Global.play_sfx("player_death")
 	
 	# Massive alien blood splatter and organic rupture blast
-	VFX.spawn_blood_splatter(global_position + Vector2(0.0, -14.0), Vector2.UP, true)
+	VFX.spawn_hit_explosion(global_position + Vector2(0.0, -14.0), 1.2)
 	VFX.spawn_explosion(global_position + Vector2(0.0, -14.0), 1.15)
 	
 	# Spawn 2 leaping alien crawlers

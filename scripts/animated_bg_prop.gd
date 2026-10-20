@@ -50,7 +50,7 @@ func _emit_ambient_vfx() -> void:
 			var spk_col := Color(0.35, 0.95, 1.0) if (prop_data.item_id == "electric_arc" or prop_data.item_id == "alien_core") else Color(1.0, 0.8, 0.3)
 			VFX.spawn_hit_sparks(spawn_pos, Vector2.UP, spk_col)
 		"spores":
-			VFX.spawn_blood_splatter(spawn_pos, Vector2.UP, true)
+			VFX.spawn_hit_sparks(spawn_pos, Vector2.UP, Color(0.8, 0.45, 0.9))
 		"splash":
 			VFX.spawn_water_splash(spawn_pos)
 

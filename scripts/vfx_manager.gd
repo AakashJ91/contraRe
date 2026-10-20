@@ -28,6 +28,8 @@ var tex_fire_anim_frames: Array[Texture2D] = []
 var tex_fire_sheet: Texture2D = null
 var tex_big_explosion_frames: Array[Texture2D] = []
 var tex_big_explosion_sheet: Texture2D = null
+var tex_hit_explosion_frames: Array[Texture2D] = []
+var tex_hit_explosion_sheet: Texture2D = null
 var explosion_resources: Dictionary = {}
 
 func _ready() -> void:
@@ -120,6 +122,35 @@ func _load_textures() -> void:
 			atlas.region = Rect2(float(i * 192), 0.0, 192.0, 192.0)
 			tex_big_explosion_frames.append(atlas)
 	
+	# Bullet Hit Explosion Spritesheet (48x48 frames, 10 frames from hitExplosion.png)
+	if ResourceLoader.exists("res://assets/vfx/effect/hitExplosion.png"):
+		tex_hit_explosion_sheet = load("res://assets/vfx/effect/hitExplosion.png")
+	elif ResourceLoader.exists("res://assets/vfx/hitExplosion.png"):
+		tex_hit_explosion_sheet = load("res://assets/vfx/hitExplosion.png")
+	elif FileAccess.file_exists("res://assets/vfx/effect/hitExplosion.png"):
+		var img := Image.load_from_file("res://assets/vfx/effect/hitExplosion.png")
+		if img != null:
+			tex_hit_explosion_sheet = ImageTexture.create_from_image(img)
+	elif FileAccess.file_exists("res://assets/vfx/hitExplosion.png"):
+		var img := Image.load_from_file("res://assets/vfx/hitExplosion.png")
+		if img != null:
+			tex_hit_explosion_sheet = ImageTexture.create_from_image(img)
+	
+	tex_hit_explosion_frames.clear()
+	for i in range(10):
+		var hp := "res://assets/vfx/effect/hitExplosion/frame_%d.png" % i
+		if ResourceLoader.exists(hp):
+			tex_hit_explosion_frames.append(load(hp))
+		elif FileAccess.file_exists(hp):
+			var img := Image.load_from_file(hp)
+			if img != null:
+				tex_hit_explosion_frames.append(ImageTexture.create_from_image(img))
+		elif tex_hit_explosion_sheet != null:
+			var atlas := AtlasTexture.new()
+			atlas.atlas = tex_hit_explosion_sheet
+			atlas.region = Rect2(float(i * 48), 0.0, 48.0, 48.0)
+			tex_hit_explosion_frames.append(atlas)
+	
 	_load_explosion_resources()
 
 func _load_explosion_resources() -> void:
@@ -179,9 +210,22 @@ func spawn_hit_sparks(pos: Vector2, normal: Vector2 = Vector2.UP, spark_color: C
 	parent.add_child(fx)
 
 # -----------------------------------------------------------------------------
-# 2. FLESH / ALIEN GOO SPLATTER
+# 2. FLESH / ALIEN GOO SPLATTER & HIT BURST (48x48 SPRITESHEET)
 # -----------------------------------------------------------------------------
+func spawn_hit_explosion(pos: Vector2, scale_mult: float = 1.0) -> void:
+	var parent := _get_vfx_parent()
+	if parent == null:
+		return
+	var fx := HitExplosionEffect.new()
+	fx.global_position = pos
+	fx.scale_mult = scale_mult
+	fx.hit_frames = tex_hit_explosion_frames
+	parent.add_child(fx)
+
 func spawn_blood_splatter(pos: Vector2, dir: Vector2 = Vector2.RIGHT, is_alien: bool = true) -> void:
+	if is_alien:
+		spawn_hit_explosion(pos)
+		return
 	var parent := _get_vfx_parent()
 	if parent == null:
 		return
@@ -517,17 +561,43 @@ class BloodSplatterEffect extends Node2D:
 		
 		for p in particles:
 			var p_size: float = p["size"] * (1.0 - t * 0.4)
-			var col: Color
-			if is_alien:
-				col = Color(0.25 * p["col_var"], 0.95 * p["col_var"], 0.25, alpha)
-			else:
-				col = Color(0.85 * p["col_var"], 0.15, 0.15, alpha)
+			var col := Color(0.85 * p["col_var"], 0.15, 0.15, alpha)
 			
 			if tex_blood != null:
 				var s_dim := Vector2(8.0, 8.0) * p_size
 				draw_texture_rect(tex_blood, Rect2(p["pos"] - s_dim * 0.5, s_dim), false, col)
 			else:
 				draw_circle(p["pos"], 2.5 * p_size, col)
+
+
+# --- BULLET HIT EXPLOSION EFFECT (48x48 SPRITESHEET) ---
+class HitExplosionEffect extends Node2D:
+	var scale_mult: float = 1.0
+	var hit_frames: Array[Texture2D] = []
+	var elapsed: float = 0.0
+	var duration: float = 0.22
+	
+	func _process(delta: float) -> void:
+		elapsed += delta
+		if elapsed >= duration:
+			queue_free()
+			return
+		queue_redraw()
+	
+	func _draw() -> void:
+		var num_frames := hit_frames.size()
+		if num_frames == 0:
+			return
+		var t := clampf(elapsed / duration, 0.0, 1.0)
+		var frame_idx := clampi(int(t * float(num_frames)), 0, num_frames - 1)
+		var tex: Texture2D = hit_frames[frame_idx]
+		if tex != null:
+			var draw_w := 48.0 * scale_mult
+			var draw_h := 48.0 * scale_mult
+			var col := Color.WHITE
+			if t > 0.8:
+				col.a = (1.0 - t) / 0.2
+			draw_texture_rect(tex, Rect2(-draw_w * 0.5, -draw_h * 0.5, draw_w, draw_h), false, col)
 
 
 # --- DUST PUFF EFFECT ---

@@ -1,0 +1,6 @@
+[gd_scene load_steps=2 format=3 uid="uid://stage1_hit_exp_preview"]
+
+[ext_resource type="Script" path="res://scratch/preview_stage1_hit_explosion.gd" id="1_prev"]
+
+[node name="PreviewStage1HitExplosion" type="Node"]
+script = ExtResource("1_prev")

@@ -142,7 +142,7 @@ func _die() -> void:
 	var reward: int = enemy_data.score_reward if enemy_data != null else 250
 	Global.add_score(reward)
 	Global.shake_screen(4.5, 0.16)
-	VFX.spawn_blood_splatter(global_position, Vector2.UP, true)
+	VFX.spawn_hit_explosion(global_position, 1.0)
 	VFX.spawn_enemy_death_explosion(global_position)
 
 func _draw() -> void:
