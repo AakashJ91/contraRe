@@ -127,18 +127,8 @@ func _die() -> void:
 	Global.play_sfx("boss_explode")
 	Global.shake_screen(4.0, 0.2)
 	
-	# Spawn themed multi-frame animated explosion
-	var exp_theme := "fiery"
-	var t_tag: String = sensor_data.get("theme_tag") if (sensor_data != null and sensor_data.get("theme_tag") != null) else ""
-	if t_tag == "tesla":
-		exp_theme = "electric"
-	elif t_tag == "alien" or t_tag == "sanctum":
-		exp_theme = "alien"
-	elif t_tag == "cryo":
-		exp_theme = "cryo"
-	elif t_tag == "magma":
-		exp_theme = "magma"
-	VFX.spawn_explosion_by_name(global_position + Vector2(0.0, -14.0), exp_theme, 1.25)
+	# Spawn standard multi-frame animated explosion (using explosion.png)
+	VFX.spawn_explosion(global_position + Vector2(0.0, -14.0), 1.25)
 	if explosion_scene != null:
 		var exp_node = explosion_scene.instantiate()
 		exp_node.global_position = global_position + Vector2(0.0, -14.0)

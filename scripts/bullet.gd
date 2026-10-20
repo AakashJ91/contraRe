@@ -173,7 +173,7 @@ func _spawn_hit_vfx(hit_target: Node2D) -> void:
 			VFX.spawn_laser_hit(global_position, hit_norm)
 		elif weapon_type == Global.WeaponType.FIRE:
 			VFX.spawn_hit_sparks(global_position, hit_norm, Color(1.0, 0.45, 0.1))
-			VFX.spawn_explosion_by_name(global_position, "mini", 0.75)
+			VFX.spawn_explosion(global_position, 0.75)
 		else:
 			var spk_col := Color(1.0, 0.9, 0.35)
 			if weapon_type == Global.WeaponType.SPREAD:

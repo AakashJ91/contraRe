@@ -132,20 +132,6 @@ func _load_explosion_resources() -> void:
 		"skull": "res://resources/vfx/explosion_skull_smoke.tres",
 		"skullsmoke": "res://resources/vfx/explosion_skull_smoke.tres",
 		"enemy_death": "res://resources/vfx/explosion_skull_smoke.tres",
-		"fiery": "res://resources/vfx/explosion_arcade_fiery.tres",
-		"arcade": "res://resources/vfx/explosion_arcade_fiery.tres",
-		"electric": "res://resources/vfx/explosion_electric_tesla.tres",
-		"tesla": "res://resources/vfx/explosion_electric_tesla.tres",
-		"alien": "res://resources/vfx/explosion_alien_bio.tres",
-		"bio": "res://resources/vfx/explosion_alien_bio.tres",
-		"nuclear": "res://resources/vfx/explosion_nuclear_mega.tres",
-		"mega": "res://resources/vfx/explosion_nuclear_mega.tres",
-		"cryo": "res://resources/vfx/explosion_cryo_frost.tres",
-		"frost": "res://resources/vfx/explosion_cryo_frost.tres",
-		"magma": "res://resources/vfx/explosion_magma_volcanic.tres",
-		"volcanic": "res://resources/vfx/explosion_magma_volcanic.tres",
-		"mini": "res://resources/vfx/explosion_mini_impact.tres",
-		"bullet": "res://resources/vfx/explosion_mini_impact.tres",
 		"default": "res://resources/vfx/explosion_default.tres"
 	}
 	for key in res_map:
@@ -329,9 +315,6 @@ func spawn_big_explosion(pos: Vector2, scale_mult: float = 1.0) -> Node2D:
 	if explosion_resources.has("big"):
 		spawn_explosion_from_resource(pos, explosion_resources["big"], scale_mult)
 		return null
-	elif explosion_resources.has("nuclear"):
-		spawn_explosion_from_resource(pos, explosion_resources["nuclear"], scale_mult)
-		return null
 	
 	var parent := _get_vfx_parent()
 	if parent == null:
@@ -363,44 +346,15 @@ func spawn_big_explosion(pos: Vector2, scale_mult: float = 1.0) -> Node2D:
 	parent.add_child(fx)
 	return fx
 
-func spawn_explosion(pos: Vector2, scale_mult: float = 1.0, is_electric: bool = false, is_alien: bool = false) -> void:
-	var target_key := "fiery"
-	if is_electric:
-		target_key = "electric"
-	elif is_alien:
-		target_key = "alien"
-	
-	if explosion_resources.has(target_key):
-		spawn_explosion_from_resource(pos, explosion_resources[target_key], scale_mult)
-	elif explosion_resources.has("default"):
+func spawn_explosion(pos: Vector2, scale_mult: float = 1.0, _is_electric: bool = false, _is_alien: bool = false) -> void:
+	if explosion_resources.has("default"):
 		spawn_explosion_from_resource(pos, explosion_resources["default"], scale_mult)
-	elif tex_explosion_frames.size() > 0:
-		spawn_animated_explosion(pos, scale_mult, is_electric, is_alien)
 	else:
-		var parent := _get_vfx_parent()
-		if parent == null:
-			return
-		var fx := ExplosionEffect.new()
-		fx.global_position = pos
-		fx.scale_mult = scale_mult
-		fx.is_electric = is_electric
-		fx.is_alien = is_alien
-		fx.tex_fire = tex_fire
-		fx.tex_smoke = tex_smoke
-		fx.tex_spark = tex_spark
-		fx.tex_debris = tex_debris
-		fx.tex_shockwave = tex_shockwave
-		parent.add_child(fx)
+		spawn_animated_explosion(pos, scale_mult)
 
-func spawn_animated_explosion(pos: Vector2, scale_mult: float = 1.0, is_electric: bool = false, is_alien: bool = false, custom_color: Color = Color.WHITE) -> void:
-	var target_key := "fiery"
-	if is_electric:
-		target_key = "electric"
-	elif is_alien:
-		target_key = "alien"
-	
-	if explosion_resources.has(target_key) and custom_color == Color.WHITE:
-		spawn_explosion_from_resource(pos, explosion_resources[target_key], scale_mult)
+func spawn_animated_explosion(pos: Vector2, scale_mult: float = 1.0, _is_electric: bool = false, _is_alien: bool = false, custom_color: Color = Color.WHITE) -> void:
+	if explosion_resources.has("default") and custom_color == Color.WHITE:
+		spawn_explosion_from_resource(pos, explosion_resources["default"], scale_mult)
 		return
 	
 	var parent := _get_vfx_parent()
@@ -409,8 +363,6 @@ func spawn_animated_explosion(pos: Vector2, scale_mult: float = 1.0, is_electric
 	var fx := AnimatedExplosionEffect.new()
 	fx.global_position = pos
 	fx.scale_mult = scale_mult
-	fx.is_electric = is_electric
-	fx.is_alien = is_alien
 	fx.custom_color = custom_color
 	fx.frame_size = Vector2(64.0, 64.0)
 	fx.explosion_frames = tex_explosion_frames

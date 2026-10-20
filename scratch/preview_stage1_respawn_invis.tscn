@@ -1,0 +1,6 @@
+[gd_scene format=3 uid="uid://cs1invis1234"]
+
+[ext_resource type="Script" path="res://scratch/preview_stage1_respawn_invis.gd" id="1_s1invis"]
+
+[node name="PreviewStage1RespawnInvis" type="Node"]
+script = ExtResource("1_s1invis")

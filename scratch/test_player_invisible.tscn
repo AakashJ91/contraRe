@@ -1,0 +1,6 @@
+[gd_scene format=3 uid="uid://xhd4v8jlimk4"]
+
+[ext_resource type="Script" path="res://scratch/test_player_invisible.gd" id="1_invis"]
+
+[node name="TestPlayerInvisible" type="Node2D"]
+script = ExtResource("1_invis")

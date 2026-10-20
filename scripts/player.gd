@@ -52,6 +52,11 @@ var tex_run_fire_up: Array[Texture2D] = []
 var tex_run_down: Array[Texture2D] = []
 var tex_run_fire_down: Array[Texture2D] = []
 var fire_hold_timer: float = 0.0
+var tex_invisible_frames: Array[Texture2D] = []
+var tex_invisible_sheet: Texture2D = null
+var invisible_anim_timer: float = 0.0
+var outline_material: ShaderMaterial = null
+var sparkle_overlay: Node2D = null
 
 var stage_gravity_scale: float = 1.0
 var conveyor_push: float = 0.0
@@ -116,19 +121,42 @@ func _ready() -> void:
 		var pfd := "res://assets/player/player_run_fire_down_%d.png" % i
 		if ResourceLoader.exists(pfd):
 			tex_run_fire_down.append(load(pfd))
+	
+	# Load invisible/invulnerable respawn sparkle frames (64x64, 12 frames from invisible.png)
+	if ResourceLoader.exists("res://assets/vfx/effect/invisible.png"):
+		tex_invisible_sheet = load("res://assets/vfx/effect/invisible.png")
+	elif ResourceLoader.exists("res://assets/vfx/invisible.png"):
+		tex_invisible_sheet = load("res://assets/vfx/invisible.png")
+	
+	tex_invisible_frames.clear()
+	for i in range(12):
+		var ip := "res://assets/vfx/effect/invisible/frame_%d.png" % i
+		if ResourceLoader.exists(ip):
+			tex_invisible_frames.append(load(ip))
+		elif tex_invisible_sheet != null:
+			var atlas := AtlasTexture.new()
+			atlas.atlas = tex_invisible_sheet
+			atlas.region = Rect2(float(i * 64), 0.0, 64.0, 64.0)
+			tex_invisible_frames.append(atlas)
+	
 	Global.player_health = Global.PLAYER_MAX_HEALTH
 	Global.player_health_changed.emit(Global.player_health, Global.PLAYER_MAX_HEALTH)
 	
 	# Apply soft shimmering white outline shader
 	if ResourceLoader.exists("res://shaders/player_outline.gdshader"):
 		var outline_shader = load("res://shaders/player_outline.gdshader")
-		var outline_mat := ShaderMaterial.new()
-		outline_mat.shader = outline_shader
-		outline_mat.set_shader_parameter("outline_color", border_color)
-		outline_mat.set_shader_parameter("outline_width", border_width)
-		outline_mat.set_shader_parameter("shimmer_speed", 3.2)
-		outline_mat.set_shader_parameter("shimmer_intensity", 0.38)
-		material = outline_mat
+		outline_material = ShaderMaterial.new()
+		outline_material.shader = outline_shader
+		outline_material.set_shader_parameter("outline_color", border_color)
+		outline_material.set_shader_parameter("outline_width", border_width)
+		outline_material.set_shader_parameter("shimmer_speed", 3.2)
+		outline_material.set_shader_parameter("shimmer_intensity", 0.38)
+		material = outline_material
+	
+	# Clean sparkle overlay (child Node2D has material=null, so NO shader outline border!)
+	sparkle_overlay = InvisibleSparkleOverlay.new()
+	sparkle_overlay.player_ref = self
+	add_child(sparkle_overlay)
 	
 	if not Global.is_maker_mode:
 		state = PlayerState.RESPAWNING
@@ -141,6 +169,15 @@ func _ready() -> void:
 func _physics_process(delta: float) -> void:
 	if state == PlayerState.DEAD:
 		return
+	
+	invisible_anim_timer += delta * 15.0
+	
+	var is_invis := (state == PlayerState.RESPAWNING or is_invulnerable)
+	if outline_material != null:
+		outline_material.set_shader_parameter("outline_width", 0.0 if is_invis else border_width)
+	
+	if sparkle_overlay != null:
+		sparkle_overlay.queue_redraw()
 	
 	if Global.is_boss_cutscene_active:
 		velocity.x = move_toward(velocity.x, 0.0, SPEED * delta * 5.0)
@@ -488,55 +525,34 @@ func _respawn() -> void:
 	velocity = Vector2.ZERO
 	Global.set_weapon(Global.WeaponType.RIFLE) # Reset to default rifle on death
 
-func _draw_invincible_aura() -> void:
-	var is_intro := Global.is_stage_intro_active()
-	if not Global.is_maker_mode and not is_intro:
-		return
-	var t: float = Time.get_ticks_msec() / 1000.0
-	var pulse: float = 0.5 + 0.5 * sin(t * 7.0)
-	var center := Vector2.ZERO
-	if state == PlayerState.PRONE:
-		center = Vector2(0.0, 5.0)
-	elif state != PlayerState.JUMP:
-		center = Vector2(0.0, -8.0)
-	
-	var shield_color := Color(0.15, 0.85, 1.0, 0.45 + 0.35 * pulse) if not is_intro else Color(1.0, 0.85, 0.25, 0.40 + 0.30 * pulse)
-	
-	# Concentric glowing energy arcs
-	draw_arc(center, 18.0 + 1.5 * pulse, 0.0, TAU, 28, shield_color, 2.0)
-	draw_arc(center, 21.0 + 2.5 * pulse, 0.0, TAU, 20, Color(1.0, 0.85, 0.2, 0.35 * pulse), 1.2)
-	
-	# 3 orbiting energetic spark nodes
-	for i in range(3):
-		var angle: float = t * 4.5 + float(i) * (TAU / 3.0)
-		var orb_pos := center + Vector2(cos(angle), sin(angle)) * (19.0 + 2.0 * pulse)
-		draw_circle(orb_pos, 2.5, Color(1.0, 0.95, 0.45, 0.9))
-
 # Custom retro commando graphics rendering with 16-bit arcade sprites
 func _draw() -> void:
 	if state == PlayerState.DEAD:
 		return
 	
-	_draw_invincible_aura()
-	
-	# Flicker when invulnerable
-	if is_invulnerable and fmod(invulnerable_timer * 12.0, 1.0) > 0.5:
-		return
+	_draw_player_character()
+
+func _draw_player_character() -> void:
+	var is_invis: bool = (state == PlayerState.RESPAWNING or is_invulnerable)
+	var p_alpha: float = 1.0
+	if is_invis:
+		p_alpha = 0.55 + 0.25 * sin(invisible_anim_timer * 1.5)
+	var p_modulate := Color(1.0, 1.0, 1.0, p_alpha)
 	
 	# 1. JUMP STATE (Rotating Somersault Ball)
 	if state == PlayerState.JUMP:
 		if tex_jump != null:
 			var j_size := Vector2(26.0, 26.0)
 			draw_set_transform(Vector2.ZERO, somersault_angle, Vector2.ONE)
-			draw_texture_rect(tex_jump, Rect2(-j_size * 0.5, j_size), false)
+			draw_texture_rect(tex_jump, Rect2(-j_size * 0.5, j_size), false, p_modulate)
 			draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
 			return
 		
 		# Procedural fallback
-		var col_skin_fb := Color(0.96, 0.76, 0.60)
-		var col_pants_fb := Color(0.15, 0.35, 0.85)
+		var col_skin_fb := Color(0.96, 0.76, 0.60, p_alpha)
+		var col_pants_fb := Color(0.15, 0.35, 0.85, p_alpha)
 		draw_set_transform(Vector2.ZERO, somersault_angle, Vector2.ONE)
-		draw_circle(Vector2.ZERO, 11.5, border_color)
+		draw_circle(Vector2.ZERO, 11.5, Color(border_color.r, border_color.g, border_color.b, border_color.a * p_alpha))
 		draw_circle(Vector2.ZERO, 10.0, col_pants_fb)
 		draw_circle(Vector2(2.0, -2.0), 6.5, col_skin_fb)
 		draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
@@ -549,17 +565,17 @@ func _draw() -> void:
 			var pr_h: float = 14.0
 			var scale_x: float = 1.0 if facing_dir >= 0 else -1.0
 			draw_set_transform(Vector2.ZERO, 0.0, Vector2(scale_x, 1.0))
-			draw_texture_rect(tex_prone, Rect2(-pr_w * 0.5, 2.0, pr_w, pr_h), false)
+			draw_texture_rect(tex_prone, Rect2(-pr_w * 0.5, 2.0, pr_w, pr_h), false, p_modulate)
 			draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
 			return
 		
 		# Procedural fallback
 		var dir := float(facing_dir)
-		draw_rect(Rect2(-dir * 15.0, 1.0, 16.0, 9.0), border_color)
-		draw_rect(Rect2(-dir * 14.0, 2.0, 14.0, 7.0), Color(0.15, 0.35, 0.85))
-		draw_rect(Rect2(-dir * 2.0, 0.0, 10.0, 8.0), Color(0.96, 0.76, 0.60))
-		draw_circle(Vector2(dir * 10.0, 2.0), 5.0, Color(0.96, 0.76, 0.60))
-		draw_rect(Rect2(dir * 2.0, 5.0, dir * 18.0, 3.0), Color(0.65, 0.65, 0.70))
+		draw_rect(Rect2(-dir * 15.0, 1.0, 16.0, 9.0), Color(border_color.r, border_color.g, border_color.b, border_color.a * p_alpha))
+		draw_rect(Rect2(-dir * 14.0, 2.0, 14.0, 7.0), Color(0.15, 0.35, 0.85, p_alpha))
+		draw_rect(Rect2(-dir * 2.0, 0.0, 10.0, 8.0), Color(0.96, 0.76, 0.60, p_alpha))
+		draw_circle(Vector2(dir * 10.0, 2.0), 5.0, Color(0.96, 0.76, 0.60, p_alpha))
+		draw_rect(Rect2(dir * 2.0, 5.0, dir * 18.0, 3.0), Color(0.65, 0.65, 0.70, p_alpha))
 		return
 	
 	# Standardized canvas dimensions (240x230, anchor x=100, feet y=220)
@@ -605,7 +621,7 @@ func _draw() -> void:
 			# Subtle 1px vertical stride bobbing on passing frames
 			var bob_y: float = -1.0 if (idx == 1 or idx == 3) else 0.0
 			draw_set_transform(Vector2(0.0, bob_y), 0.0, Vector2(scale_x, 1.0))
-			draw_texture_rect(cur_tex, std_rect, false)
+			draw_texture_rect(cur_tex, std_rect, false, p_modulate)
 			draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
 			return
 	
@@ -670,16 +686,16 @@ func _draw() -> void:
 	if cur_tex != null:
 		var scale_x: float = 1.0 if facing_dir >= 0 else -1.0
 		draw_set_transform(Vector2(0.0, breath), 0.0, Vector2(scale_x, 1.0))
-		draw_texture_rect(cur_tex, std_rect, false)
+		draw_texture_rect(cur_tex, std_rect, false, p_modulate)
 		draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
 		return
 	
 	# Procedural fallback for Standing / Running
-	var col_skin := Color(0.96, 0.76, 0.60)
-	var col_pants := Color(0.15, 0.35, 0.85)
-	var col_bandana := Color(0.9, 0.15, 0.15)
-	var col_boots := Color(0.1, 0.1, 0.12)
-	var col_gun := Color(0.65, 0.65, 0.70)
+	var col_skin := Color(0.96, 0.76, 0.60, p_alpha)
+	var col_pants := Color(0.15, 0.35, 0.85, p_alpha)
+	var col_bandana := Color(0.9, 0.15, 0.15, p_alpha)
+	var col_boots := Color(0.1, 0.1, 0.12, p_alpha)
+	var col_gun := Color(0.65, 0.65, 0.70, p_alpha)
 	var dir_f := float(facing_dir)
 	var leg_offset := sin(run_frame) * 5.0 if state == PlayerState.RUN else 0.0
 	
@@ -699,6 +715,33 @@ func _draw() -> void:
 		var flash_pos := gun_end + aim_dir * 4.0
 		draw_circle(flash_pos, 7.0, Color(1.0, 0.9, 0.2))
 		draw_circle(flash_pos, 4.0, Color(1.0, 1.0, 1.0))
+
+# Clean sparkle overlay node (separate canvas item without outline shader)
+class InvisibleSparkleOverlay extends Node2D:
+	var player_ref: Player = null
+	
+	func _draw() -> void:
+		if player_ref == null or not is_instance_valid(player_ref):
+			return
+		if not (player_ref.state == Player.PlayerState.RESPAWNING or player_ref.is_invulnerable):
+			return
+		if player_ref.tex_invisible_frames.size() == 0:
+			return
+		
+		var frame_idx := int(fmod(player_ref.invisible_anim_timer, float(player_ref.tex_invisible_frames.size())))
+		frame_idx = clampi(frame_idx, 0, player_ref.tex_invisible_frames.size() - 1)
+		var tex: Texture2D = player_ref.tex_invisible_frames[frame_idx]
+		if tex != null:
+			var center := Vector2(0.0, -3.0)
+			if player_ref.state == Player.PlayerState.PRONE:
+				center = Vector2(0.0, 7.0)
+			elif player_ref.state == Player.PlayerState.JUMP:
+				center = Vector2.ZERO
+			
+			var iw := 64.0
+			var ih := 64.0
+			# Draw pure pixel-art sparkle frame directly with no shader border
+			draw_texture_rect(tex, Rect2(center.x - iw * 0.5, center.y - ih * 0.5, iw, ih), false)
 
 func _unhandled_input(event: InputEvent) -> void:
 	if Global.is_boss_cutscene_active and event.is_pressed():

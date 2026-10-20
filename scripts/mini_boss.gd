@@ -198,7 +198,7 @@ func _process_combat(delta: float) -> void:
 			if is_slamming:
 				is_slamming = false
 				Global.shake_screen(9.0, 0.35)
-				VFX.spawn_animated_explosion(global_position, 1.4)
+				VFX.spawn_explosion(global_position, 1.4)
 				var parent_node = get_parent()
 				if parent_node != null:
 					for dir_x in [-1.0, 1.0]:
@@ -486,9 +486,7 @@ func take_damage(dmg: float = 1.0) -> void:
 		Global.play_sfx("boss_alarm")
 		Global.shake_screen(8.0, 0.4)
 		if has_node("/root/VFX"):
-			var is_elec: bool = (Global.current_stage == 6)
-			var is_ali: bool = (Global.current_stage == 3 or Global.current_stage == 8)
-			VFX.spawn_animated_explosion(global_position + Vector2(0.0, -mech_height * 0.5), 1.5, is_elec, is_ali, Color(1.8, 0.4, 0.2))
+			VFX.spawn_explosion(global_position + Vector2(0.0, -mech_height * 0.5), 1.5)
 		special_attack_timer = 0.1
 	
 	if current_health <= 0.0:
@@ -514,7 +512,7 @@ func _execute_special_attack(player_node: Node2D) -> void:
 				vel_y = -420.0
 				vel_x = facing * 140.0
 				Global.play_sfx("shoot_laser")
-				VFX.spawn_animated_explosion(global_position + Vector2(0.0, -20.0), 0.8)
+				VFX.spawn_explosion(global_position + Vector2(0.0, -20.0), 0.8)
 			else:
 				# Flak Artillery Shell
 				Global.play_sfx("shoot_spread")
@@ -710,16 +708,7 @@ func _process_death(delta: float) -> void:
 			var ry := randf_range(-mech_height * 0.95, -10.0)
 			var exp_pos := global_position + Vector2(rx, ry)
 			if has_node("/root/VFX"):
-				var exp_key := "fiery"
-				if Global.current_stage == 6:
-					exp_key = "electric"
-				elif Global.current_stage == 3 or Global.current_stage == 8:
-					exp_key = "alien"
-				elif Global.current_stage == 4:
-					exp_key = "cryo"
-				elif Global.current_stage == 5:
-					exp_key = "magma"
-				VFX.spawn_explosion_by_name(exp_pos, exp_key, 1.3)
+				VFX.spawn_explosion(exp_pos, 1.3)
 			elif explosion_scene != null:
 				var exp_node = explosion_scene.instantiate()
 				exp_node.global_position = exp_pos

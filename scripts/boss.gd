@@ -860,10 +860,8 @@ func take_damage(dmg: float = 1.0) -> void:
 		enrage_flash_timer = 0.5
 		Global.play_sfx("boss_alarm")
 		Global.shake_screen(8.0, 0.45)
-		var is_elec: bool = (Global.current_stage == 6)
-		var is_ali: bool = (Global.current_stage == 3 or Global.current_stage == 8)
 		if has_node("/root/VFX"):
-			VFX.spawn_animated_explosion(global_position, 1.8, is_elec, is_ali, Color(1.8, 0.4, 0.2))
+			VFX.spawn_explosion(global_position, 1.8)
 		attack_timer_3 = 0.1
 	
 	if current_health <= 0.0:
@@ -884,8 +882,6 @@ func _trigger_death() -> void:
 func _process_death_sequence(delta: float) -> void:
 	death_chain_timer -= delta
 	if death_chain_timer <= 0.0:
-		var is_elec: bool = (Global.current_stage == 6)
-		var is_ali: bool = (Global.current_stage == 3 or Global.current_stage == 8)
 		if death_explosions_left > 0:
 			death_chain_timer = 0.11
 			death_explosions_left -= 1
@@ -894,16 +890,7 @@ func _process_death_sequence(delta: float) -> void:
 			var offset := Vector2(randf_range(-90.0, 90.0), randf_range(-70.0, 70.0))
 			var exp_pos := global_position + offset
 			if has_node("/root/VFX"):
-				var exp_key := "fiery"
-				if Global.current_stage == 6:
-					exp_key = "electric"
-				elif Global.current_stage == 3 or Global.current_stage == 8:
-					exp_key = "alien"
-				elif Global.current_stage == 4:
-					exp_key = "cryo"
-				elif Global.current_stage == 5:
-					exp_key = "magma"
-				VFX.spawn_explosion_by_name(exp_pos, exp_key, 1.4)
+				VFX.spawn_explosion(exp_pos, 1.4)
 			elif explosion_scene != null:
 				var exp_node = explosion_scene.instantiate()
 				exp_node.global_position = exp_pos
