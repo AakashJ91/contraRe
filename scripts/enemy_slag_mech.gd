@@ -111,7 +111,7 @@ func _die() -> void:
 	Global.add_score(500)
 	collision_layer = 0
 	velocity = Vector2(-facing_dir * 40.0, -90.0)
-	VFX.spawn_explosion(global_position)
+	VFX.spawn_enemy_death_explosion(global_position, 1.4)
 	Global.shake_screen(6.0, 0.3)
 
 func _draw() -> void:

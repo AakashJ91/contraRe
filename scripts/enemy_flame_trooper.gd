@@ -91,7 +91,7 @@ func _emit_flame() -> void:
 	parent_node.add_child(flame)
 
 func _explode_fuel_tank() -> void:
-	VFX.spawn_explosion(global_position)
+	VFX.spawn_enemy_death_explosion(global_position, 1.25)
 	Global.shake_screen(6.0, 0.25)
 	Global.play_sfx("explosion")
 	var player_node: Node2D = get_tree().get_first_node_in_group("player") as Node2D

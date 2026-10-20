@@ -143,6 +143,7 @@ func _die() -> void:
 	Global.add_score(reward)
 	Global.shake_screen(4.5, 0.16)
 	VFX.spawn_blood_splatter(global_position, Vector2.UP, true)
+	VFX.spawn_enemy_death_explosion(global_position)
 
 func _draw() -> void:
 	var flash_col := Color(1.8, 0.4, 0.4) if flash_timer > 0.0 else Color.WHITE

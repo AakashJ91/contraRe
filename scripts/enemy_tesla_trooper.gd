@@ -102,6 +102,7 @@ func _die() -> void:
 	collision_layer = 0
 	velocity = Vector2(-facing_dir * 45.0, -120.0)
 	VFX.spawn_hit_sparks(global_position, Vector2.UP, Color.CYAN)
+	VFX.spawn_enemy_death_explosion(global_position)
 
 func _draw() -> void:
 	var col := Color(1.8, 0.4, 0.4) if flash_timer > 0.0 else Color.WHITE

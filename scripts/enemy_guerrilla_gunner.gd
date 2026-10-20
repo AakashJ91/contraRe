@@ -115,6 +115,7 @@ func _die() -> void:
 	velocity = Vector2(-facing_dir * 60.0, -140.0)
 	Global.shake_screen(3.5, 0.15)
 	VFX.spawn_dust_puff(global_position + Vector2(0.0, 8.0), 4)
+	VFX.spawn_enemy_death_explosion(global_position)
 
 func _draw() -> void:
 	var col := Color(1.8, 0.4, 0.4) if flash_timer > 0.0 else Color.WHITE

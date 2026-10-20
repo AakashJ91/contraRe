@@ -1,24 +1,27 @@
 [gd_resource type="Resource" script_class="ExplosionVFXData" format=3 uid="uid://c_exp_res_fiery"]
 
 [ext_resource type="Script" path="res://scripts/explosion_vfx_data.gd" id="1_data"]
-[ext_resource type="Texture2D" path="res://assets/vfx/explosions/fiery/frame_0.png" id="2_f0"]
-[ext_resource type="Texture2D" path="res://assets/vfx/explosions/fiery/frame_1.png" id="3_f1"]
-[ext_resource type="Texture2D" path="res://assets/vfx/explosions/fiery/frame_2.png" id="4_f2"]
-[ext_resource type="Texture2D" path="res://assets/vfx/explosions/fiery/frame_3.png" id="5_f3"]
-[ext_resource type="Texture2D" path="res://assets/vfx/explosions/fiery/frame_4.png" id="6_f4"]
-[ext_resource type="Texture2D" path="res://assets/vfx/explosions/fiery/frame_5.png" id="7_f5"]
-[ext_resource type="Texture2D" path="res://assets/vfx/explosions/fiery/frame_6.png" id="8_f6"]
-[ext_resource type="Texture2D" path="res://assets/vfx/explosions/fiery/frame_7.png" id="9_f7"]
+[ext_resource type="Texture2D" uid="uid://lvfvln66ptla" path="res://assets/vfx/effect/explosion/frame_0.png" id="2_f0"]
+[ext_resource type="Texture2D" uid="uid://8x6tkevt5f5j" path="res://assets/vfx/effect/explosion/frame_1.png" id="3_f1"]
+[ext_resource type="Texture2D" uid="uid://ekangmlcetc7" path="res://assets/vfx/effect/explosion/frame_2.png" id="4_f2"]
+[ext_resource type="Texture2D" uid="uid://bgdv5uy5dr202" path="res://assets/vfx/effect/explosion/frame_3.png" id="5_f3"]
+[ext_resource type="Texture2D" uid="uid://wwbjhkost21g" path="res://assets/vfx/effect/explosion/frame_4.png" id="6_f4"]
+[ext_resource type="Texture2D" uid="uid://d0ohmp7q2mbra" path="res://assets/vfx/effect/explosion/frame_5.png" id="7_f5"]
+[ext_resource type="Texture2D" uid="uid://duiflq1ju0ape" path="res://assets/vfx/effect/explosion/frame_6.png" id="8_f6"]
+[ext_resource type="Texture2D" uid="uid://bin0i66axqtjc" path="res://assets/vfx/effect/explosion/frame_7.png" id="9_f7"]
+[ext_resource type="Texture2D" uid="uid://coj4wn3gcwc0q" path="res://assets/vfx/effect/explosion/frame_8.png" id="10_f8"]
+[ext_resource type="Texture2D" uid="uid://ddf68pfshbis2" path="res://assets/vfx/effect/explosion/frame_9.png" id="11_f9"]
+[ext_resource type="Texture2D" uid="uid://cwg3mwrcqj2ju" path="res://assets/vfx/effect/explosion/frame_10.png" id="12_f10"]
 
 [resource]
 script = ExtResource("1_data")
 explosion_name = "ARCADE INFERNO"
 category = "Fiery"
 scale_mult = 1.0
-duration = 0.52
+duration = 0.50
 is_electric = false
 is_alien = false
-primary_color = Color(1, 0.88, 0.35, 1)
+primary_color = Color(1, 1, 1, 1)
 secondary_color = Color(1, 0.45, 0.1, 1)
 shockwave_color = Color(1, 0.85, 0.3, 0.85)
 shockwave_radius = 58.0
@@ -39,5 +42,5 @@ smoke_buoyancy = 25.0
 screen_shake_intensity = 5.0
 screen_shake_duration = 0.25
 sfx_name = "explosion"
-explosion_frames = Array[Texture2D]([ExtResource("2_f0"), ExtResource("3_f1"), ExtResource("4_f2"), ExtResource("5_f3"), ExtResource("6_f4"), ExtResource("7_f5"), ExtResource("8_f6"), ExtResource("9_f7")])
-frame_size = Vector2(96, 96)
+explosion_frames = Array[Texture2D]([ExtResource("2_f0"), ExtResource("3_f1"), ExtResource("4_f2"), ExtResource("5_f3"), ExtResource("6_f4"), ExtResource("7_f5"), ExtResource("8_f6"), ExtResource("9_f7"), ExtResource("10_f8"), ExtResource("11_f9"), ExtResource("12_f10")])
+frame_size = Vector2(64, 64)

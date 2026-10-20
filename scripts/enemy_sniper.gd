@@ -133,6 +133,7 @@ func _die() -> void:
 	Global.shake_screen(4.0, 0.16)
 	Global.play_sfx("hit")
 	VFX.spawn_dust_puff(global_position + Vector2(0.0, 0.0), 3)
+	VFX.spawn_enemy_death_explosion(global_position + Vector2(0.0, -10.0))
 
 func _draw() -> void:
 	var col: Color = Color(1.8, 0.4, 0.4) if flash_timer > 0.0 else Color.WHITE

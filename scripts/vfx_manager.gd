@@ -22,6 +22,8 @@ var tex_blood: Texture2D = null
 var tex_sparkle: Texture2D = null
 var tex_shockwave: Texture2D = null
 var tex_explosion_frames: Array[Texture2D] = []
+var tex_skull_smoke_frames: Array[Texture2D] = []
+var tex_skull_smoke_sheet: Texture2D = null
 var explosion_resources: Dictionary = {}
 
 func _ready() -> void:
@@ -41,20 +43,49 @@ func _load_textures() -> void:
 		tex_blood = load("res://assets/vfx/blood_splat.png")
 	if ResourceLoader.exists("res://assets/vfx/star_sparkle.png"):
 		tex_sparkle = load("res://assets/vfx/star_sparkle.png")
-	if ResourceLoader.exists("res://assets/vfx/shockwave_ring.png"):
-		tex_shockwave = load("res://assets/vfx/shockwave_ring.png")
+	# Main Arcade Explosion Spritesheet (64x64 frames, 11 frames from explosion.png)
+	var tex_explosion_sheet: Texture2D = null
+	if ResourceLoader.exists("res://assets/vfx/effect/explosion.png"):
+		tex_explosion_sheet = load("res://assets/vfx/effect/explosion.png")
+	elif ResourceLoader.exists("res://assets/vfx/explosion.png"):
+		tex_explosion_sheet = load("res://assets/vfx/explosion.png")
 	
 	tex_explosion_frames.clear()
-	for i in range(8):
-		var ep := "res://assets/vfx/explosion_anim_%d.png" % i
+	for i in range(11):
+		var ep := "res://assets/vfx/effect/explosion/frame_%d.png" % i
 		if ResourceLoader.exists(ep):
 			tex_explosion_frames.append(load(ep))
+		elif tex_explosion_sheet != null:
+			var atlas := AtlasTexture.new()
+			atlas.atlas = tex_explosion_sheet
+			atlas.region = Rect2(float(i * 64), 0.0, 64.0, 64.0)
+			tex_explosion_frames.append(atlas)
+	
+	# Skull Smoke Spritesheet (64x64 frames)
+	if ResourceLoader.exists("res://assets/vfx/effect/skullsmoke.png"):
+		tex_skull_smoke_sheet = load("res://assets/vfx/effect/skullsmoke.png")
+	elif ResourceLoader.exists("res://assets/vfx/skullsmoke.png"):
+		tex_skull_smoke_sheet = load("res://assets/vfx/skullsmoke.png")
+	
+	tex_skull_smoke_frames.clear()
+	for i in range(12):
+		var fp := "res://assets/vfx/effect/skullsmoke/frame_%d.png" % i
+		if ResourceLoader.exists(fp):
+			tex_skull_smoke_frames.append(load(fp))
+		elif tex_skull_smoke_sheet != null:
+			var atlas := AtlasTexture.new()
+			atlas.atlas = tex_skull_smoke_sheet
+			atlas.region = Rect2(float(i * 64), 0.0, 64.0, 64.0)
+			tex_skull_smoke_frames.append(atlas)
 	
 	_load_explosion_resources()
 
 func _load_explosion_resources() -> void:
 	explosion_resources.clear()
 	var res_map := {
+		"skull": "res://resources/vfx/explosion_skull_smoke.tres",
+		"skullsmoke": "res://resources/vfx/explosion_skull_smoke.tres",
+		"enemy_death": "res://resources/vfx/explosion_skull_smoke.tres",
 		"fiery": "res://resources/vfx/explosion_arcade_fiery.tres",
 		"arcade": "res://resources/vfx/explosion_arcade_fiery.tres",
 		"electric": "res://resources/vfx/explosion_electric_tesla.tres",
@@ -91,6 +122,13 @@ func _get_vfx_parent() -> Node:
 			if child.name.begins_with("Stage"):
 				return child
 		return cur
+	var root := tree.root
+	if root != null and root.get_child_count() > 0:
+		for i in range(root.get_child_count() - 1, -1, -1):
+			var ch = root.get_child(i)
+			if ch != self and ch is Node2D:
+				return ch
+		return root.get_child(root.get_child_count() - 1)
 	return self
 
 # -----------------------------------------------------------------------------
@@ -188,6 +226,41 @@ func spawn_explosion_by_name(pos: Vector2, name_or_key: String, scale_override: 
 	else:
 		spawn_explosion(pos, 1.0 if scale_override <= 0.0 else scale_override)
 
+# -----------------------------------------------------------------------------
+# 5B. ENEMY DEATH SKULL SMOKE BURST / EXPLOSION EFFECT (64x64 SPRITESHEET)
+# -----------------------------------------------------------------------------
+func spawn_enemy_death_explosion(pos: Vector2, scale_mult: float = 1.0) -> void:
+	if explosion_resources.has("skullsmoke"):
+		spawn_explosion_from_resource(pos, explosion_resources["skullsmoke"], scale_mult)
+		return
+	
+	var parent := _get_vfx_parent()
+	if parent == null:
+		return
+	var fx := AnimatedExplosionEffect.new()
+	fx.global_position = pos
+	fx.scale_mult = scale_mult
+	fx.duration = 0.52
+	fx.custom_color = Color.WHITE
+	fx.frame_size = Vector2(64.0, 64.0)
+	fx.shockwave_color = Color(0.75, 0.9, 1.0, 0.7)
+	fx.shockwave_radius = 48.0
+	fx.shockwave_ring_count = 1
+	fx.shockwave_ring_width = 2.5
+	fx.debris_count = 5
+	fx.debris_color = Color(0.85, 0.92, 0.95, 1)
+	fx.sparks_count = 8
+	fx.sparks_color = Color(0.8, 0.95, 1.0, 1)
+	fx.smoke_count = 4
+	fx.smoke_color = Color(0.45, 0.55, 0.62, 0.55)
+	fx.explosion_frames = tex_skull_smoke_frames
+	fx.tex_debris = tex_debris
+	fx.tex_spark = tex_spark
+	fx.tex_shockwave = tex_shockwave
+	fx.tex_fire = tex_fire
+	fx.tex_smoke = tex_smoke
+	parent.add_child(fx)
+
 func spawn_explosion(pos: Vector2, scale_mult: float = 1.0, is_electric: bool = false, is_alien: bool = false) -> void:
 	var target_key := "fiery"
 	if is_electric:
@@ -197,6 +270,8 @@ func spawn_explosion(pos: Vector2, scale_mult: float = 1.0, is_electric: bool = 
 	
 	if explosion_resources.has(target_key):
 		spawn_explosion_from_resource(pos, explosion_resources[target_key], scale_mult)
+	elif explosion_resources.has("default"):
+		spawn_explosion_from_resource(pos, explosion_resources["default"], scale_mult)
 	elif tex_explosion_frames.size() > 0:
 		spawn_animated_explosion(pos, scale_mult, is_electric, is_alien)
 	else:
@@ -235,6 +310,7 @@ func spawn_animated_explosion(pos: Vector2, scale_mult: float = 1.0, is_electric
 	fx.is_electric = is_electric
 	fx.is_alien = is_alien
 	fx.custom_color = custom_color
+	fx.frame_size = Vector2(64.0, 64.0)
 	fx.explosion_frames = tex_explosion_frames
 	fx.tex_debris = tex_debris
 	fx.tex_spark = tex_spark

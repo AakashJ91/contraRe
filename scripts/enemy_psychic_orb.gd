@@ -100,7 +100,7 @@ func _die() -> void:
 	is_dying = true
 	Global.add_score(600)
 	collision_layer = 0
-	VFX.spawn_explosion(global_position)
+	VFX.spawn_enemy_death_explosion(global_position, 1.15)
 	Global.shake_screen(4.5, 0.25)
 
 func _draw() -> void:

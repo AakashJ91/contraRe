@@ -94,6 +94,7 @@ func _die() -> void:
 	collision_layer = 0
 	velocity = Vector2(-facing_dir * 50.0, -100.0)
 	VFX.spawn_hit_sparks(global_position, Vector2.UP, Color.CYAN)
+	VFX.spawn_enemy_death_explosion(global_position, 1.05)
 	Global.shake_screen(3.5, 0.15)
 
 func _draw() -> void:

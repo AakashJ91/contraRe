@@ -299,6 +299,7 @@ func _die() -> void:
 	Global.add_score(reward)
 	Global.shake_screen(6.5, 0.25)
 	Global.play_sfx("explosion")
+	VFX.spawn_enemy_death_explosion(global_position + Vector2(0.0, -14.0), 1.25)
 
 func _draw() -> void:
 	if is_dying:

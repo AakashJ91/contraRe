@@ -184,6 +184,7 @@ func _die() -> void:
 	Global.add_score(reward)
 	Global.shake_screen(5.5, 0.2)
 	Global.play_sfx("explosion")
+	VFX.spawn_enemy_death_explosion(global_position, 1.1)
 
 func _draw() -> void:
 	var flash_col := Color(1.8, 0.4, 0.4) if flash_timer > 0.0 else Color.WHITE

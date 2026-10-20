@@ -97,6 +97,7 @@ func _die() -> void:
 	Global.add_score(450)
 	collision_layer = 0
 	VFX.spawn_dust_puff(global_position, 6, Color(0.8, 0.2, 0.4))
+	VFX.spawn_enemy_death_explosion(global_position)
 
 func _draw() -> void:
 	var col := Color(1.8, 0.4, 0.4) if flash_timer > 0.0 else Color.WHITE
