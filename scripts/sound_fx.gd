@@ -11,6 +11,7 @@ func _init_sounds() -> void:
 	sfx_players["shoot_rifle"] = _create_player(_generate_rifle_sound())
 	sfx_players["shoot_spread"] = _create_player(_generate_spread_sound())
 	sfx_players["shoot_laser"] = _create_player(_generate_laser_sound())
+	sfx_players["shoot_fire"] = _create_player(_generate_fire_sound())
 	sfx_players["jump"] = _create_player(_generate_jump_sound())
 	sfx_players["explosion"] = _create_player(_generate_explosion_sound())
 	sfx_players["hit"] = _create_player(_generate_hit_sound())
@@ -90,6 +91,29 @@ func _generate_spread_sound() -> AudioStreamWAV:
 		var w2 := 1.0 if sin(phase2) > 0.0 else -1.0
 		var noise := randf_range(-0.2, 0.2)
 		samples[i] = (w1 * 0.3 + w2 * 0.3 + noise) * env * 0.5
+	return _create_wav(samples, rate)
+
+# Twisting Fireball: powerful roaring whoosh & flaming resonance
+func _generate_fire_sound() -> AudioStreamWAV:
+	var rate := 22050
+	var duration := 0.22
+	var total_samples := int(rate * duration)
+	var samples := PackedFloat32Array()
+	samples.resize(total_samples)
+	var phase := 0.0
+	var phase_sub := 0.0
+	
+	for i in range(total_samples):
+		var t := float(i) / float(total_samples)
+		var freq := lerpf(680.0, 95.0, t * 0.85)
+		var sub_freq := lerpf(340.0, 55.0, t)
+		phase += (freq * TAU) / float(rate)
+		phase_sub += (sub_freq * TAU) / float(rate)
+		var env := (1.0 - t) * (1.0 - t * 0.5)
+		var s1 := sin(phase)
+		var s2 := 1.0 if sin(phase_sub) > 0.0 else -1.0
+		var rumble := randf_range(-0.4, 0.4)
+		samples[i] = (s1 * 0.4 + s2 * 0.25 + rumble * 0.35) * env * 0.65
 	return _create_wav(samples, rate)
 
 # Laser: piercing frequency sweep

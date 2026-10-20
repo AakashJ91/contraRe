@@ -358,14 +358,6 @@ func _draw() -> void:
 	draw_circle(eye_pos, 2.6, eye_col * eye_pulse)
 	draw_circle(eye_pos, 1.2, Color.WHITE)
 	
-	# --- TARGETING LASER SIGHT ---
-	if is_locked:
-		var laser_start := socket_pos + barrel_dir * 36.0
-		var laser_end := socket_pos + barrel_dir * 420.0
-		var laser_alpha := 0.65 + 0.35 * sin(anim_timer * 18.0)
-		draw_line(laser_start, laser_end, Color(1.0, 0.15, 0.15, laser_alpha), 1.5)
-		draw_circle(laser_end, 3.5, Color(1.0, 0.3, 0.3, laser_alpha))
-	
 	# --- MUZZLE FLASH ---
 	if muzzle_flash_timer > 0.0:
 		_draw_muzzle_flash(muzzle_flash_pos, muzzle_flash_angle)

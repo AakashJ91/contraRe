@@ -1,0 +1,6 @@
+[gd_scene format=3 uid="uid://vx1rpfi0mf41"]
+
+[ext_resource type="Script" path="res://scratch/test_stage1_spread_hover.gd" id="1_test"]
+
+[node name="TestStage1SpreadHover" type="Node2D"]
+script = ExtResource("1_test")

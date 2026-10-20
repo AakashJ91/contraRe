@@ -1,0 +1,6 @@
+[gd_scene format=3 uid="uid://djkyp75e27c5e"]
+
+[ext_resource type="Script" path="res://scratch/capture_spread_and_sensor.gd" id="1_cap"]
+
+[node name="CaptureSpreadSensor" type="Node2D"]
+script = ExtResource("1_cap")

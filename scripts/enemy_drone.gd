@@ -221,15 +221,6 @@ func _draw() -> void:
 			draw_line(Vector2(spr_w * 0.44, 2.0), Vector2(spr_w * 0.44 + flame_len, 2.0), Color(0.2, 0.8, 1.0, 0.85), 3.0)
 			draw_line(Vector2(spr_w * 0.44, 2.0), Vector2(spr_w * 0.44 + flame_len * 0.5, 2.0), Color.WHITE, 1.5)
 			
-			# Laser telegraph line when locking on (from the red eye at -spr_w * 0.38)
-			if state == DroneState.LOCK_ON:
-				var optic_pulse := (sin(anim_timer * 12.0) + 1.0) * 0.5
-				var laser_col := Color(1.0, 0.15, 0.15, 0.5 + optic_pulse * 0.45)
-				var eye_local := Vector2(-spr_w * 0.38, -2.0)
-				var aim_in_local := target_aim_dir
-				aim_in_local.x *= scale_x
-				draw_line(eye_local, eye_local + aim_in_local * 240.0, laser_col, 2.0)
-			
 			# Dual autocannon muzzle flashes when firing
 			if state == DroneState.FIRE_BURST:
 				for mx in [-12.0, 0.0]:
@@ -289,13 +280,6 @@ func _draw_cyber_drone(tint: Color, dir_f: float) -> void:
 	draw_circle(Vector2(8.0, 0.0), 3.5, col_eye)
 	draw_circle(Vector2(9.0, 0.0), 1.5, Color.WHITE)
 	
-	# Lock-on Laser Sight Beam when telegraphing
-	if state == DroneState.LOCK_ON:
-		var beam_len := 220.0
-		var laser_col := Color(1.0, 0.15, 0.15, 0.45 + optic_pulse * 0.35)
-		draw_line(Vector2(10.0, 0.0), target_aim_dir * beam_len, laser_col, 1.8)
-		draw_circle(target_aim_dir * 18.0, 4.0, Color(1.0, 0.3, 0.3, 0.7))
-
 func _draw_alien_wasp(tint: Color, dir_f: float) -> void:
 	# 1. Fluttering Chitin Wings (fast oscillation)
 	var wing_angle := sin(anim_timer * 40.0) * 0.6

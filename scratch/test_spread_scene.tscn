@@ -1,0 +1,6 @@
+[gd_scene format=3 uid="uid://b6j23dins24m3"]
+
+[ext_resource type="Script" path="res://scratch/test_spread_scene.gd" id="1_test"]
+
+[node name="TestSpreadScene" type="Node2D"]
+script = ExtResource("1_test")

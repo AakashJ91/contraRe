@@ -62,6 +62,7 @@ var coyote_timer: float = 0.0
 @onready var collision_shape: CollisionShape2D = $CollisionShape2D
 
 func _ready() -> void:
+	add_to_group("player")
 	collision_layer = 1 << 0 # Layer 1: Player
 	collision_mask = (1 << 1) # Layer 2: World
 	if Global.current_stage == 7:
@@ -347,7 +348,7 @@ func _shoot() -> void:
 			var angles := [-0.42, -0.21, 0.0, 0.21, 0.42]
 			for a in angles:
 				var dir := aim_dir.rotated(a)
-				_spawn_bullet(spawn_pos, dir, Global.WeaponType.SPREAD, 560.0, 1.2)
+				_spawn_bullet(spawn_pos + dir * 4.0, dir, Global.WeaponType.SPREAD, 560.0, 1.2)
 				
 		Global.WeaponType.MACHINE:
 			shoot_cooldown = 0.09 # Super fast automatic fire
@@ -358,6 +359,11 @@ func _shoot() -> void:
 			shoot_cooldown = 0.22
 			Global.play_sfx("shoot_laser")
 			_spawn_bullet(spawn_pos, aim_dir, Global.WeaponType.LASER, 950.0, 2.8, 3)
+			
+		Global.WeaponType.FIRE:
+			shoot_cooldown = 0.22
+			Global.play_sfx("shoot_fire")
+			_spawn_twisting_bullets(spawn_pos, aim_dir)
 
 func _spawn_bullet(pos: Vector2, dir: Vector2, wtype: Global.WeaponType, spd: float, dmg: float, pierce: int = 1) -> void:
 	if bullet_scene == null:
@@ -371,6 +377,38 @@ func _spawn_bullet(pos: Vector2, dir: Vector2, wtype: Global.WeaponType, spd: fl
 	b.pierce_count = pierce
 	b.global_position = pos
 	get_parent().add_child(b)
+
+func _spawn_twisting_bullets(pos: Vector2, dir: Vector2) -> void:
+	if bullet_scene == null:
+		return
+	# Spawn twin intertwining fireballs forming the iconic Contra double helix corkscrew
+	var b1 = bullet_scene.instantiate()
+	b1.bullet_owner = b1.BulletOwner.PLAYER
+	b1.weapon_type = Global.WeaponType.FIRE
+	b1.direction = dir
+	b1.speed = 580.0
+	b1.damage = 2.4
+	b1.pierce_count = 2
+	b1.is_twisting = true
+	b1.twist_phase = 0.0
+	b1.twist_amplitude = 16.0
+	b1.twist_frequency = 18.0
+	b1.global_position = pos
+	get_parent().add_child(b1)
+	
+	var b2 = bullet_scene.instantiate()
+	b2.bullet_owner = b2.BulletOwner.PLAYER
+	b2.weapon_type = Global.WeaponType.FIRE
+	b2.direction = dir
+	b2.speed = 580.0
+	b2.damage = 2.4
+	b2.pierce_count = 2
+	b2.is_twisting = true
+	b2.twist_phase = PI # 180 degrees out of phase for intertwining double helix corkscrew
+	b2.twist_amplitude = 16.0
+	b2.twist_frequency = 18.0
+	b2.global_position = pos
+	get_parent().add_child(b2)
 
 func _get_gun_barrel_offset() -> Vector2:
 	if state == PlayerState.PRONE:

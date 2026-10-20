@@ -22,6 +22,7 @@ var tex_blood: Texture2D = null
 var tex_sparkle: Texture2D = null
 var tex_shockwave: Texture2D = null
 var tex_explosion_frames: Array[Texture2D] = []
+var explosion_resources: Dictionary = {}
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
@@ -48,6 +49,34 @@ func _load_textures() -> void:
 		var ep := "res://assets/vfx/explosion_anim_%d.png" % i
 		if ResourceLoader.exists(ep):
 			tex_explosion_frames.append(load(ep))
+	
+	_load_explosion_resources()
+
+func _load_explosion_resources() -> void:
+	explosion_resources.clear()
+	var res_map := {
+		"fiery": "res://resources/vfx/explosion_arcade_fiery.tres",
+		"arcade": "res://resources/vfx/explosion_arcade_fiery.tres",
+		"electric": "res://resources/vfx/explosion_electric_tesla.tres",
+		"tesla": "res://resources/vfx/explosion_electric_tesla.tres",
+		"alien": "res://resources/vfx/explosion_alien_bio.tres",
+		"bio": "res://resources/vfx/explosion_alien_bio.tres",
+		"nuclear": "res://resources/vfx/explosion_nuclear_mega.tres",
+		"mega": "res://resources/vfx/explosion_nuclear_mega.tres",
+		"cryo": "res://resources/vfx/explosion_cryo_frost.tres",
+		"frost": "res://resources/vfx/explosion_cryo_frost.tres",
+		"magma": "res://resources/vfx/explosion_magma_volcanic.tres",
+		"volcanic": "res://resources/vfx/explosion_magma_volcanic.tres",
+		"mini": "res://resources/vfx/explosion_mini_impact.tres",
+		"bullet": "res://resources/vfx/explosion_mini_impact.tres",
+		"default": "res://resources/vfx/explosion_default.tres"
+	}
+	for key in res_map:
+		var p: String = res_map[key]
+		if ResourceLoader.exists(p):
+			var res = load(p)
+			if res is ExplosionVFXData:
+				explosion_resources[key] = res
 
 func _get_vfx_parent() -> Node:
 	var tree := get_tree()
@@ -123,10 +152,52 @@ func spawn_muzzle_flash(pos: Vector2, dir: Vector2 = Vector2.RIGHT, weapon_type:
 	parent.add_child(fx)
 
 # -----------------------------------------------------------------------------
-# 5. FIERY ARCADE EXPLOSION (ANIMATED & PROCEDURAL)
+# 5. FIERY ARCADE EXPLOSION (ANIMATED & RESOURCE-DRIVEN)
 # -----------------------------------------------------------------------------
+func get_explosion_resource(name_or_key: String) -> ExplosionVFXData:
+	var lk := name_or_key.to_lower()
+	if explosion_resources.has(lk):
+		return explosion_resources[lk]
+	for k in explosion_resources:
+		var res: ExplosionVFXData = explosion_resources[k]
+		if res != null and (res.explosion_name.to_lower().contains(lk) or res.category.to_lower() == lk):
+			return res
+	return explosion_resources.get("default", null)
+
+func spawn_explosion_from_resource(pos: Vector2, vfx_data: ExplosionVFXData, scale_override: float = -1.0) -> void:
+	if vfx_data == null:
+		spawn_explosion(pos, 1.0 if scale_override <= 0.0 else scale_override)
+		return
+	var parent := _get_vfx_parent()
+	if parent == null:
+		return
+	var fx := AnimatedExplosionEffect.new()
+	fx.global_position = pos
+	fx.apply_resource(vfx_data, scale_override)
+	fx.tex_debris = tex_debris
+	fx.tex_spark = tex_spark
+	fx.tex_shockwave = tex_shockwave
+	fx.tex_fire = tex_fire
+	fx.tex_smoke = tex_smoke
+	parent.add_child(fx)
+
+func spawn_explosion_by_name(pos: Vector2, name_or_key: String, scale_override: float = -1.0) -> void:
+	var res := get_explosion_resource(name_or_key)
+	if res != null:
+		spawn_explosion_from_resource(pos, res, scale_override)
+	else:
+		spawn_explosion(pos, 1.0 if scale_override <= 0.0 else scale_override)
+
 func spawn_explosion(pos: Vector2, scale_mult: float = 1.0, is_electric: bool = false, is_alien: bool = false) -> void:
-	if tex_explosion_frames.size() > 0:
+	var target_key := "fiery"
+	if is_electric:
+		target_key = "electric"
+	elif is_alien:
+		target_key = "alien"
+	
+	if explosion_resources.has(target_key):
+		spawn_explosion_from_resource(pos, explosion_resources[target_key], scale_mult)
+	elif tex_explosion_frames.size() > 0:
 		spawn_animated_explosion(pos, scale_mult, is_electric, is_alien)
 	else:
 		var parent := _get_vfx_parent()
@@ -145,6 +216,16 @@ func spawn_explosion(pos: Vector2, scale_mult: float = 1.0, is_electric: bool = 
 		parent.add_child(fx)
 
 func spawn_animated_explosion(pos: Vector2, scale_mult: float = 1.0, is_electric: bool = false, is_alien: bool = false, custom_color: Color = Color.WHITE) -> void:
+	var target_key := "fiery"
+	if is_electric:
+		target_key = "electric"
+	elif is_alien:
+		target_key = "alien"
+	
+	if explosion_resources.has(target_key) and custom_color == Color.WHITE:
+		spawn_explosion_from_resource(pos, explosion_resources[target_key], scale_mult)
+		return
+	
 	var parent := _get_vfx_parent()
 	if parent == null:
 		return
@@ -410,6 +491,8 @@ class MuzzleFlashEffect extends Node2D:
 				f_col = Color(0.2, 0.9, 1.0, flash_alpha)
 			elif weapon_type == 1: # Spread
 				f_col = Color(1.0, 0.45, 0.2, flash_alpha)
+			elif weapon_type == 4: # Fire (Twisting)
+				f_col = Color(1.0, 0.32, 0.05, flash_alpha)
 			
 			var f_size := Vector2(24.0, 24.0) * (1.0 + t)
 			if tex_spark != null:
@@ -607,8 +690,9 @@ class ExplosionEffect extends Node2D:
 				draw_circle(sp["pos"], 2.0, sp_col)
 
 
-# --- NEW ANIMATED ARCADE EXPLOSION EFFECT ---
+# --- NEW ANIMATED ARCADE EXPLOSION EFFECT (RESOURCE-AWARE) ---
 class AnimatedExplosionEffect extends Node2D:
+	var vfx_data: ExplosionVFXData = null
 	var scale_mult: float = 1.0
 	var is_electric: bool = false
 	var is_alien: bool = false
@@ -622,18 +706,70 @@ class AnimatedExplosionEffect extends Node2D:
 	
 	var elapsed: float = 0.0
 	var duration: float = 0.52
+	var shockwave_color: Color = Color(1.0, 0.85, 0.3, 0.85)
+	var shockwave_radius: float = 58.0
+	var shockwave_ring_count: int = 2
+	var shockwave_ring_width: float = 3.5
+	var debris_count: int = 7
+	var debris_speed_min: float = 90.0
+	var debris_speed_max: float = 240.0
+	var debris_color: Color = Color(1.0, 1.0, 1.0)
+	var debris_gravity: float = 450.0
+	var sparks_count: int = 12
+	var sparks_speed_min: float = 70.0
+	var sparks_speed_max: float = 280.0
+	var sparks_color: Color = Color(1.0, 0.85, 0.25)
+	var smoke_count: int = 6
+	var smoke_color: Color = Color(0.2, 0.2, 0.25, 0.75)
+	var smoke_buoyancy: float = 25.0
+	var screen_shake_intensity: float = 5.0
+	var screen_shake_duration: float = 0.25
+	var sfx_name: String = "explosion"
+	var frame_size: Vector2 = Vector2(96.0, 96.0)
+	
 	var debris_particles: Array[Dictionary] = []
 	var spark_particles: Array[Dictionary] = []
+	var smoke_particles: Array[Dictionary] = []
+	
+	func apply_resource(res: ExplosionVFXData, scale_override: float = -1.0) -> void:
+		vfx_data = res
+		scale_mult = res.scale_mult if scale_override <= 0.0 else scale_override
+		duration = res.duration
+		is_electric = res.is_electric
+		is_alien = res.is_alien
+		custom_color = res.primary_color
+		shockwave_color = res.shockwave_color
+		shockwave_radius = res.shockwave_radius
+		shockwave_ring_count = res.shockwave_ring_count
+		shockwave_ring_width = res.shockwave_ring_width
+		debris_count = res.debris_count
+		debris_speed_min = res.debris_speed_min
+		debris_speed_max = res.debris_speed_max
+		debris_color = res.debris_color
+		debris_gravity = res.debris_gravity
+		sparks_count = res.sparks_count
+		sparks_speed_min = res.sparks_speed_min
+		sparks_speed_max = res.sparks_speed_max
+		sparks_color = res.sparks_color
+		smoke_count = res.smoke_count
+		smoke_color = res.smoke_color
+		smoke_buoyancy = res.smoke_buoyancy
+		screen_shake_intensity = res.screen_shake_intensity
+		screen_shake_duration = res.screen_shake_duration
+		sfx_name = res.sfx_name
+		frame_size = res.frame_size
+		if res.explosion_frames.size() > 0:
+			explosion_frames = res.explosion_frames
 	
 	func _ready() -> void:
-		Global.play_sfx("explosion")
-		Global.shake_screen(5.0 * scale_mult, 0.25)
+		Global.play_sfx(sfx_name)
+		Global.shake_screen(screen_shake_intensity * scale_mult, screen_shake_duration)
 		
-		# Outward flying metal debris
-		var d_count := int(7.0 * scale_mult)
+		# Outward flying metal / shrapnel debris
+		var d_count := maxi(1, int(float(debris_count) * scale_mult))
 		for i in range(d_count):
 			var a := randf_range(0.0, TAU)
-			var spd := randf_range(90.0, 240.0 * scale_mult)
+			var spd := randf_range(debris_speed_min, debris_speed_max * scale_mult)
 			debris_particles.append({
 				"pos": Vector2.ZERO,
 				"vel": Vector2(cos(a), sin(a)) * spd,
@@ -642,15 +778,28 @@ class AnimatedExplosionEffect extends Node2D:
 				"scale": randf_range(0.8, 1.4)
 			})
 			
-		# Sizzling fire sparks
-		var s_count := int(12.0 * scale_mult)
+		# Sizzling sparks
+		var s_count := maxi(2, int(float(sparks_count) * scale_mult))
 		for i in range(s_count):
 			var a := randf_range(0.0, TAU)
-			var spd := randf_range(70.0, 280.0 * scale_mult)
+			var spd := randf_range(sparks_speed_min, sparks_speed_max * scale_mult)
 			spark_particles.append({
 				"pos": Vector2.ZERO,
 				"vel": Vector2(cos(a), sin(a)) * spd,
 				"scale": randf_range(0.6, 1.3)
+			})
+		
+		# Rising smoke clouds
+		var sm_count := maxi(1, int(float(smoke_count) * scale_mult))
+		for i in range(sm_count):
+			var a := randf_range(0.0, TAU)
+			var spd := randf_range(15.0, 45.0 * scale_mult)
+			smoke_particles.append({
+				"pos": Vector2.ZERO,
+				"vel": Vector2(cos(a), sin(a)) * spd,
+				"rot": randf_range(0.0, TAU),
+				"rot_spd": randf_range(-2.0, 2.0),
+				"scale": randf_range(0.7, 1.3)
 			})
 			
 	func _process(delta: float) -> void:
@@ -661,13 +810,19 @@ class AnimatedExplosionEffect extends Node2D:
 		
 		for d in debris_particles:
 			d["pos"] += d["vel"] * delta
-			d["vel"].y += 450.0 * delta # Gravity
+			d["vel"].y += debris_gravity * delta
 			d["vel"].x *= 0.94
 			d["rot"] += d["rot_spd"] * delta
 			
 		for s in spark_particles:
 			s["pos"] += s["vel"] * delta
 			s["vel"] *= 0.92
+		
+		for sm in smoke_particles:
+			sm["pos"] += sm["vel"] * delta
+			sm["vel"].y -= smoke_buoyancy * delta
+			sm["scale"] += 1.2 * delta
+			sm["rot"] += sm["rot_spd"] * delta
 			
 		queue_redraw()
 		
@@ -675,61 +830,62 @@ class AnimatedExplosionEffect extends Node2D:
 		var t := elapsed / duration
 		var num_frames := explosion_frames.size()
 		
-		# 1. Shockwave Flare Ring
-		if t < 0.42:
-			var sw_t := t / 0.42
-			var sw_r := (12.0 + 58.0 * sw_t) * scale_mult
-			var sw_a := (1.0 - sw_t) * 0.85
-			var sw_col := Color(1.0, 0.85, 0.3, sw_a)
-			if is_electric:
-				sw_col = Color(0.3, 0.9, 1.0, sw_a)
-			elif is_alien:
-				sw_col = Color(0.4, 1.0, 0.3, sw_a)
-			elif custom_color != Color.WHITE:
-				sw_col = Color(custom_color.r, custom_color.g, custom_color.b, sw_a)
-			draw_arc(Vector2.ZERO, sw_r, 0.0, TAU, 28, sw_col, 3.5 * scale_mult)
-			draw_arc(Vector2.ZERO, sw_r * 0.75, 0.0, TAU, 24, Color(1.0, 1.0, 1.0, sw_a * 0.9), 2.0 * scale_mult)
+		# 1. Shockwave Flare Rings
+		if t < 0.44:
+			var sw_t := t / 0.44
+			var sw_a := (1.0 - sw_t) * 0.9
+			var sw_base_r := (10.0 + shockwave_radius * sw_t) * scale_mult
+			var col := Color(shockwave_color.r, shockwave_color.g, shockwave_color.b, shockwave_color.a * sw_a)
+			
+			for ring_idx in range(shockwave_ring_count):
+				var r_frac := 1.0 - float(ring_idx) * 0.22
+				var ring_r := sw_base_r * r_frac
+				var ring_w := shockwave_ring_width * r_frac * scale_mult
+				var ring_col := col
+				if ring_idx == 0:
+					ring_col = Color(1.0, 1.0, 1.0, col.a * 0.85)
+				draw_arc(Vector2.ZERO, ring_r, 0.0, TAU, 28, ring_col, ring_w)
 		
-		# 2. 8-Frame High-Definition Pixel-Art Explosion Animation
+		# 2. Billowing Smoke Plumes
+		var sm_alpha := clampf((1.0 - t) * smoke_color.a, 0.0, 1.0)
+		for sm in smoke_particles:
+			var sm_dim := Vector2(20.0, 20.0) * float(sm["scale"]) * scale_mult
+			var col := Color(smoke_color.r, smoke_color.g, smoke_color.b, sm_alpha)
+			if tex_smoke != null:
+				draw_set_transform(sm["pos"], sm["rot"], Vector2.ONE)
+				draw_texture_rect(tex_smoke, Rect2(-sm_dim * 0.5, sm_dim), false, col)
+				draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+			else:
+				draw_circle(sm["pos"], sm_dim.x * 0.4, col)
+		
+		# 3. High-Definition Pixel-Art Explosion Animation
 		if num_frames > 0:
 			var frame_idx := clampi(int(t * float(num_frames)), 0, num_frames - 1)
 			var tex: Texture2D = explosion_frames[frame_idx]
 			if tex != null:
-				var draw_w := 96.0 * scale_mult
-				var draw_h := 96.0 * scale_mult
-				var mod_col := Color.WHITE
-				if is_electric:
-					mod_col = Color(0.4, 0.9, 1.4)
-				elif is_alien:
-					mod_col = Color(0.5, 1.3, 0.4)
-				elif custom_color != Color.WHITE:
-					mod_col = custom_color
-				
-				# Fade out smoothly at end of animation
+				var draw_w := frame_size.x * scale_mult
+				var draw_h := frame_size.y * scale_mult
+				var mod_col := custom_color
 				if t > 0.8:
 					mod_col.a = (1.0 - t) / 0.2
-				
 				draw_texture_rect(tex, Rect2(-draw_w * 0.5, -draw_h * 0.5, draw_w, draw_h), false, mod_col)
 		
-		# 3. Flying Hot Debris Chunks
+		# 4. Flying Hot Debris Chunks
 		var deb_a := clampf(1.0 - t * 0.85, 0.0, 1.0)
 		for d in debris_particles:
 			var d_dim := Vector2(8.0, 8.0) * float(d["scale"]) * scale_mult
+			var col := Color(debris_color.r, debris_color.g, debris_color.b, deb_a)
 			if tex_debris != null:
 				draw_set_transform(d["pos"], d["rot"], Vector2.ONE)
-				draw_texture_rect(tex_debris, Rect2(-d_dim * 0.5, d_dim), false, Color(1.0, 1.0, 1.0, deb_a))
+				draw_texture_rect(tex_debris, Rect2(-d_dim * 0.5, d_dim), false, col)
 				draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
 			else:
-				draw_rect(Rect2(d["pos"] - d_dim * 0.5, d_dim), Color(0.5, 0.5, 0.55, deb_a))
+				draw_rect(Rect2(d["pos"] - d_dim * 0.5, d_dim), col)
 				
-		# 4. Outward Flying Sizzling Sparks
+		# 5. Outward Flying Sizzling Sparks
 		var sp_a := clampf(1.0 - t, 0.0, 1.0)
 		for s in spark_particles:
-			var sp_col := Color(1.0, 0.85, 0.25, sp_a)
-			if is_electric:
-				sp_col = Color(0.4, 0.9, 1.0, sp_a)
-			elif is_alien:
-				sp_col = Color(0.3, 1.0, 0.4, sp_a)
+			var sp_col := Color(sparks_color.r, sparks_color.g, sparks_color.b, sp_a)
 			var sp_sz := 2.5 * float(s["scale"]) * scale_mult
 			draw_circle(s["pos"], sp_sz, sp_col)
 

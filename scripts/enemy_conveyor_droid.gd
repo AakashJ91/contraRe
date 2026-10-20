@@ -129,11 +129,7 @@ func _draw() -> void:
 		draw_texture_rect(cur_tex, std_rect, false, col)
 		draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
 		
-	# Warning charge sight
-	if laser_charge > 0.0:
-		var end_pt := Vector2(facing_dir * 180.0, 70.0)
-		draw_line(Vector2(facing_dir * 12.0, 0.0), end_pt, Color(1.0, 0.1, 0.1, 0.4), 1.5)
-	elif is_firing_laser:
+	if is_firing_laser:
 		var end_pt := Vector2(facing_dir * 200.0, 80.0)
 		draw_line(Vector2(facing_dir * 12.0, 0.0), end_pt, Color(1.0, 0.2, 0.1, 0.9), 5.0)
 		draw_line(Vector2(facing_dir * 12.0, 0.0), end_pt, Color.WHITE, 2.0)

@@ -295,14 +295,7 @@ func _draw() -> void:
 	# Barrel muzzle band and reinforce rings
 	draw_line(barrel_end - Vector2(cos(angle_f), sin(angle_f)) * 4.0, barrel_end, col_brass, 7.0)
 	
-	# 5. Laser Sight / Warning Arc when Aiming
-	if state == GrenadierState.AIM_MORTAR:
-		var aim_alpha := (sin(anim_timer * 15.0) + 1.0) * 0.4 + 0.2
-		var laser_dir := Vector2(cos(angle_f), sin(angle_f))
-		draw_line(barrel_end, barrel_end + laser_dir * 180.0, Color(1.0, 0.2, 0.1, aim_alpha), 2.0)
-		draw_circle(barrel_end + laser_dir * 30.0, 3.0, Color(1.0, 0.3, 0.2, aim_alpha))
-	
-	# 6. Muzzle Flash on Fire
+	# 5. Muzzle Flash on Fire
 	if muzzle_flash_timer > 0.0:
 		draw_circle(barrel_end, 10.0, Color(1.0, 0.9, 0.3))
 		draw_circle(barrel_end, 6.0, Color(1.0, 1.0, 1.0))

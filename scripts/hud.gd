@@ -90,6 +90,10 @@ func _on_weapon_changed(wtype: Global.WeaponType) -> void:
 			weapon_name = "LASER BEAM"
 			weapon_letter = "L"
 			weapon_color = Color(0.20, 0.85, 1.0)
+		Global.WeaponType.FIRE:
+			weapon_name = "TWIST FIRE"
+			weapon_letter = "F"
+			weapon_color = Color(1.0, 0.35, 0.1)
 	queue_redraw()
 
 func _on_boss_health_changed(current: float, max_val: float) -> void:

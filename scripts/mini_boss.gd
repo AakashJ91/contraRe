@@ -710,9 +710,16 @@ func _process_death(delta: float) -> void:
 			var ry := randf_range(-mech_height * 0.95, -10.0)
 			var exp_pos := global_position + Vector2(rx, ry)
 			if has_node("/root/VFX"):
-				var is_elec: bool = (Global.current_stage == 6)
-				var is_ali: bool = (Global.current_stage == 3 or Global.current_stage == 8)
-				VFX.spawn_animated_explosion(exp_pos, 1.25, is_elec, is_ali)
+				var exp_key := "fiery"
+				if Global.current_stage == 6:
+					exp_key = "electric"
+				elif Global.current_stage == 3 or Global.current_stage == 8:
+					exp_key = "alien"
+				elif Global.current_stage == 4:
+					exp_key = "cryo"
+				elif Global.current_stage == 5:
+					exp_key = "magma"
+				VFX.spawn_explosion_by_name(exp_pos, exp_key, 1.3)
 			elif explosion_scene != null:
 				var exp_node = explosion_scene.instantiate()
 				exp_node.global_position = exp_pos
@@ -722,9 +729,7 @@ func _process_death(delta: float) -> void:
 			Global.play_sfx("boss_defeat")
 			Global.shake_screen(12.0, 0.5)
 			if has_node("/root/VFX"):
-				var is_elec: bool = (Global.current_stage == 6)
-				var is_ali: bool = (Global.current_stage == 3 or Global.current_stage == 8)
-				VFX.spawn_animated_explosion(global_position + Vector2(0.0, -mech_height * 0.5), 2.5, is_elec, is_ali)
+				VFX.spawn_explosion_by_name(global_position + Vector2(0.0, -mech_height * 0.5), "nuclear", 2.2)
 				VFX.spawn_dust_puff(global_position + Vector2(0.0, -30.0), 12, Color(0.2, 0.2, 0.25, 0.8))
 			queue_free()
 

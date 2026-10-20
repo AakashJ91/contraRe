@@ -4,7 +4,8 @@ enum WeaponType {
 	RIFLE,
 	SPREAD,
 	MACHINE,
-	LASER
+	LASER,
+	FIRE
 }
 
 var score: int = 0

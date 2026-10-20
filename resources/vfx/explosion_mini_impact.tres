@@ -1,0 +1,41 @@
+[gd_resource type="Resource" script_class="ExplosionVFXData" format=3 uid="uid://c_exp_res_mini"]
+
+[ext_resource type="Script" path="res://scripts/explosion_vfx_data.gd" id="1_data"]
+[ext_resource type="Texture2D" path="res://assets/vfx/explosions/mini_burst/frame_0.png" id="2_f0"]
+[ext_resource type="Texture2D" path="res://assets/vfx/explosions/mini_burst/frame_1.png" id="3_f1"]
+[ext_resource type="Texture2D" path="res://assets/vfx/explosions/mini_burst/frame_2.png" id="4_f2"]
+[ext_resource type="Texture2D" path="res://assets/vfx/explosions/mini_burst/frame_3.png" id="5_f3"]
+[ext_resource type="Texture2D" path="res://assets/vfx/explosions/mini_burst/frame_4.png" id="6_f4"]
+[ext_resource type="Texture2D" path="res://assets/vfx/explosions/mini_burst/frame_5.png" id="7_f5"]
+
+[resource]
+script = ExtResource("1_data")
+explosion_name = "INCENDIARY BULLET BURST"
+category = "Mini"
+scale_mult = 0.55
+duration = 0.32
+is_electric = false
+is_alien = false
+primary_color = Color(1.0, 0.9, 0.4, 1)
+secondary_color = Color(1.0, 0.45, 0.1, 1)
+shockwave_color = Color(1.0, 0.8, 0.3, 0.8)
+shockwave_radius = 32.0
+shockwave_ring_count = 1
+shockwave_ring_width = 2.2
+debris_count = 4
+debris_speed_min = 60.0
+debris_speed_max = 150.0
+debris_color = Color(1.0, 0.9, 0.7, 1)
+debris_gravity = 360.0
+sparks_count = 8
+sparks_speed_min = 50.0
+sparks_speed_max = 180.0
+sparks_color = Color(1.0, 0.85, 0.3, 1)
+smoke_count = 3
+smoke_color = Color(0.2, 0.2, 0.25, 0.6)
+smoke_buoyancy = 18.0
+screen_shake_intensity = 2.0
+screen_shake_duration = 0.12
+sfx_name = "explosion"
+explosion_frames = Array[Texture2D]([ExtResource("2_f0"), ExtResource("3_f1"), ExtResource("4_f2"), ExtResource("5_f3"), ExtResource("6_f4"), ExtResource("7_f5")])
+frame_size = Vector2(64, 64)

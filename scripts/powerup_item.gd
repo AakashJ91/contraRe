@@ -198,6 +198,8 @@ func _draw() -> void:
 			badge_tex = tex_machine
 		Global.WeaponType.LASER:
 			badge_tex = tex_laser
+		Global.WeaponType.FIRE:
+			badge_tex = tex_fire
 		_:
 			badge_tex = tex_spread
 	
@@ -217,6 +219,8 @@ func _draw() -> void:
 			letter = "M"
 		Global.WeaponType.LASER:
 			letter = "L"
+		Global.WeaponType.FIRE:
+			letter = "F"
 	
 	# Red/Golden Falcon Wings badge
 	draw_circle(Vector2.ZERO, 10.0, Color(0.1, 0.1, 0.15))
@@ -246,3 +250,8 @@ func _draw() -> void:
 			# L glyph
 			draw_line(Vector2(-3.0, -5.0), Vector2(-3.0, 5.0), col_char, 2.0)
 			draw_line(Vector2(-3.0, 5.0), Vector2(4.0, 5.0), col_char, 2.0)
+		"F":
+			# F glyph
+			draw_line(Vector2(-3.0, 5.0), Vector2(-3.0, -5.0), col_char, 2.0)
+			draw_line(Vector2(-3.0, -5.0), Vector2(4.0, -5.0), col_char, 2.0)
+			draw_line(Vector2(-3.0, 0.0), Vector2(2.5, 0.0), col_char, 2.0)

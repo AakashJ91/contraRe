@@ -1404,12 +1404,12 @@ func _setup_static_enemies() -> void:
 			])
 			_spawn_sensors([
 				{"pos": Vector2(360.0, 280.0), "weapon": Global.WeaponType.SPREAD},
-				{"pos": Vector2(1550.0, 120.0), "weapon": Global.WeaponType.MACHINE},
+				{"pos": Vector2(1550.0, 120.0), "weapon": Global.WeaponType.FIRE},
 				{"pos": Vector2(3280.0, 220.0), "weapon": Global.WeaponType.LASER},
 				{"pos": Vector2(4500.0, 130.0), "weapon": Global.WeaponType.SPREAD},
-				{"pos": Vector2(5840.0, 440.0), "weapon": Global.WeaponType.MACHINE},
+				{"pos": Vector2(5840.0, 440.0), "weapon": Global.WeaponType.FIRE},
 				{"pos": Vector2(7010.0, 130.0), "weapon": Global.WeaponType.LASER},
-				{"pos": Vector2(8680.0, 200.0), "weapon": Global.WeaponType.SPREAD}
+				{"pos": Vector2(8680.0, 200.0), "weapon": Global.WeaponType.FIRE}
 			])
 
 
@@ -2104,7 +2104,7 @@ func _spawn_flying_blimp() -> void:
 	var spawn_x := cam_x - 300.0
 	var b = blimp_scene.instantiate()
 	b.global_position = Vector2(spawn_x, randf_range(160.0, 240.0))
-	var weapons = [Global.WeaponType.SPREAD, Global.WeaponType.MACHINE, Global.WeaponType.LASER]
+	var weapons = [Global.WeaponType.SPREAD, Global.WeaponType.FIRE, Global.WeaponType.MACHINE, Global.WeaponType.LASER]
 	b.weapon_type = weapons[blimp_index % weapons.size()]
 	blimp_index += 1
 	add_child(b)

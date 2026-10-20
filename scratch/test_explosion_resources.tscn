@@ -1,0 +1,6 @@
+[gd_scene load_steps=2 format=3 uid="uid://c_exp_test_scene"]
+
+[ext_resource type="Script" path="res://scratch/test_explosion_resources.gd" id="1_exp"]
+
+[node name="TestExplosionResources" type="Node2D"]
+script = ExtResource("1_exp")

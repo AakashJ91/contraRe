@@ -1,0 +1,6 @@
+[gd_scene load_steps=2 format=3 uid="uid://c_st1_fire_preview"]
+
+[ext_resource type="Script" path="res://scratch/preview_stage1_fire.gd" id="1_fire"]
+
+[node name="PreviewStage1Fire" type="Node"]
+script = ExtResource("1_fire")

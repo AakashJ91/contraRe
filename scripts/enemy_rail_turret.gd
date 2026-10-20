@@ -120,12 +120,9 @@ func _draw() -> void:
 		draw_texture_rect(cur_tex, std_rect, false, col)
 		draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
 		
-	# Vertical rail guide & targeting beam
+	# Vertical rail mount & firing beam
 	draw_line(Vector2(-16.0, -spr_h * 0.4), Vector2(16.0, -spr_h * 0.4), Color(0.4, 0.45, 0.5), 3.0)
 	if is_firing_beam:
 		# Blasting vertical particle beam
 		draw_line(Vector2.ZERO, Vector2(0.0, 350.0), Color(0.3, 0.8, 1.0, 0.9), 12.0)
 		draw_line(Vector2.ZERO, Vector2(0.0, 350.0), Color.WHITE, 6.0)
-	else:
-		# Tracking targeting sight
-		draw_line(Vector2.ZERO, Vector2(0.0, 350.0), Color(1.0, 0.2, 0.2, 0.35), 1.5)
