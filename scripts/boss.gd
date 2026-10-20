@@ -36,6 +36,8 @@ var death_frame_index: int = 0
 var muzzle_flash_left: float = 0.0
 var muzzle_flash_right: float = 0.0
 var muzzle_flash_top: float = 0.0
+var fire_textures: Array[Texture2D] = []
+var fire_anim_timer: float = 0.0
 
 # Stage 2 Hydro-Goliath Walking & Turbine Animation State
 var walk_textures: Array[Texture2D] = []
@@ -72,6 +74,12 @@ var heat_tr: float = 0.0
 var shell_casings: Array[Dictionary] = []
 
 func _ready() -> void:
+	fire_textures.clear()
+	for i in range(15):
+		var fp := "res://assets/vfx/effect/fire/frame_%d.png" % i
+		if ResourceLoader.exists(fp):
+			fire_textures.append(load(fp))
+	
 	_init_boss_stats()
 	_setup_solid_barrier()
 	Global.boss_health_changed.emit(current_health, max_health)
@@ -255,6 +263,7 @@ func activate() -> void:
 func _physics_process(delta: float) -> void:
 	core_pulse += delta * 6.0
 	anim_timer += delta
+	fire_anim_timer += delta * 15.0
 	
 	if is_dead:
 		_process_death_sequence(delta)
@@ -816,10 +825,9 @@ func _on_right_part_hit(area: Area2D) -> void:
 func _destroy_sub_part(pos: Vector2) -> void:
 	Global.add_score(1500)
 	Global.shake_screen(6.0, 0.3)
-	if explosion_scene != null:
-		var exp_node = explosion_scene.instantiate()
-		exp_node.global_position = pos
-		get_parent().add_child(exp_node)
+	if has_node("/root/VFX"):
+		VFX.spawn_boss_fire(pos, 0.85, 2.5)
+	Global.play_sfx("explosion")
 
 func take_damage(dmg: float = 1.0) -> void:
 	if not is_active or is_dead:
@@ -901,12 +909,12 @@ func _process_death_sequence(delta: float) -> void:
 				exp_node.global_position = exp_pos
 				get_parent().add_child(exp_node)
 		else:
-			# Final massive boss destruction explosion!
+			# Final massive boss destruction explosion! (192x192 big_explosion)
 			Global.play_sfx("boss_defeat")
-			Global.shake_screen(16.0, 0.65)
+			Global.shake_screen(18.0, 0.75)
 			if has_node("/root/VFX"):
-				VFX.spawn_explosion_by_name(global_position, "nuclear", 3.0)
-				VFX.spawn_dust_puff(global_position + Vector2(0.0, 30.0), 20, Color(0.2, 0.2, 0.25, 0.9))
+				VFX.spawn_big_explosion(global_position, 1.35)
+				VFX.spawn_dust_puff(global_position + Vector2(0.0, 30.0), 24, Color(0.2, 0.2, 0.25, 0.9))
 
 func _draw() -> void:
 	match Global.current_stage:
@@ -1043,20 +1051,20 @@ func _draw_boss_1_wall() -> void:
 		draw_line(p1, p2, Color(1.0, 0.95, 0.6), 1.0)
 		draw_line(p4, p3, Color(0.65, 0.45, 0.1), 1.0)
 
-	# Destroyed side cannon damage states (smoke + sparks)
+	# Destroyed side cannon damage states (active fire animation from Fire.png 80x128)
 	if left_part_hp <= 0.0:
 		var d_pos := Vector2(-120.0, 25.0)
 		draw_circle(d_pos, 14.0, Color(0.10, 0.10, 0.12, 0.95))
-		if sin(anim_timer * 18.0) > 0.3:
-			draw_circle(d_pos + Vector2(randf_range(-6, 6), randf_range(-6, 6)), 4.0, Color(1.0, 0.7, 0.2))
-		draw_circle(d_pos + Vector2(0.0, -10.0 - fmod(anim_timer * 20.0, 18.0)), 7.0, Color(0.2, 0.2, 0.25, 0.6))
+		_draw_fire(d_pos, 0.55, 0.0)
 
 	if right_part_hp <= 0.0:
 		var d_pos := Vector2(-74.0, -87.0)
 		draw_circle(d_pos, 14.0, Color(0.10, 0.10, 0.12, 0.95))
-		if sin(anim_timer * 18.0 + 1.0) > 0.3:
-			draw_circle(d_pos + Vector2(randf_range(-6, 6), randf_range(-6, 6)), 4.0, Color(1.0, 0.7, 0.2))
-		draw_circle(d_pos + Vector2(0.0, -10.0 - fmod(anim_timer * 20.0, 18.0)), 7.0, Color(0.2, 0.2, 0.25, 0.6))
+		_draw_fire(d_pos, 0.55, 0.5)
+
+	# Wall breach fire when boss is heavily damaged
+	if current_health <= max_health * 0.4 and not is_dead:
+		_draw_fire(Vector2(-10.0, -15.0), 0.45, 0.3)
 
 # -----------------------------------------------------------------------------
 # BOSS 2: HYDRO-GOLIATH MECH
@@ -1132,20 +1140,20 @@ func _draw_boss_2_hydro_mech() -> void:
 			draw_circle(mfp3, 16.0 * s, Color(1.0, 0.7, 0.2, 0.9))
 			draw_circle(mfp3, 8.0 * s, Color.WHITE)
 
-	# Destroyed side cannon damage states (smoke + sparks)
+	# Destroyed side cannon damage states (active fire animation from Fire.png 80x128)
 	if left_part_hp <= 0.0:
 		var d_pos := Vector2(-105.0, -5.0)
 		draw_circle(d_pos, 14.0, Color(0.10, 0.10, 0.12, 0.95))
-		if sin(anim_timer * 18.0) > 0.3:
-			draw_circle(d_pos + Vector2(randf_range(-6, 6), randf_range(-6, 6)), 4.0, Color(1.0, 0.7, 0.2))
-		draw_circle(d_pos + Vector2(0.0, -10.0 - fmod(anim_timer * 20.0, 18.0)), 7.0, Color(0.2, 0.2, 0.25, 0.6))
+		_draw_fire(d_pos, 0.55, 0.0)
 
 	if right_part_hp <= 0.0:
 		var d_pos := Vector2(65.0, -45.0)
 		draw_circle(d_pos, 14.0, Color(0.10, 0.10, 0.12, 0.95))
-		if sin(anim_timer * 18.0 + 1.0) > 0.3:
-			draw_circle(d_pos + Vector2(randf_range(-6, 6), randf_range(-6, 6)), 4.0, Color(1.0, 0.7, 0.2))
-		draw_circle(d_pos + Vector2(0.0, -10.0 - fmod(anim_timer * 20.0, 18.0)), 7.0, Color(0.2, 0.2, 0.25, 0.6))
+		_draw_fire(d_pos, 0.55, 0.5)
+
+	# Hull breach fire when boss is heavily damaged
+	if current_health <= max_health * 0.4 and not is_dead:
+		_draw_fire(Vector2(0.0, 8.0), 0.5, 0.25)
 
 # -----------------------------------------------------------------------------
 # BOSS 3: GIGA BIO-HEART
@@ -1168,6 +1176,9 @@ func _draw_boss_3_bio_heart() -> void:
 		else:
 			var pulse := 1.0 + 0.12 * sin(core_pulse)
 			draw_circle(Vector2(0.0, 8.0), 65.0 * pulse, Color(0.70, 0.15, 0.25))
+		
+		if current_health <= max_health * 0.4:
+			_draw_fire(Vector2(-35.0, -10.0), 0.45, 0.1)
 
 # -----------------------------------------------------------------------------
 # BOSS 4: FROSTBITE SIEGE TANK
@@ -1189,6 +1200,10 @@ func _draw_boss_4_siege_tank() -> void:
 			draw_texture_rect(active_tex, draw_rect, false, flash_col)
 		else:
 			draw_rect(Rect2(-105.0, -60.0, 210.0, 110.0), Color(0.22, 0.28, 0.36))
+		
+		if current_health <= max_health * 0.4:
+			_draw_fire(Vector2(-50.0, -20.0), 0.45, 0.0)
+			_draw_fire(Vector2(45.0, -15.0), 0.4, 0.5)
 
 # -----------------------------------------------------------------------------
 # BOSS 5: MAGMA FORGE GOLEM
@@ -1210,6 +1225,10 @@ func _draw_boss_5_magma_forge() -> void:
 			draw_texture_rect(active_tex, draw_rect, false, flash_col)
 		else:
 			draw_rect(Rect2(-100.0, -75.0, 200.0, 155.0), Color(0.22, 0.16, 0.16))
+		
+		if current_health <= max_health * 0.4:
+			_draw_fire(Vector2(-30.0, -25.0), 0.5, 0.0)
+			_draw_fire(Vector2(35.0, 15.0), 0.45, 0.4)
 
 # -----------------------------------------------------------------------------
 # BOSS 6: THUNDER OVERLORD DYNAMO
@@ -1231,6 +1250,9 @@ func _draw_boss_6_thunder_dynamo() -> void:
 			draw_texture_rect(active_tex, draw_rect, false, flash_col)
 		else:
 			draw_circle(Vector2(0.0, 8.0), 80.0, Color(0.16, 0.18, 0.26))
+		
+		if current_health <= max_health * 0.4:
+			_draw_fire(Vector2(-45.0, -10.0), 0.45, 0.2)
 
 # -----------------------------------------------------------------------------
 # BOSS 7: VANGUARD STAR CRUISER
@@ -1252,6 +1274,10 @@ func _draw_boss_7_star_cruiser() -> void:
 			draw_texture_rect(active_tex, draw_rect, false, flash_col)
 		else:
 			draw_rect(Rect2(-120.0, -50.0, 240.0, 100.0), Color(0.30, 0.32, 0.42))
+		
+		if current_health <= max_health * 0.4:
+			_draw_fire(Vector2(-60.0, -15.0), 0.45, 0.0)
+			_draw_fire(Vector2(55.0, 5.0), 0.45, 0.5)
 
 # -----------------------------------------------------------------------------
 # BOSS 8: EMPEROR MOTHER BRAIN
@@ -1273,6 +1299,9 @@ func _draw_boss_8_mother_brain() -> void:
 			draw_texture_rect(active_tex, draw_rect, false, flash_col)
 		else:
 			draw_circle(Vector2(0.0, 4.0), 55.0, Color(0.95, 0.35, 0.45))
+		
+		if current_health <= max_health * 0.4:
+			_draw_fire(Vector2(-40.0, -15.0), 0.5, 0.3)
 
 # -----------------------------------------------------------------------------
 # COMMON SUB-PART CANNONS & VITAL CORE
@@ -1285,6 +1314,7 @@ func _draw_cannons_and_core(primary_col: Color) -> void:
 		draw_circle(Vector2(-60.0, 40.0), 8.0, primary_col)
 	else:
 		draw_circle(Vector2(-60.0, 40.0), 14.0, Color(0.10, 0.10, 0.12))
+		_draw_fire(Vector2(-60.0, 40.0), 0.5, 0.0)
 	
 	# Right Sub-part / Cannon
 	if right_part_hp > 0.0:
@@ -1293,6 +1323,7 @@ func _draw_cannons_and_core(primary_col: Color) -> void:
 		draw_circle(Vector2(60.0, 40.0), 8.0, primary_col)
 	else:
 		draw_circle(Vector2(60.0, 40.0), 14.0, Color(0.10, 0.10, 0.12))
+		_draw_fire(Vector2(60.0, 40.0), 0.5, 0.5)
 	
 	# Core Vital Chamber
 	var core_color := primary_col
@@ -1306,3 +1337,20 @@ func _draw_cannons_and_core(primary_col: Color) -> void:
 	draw_circle(Vector2(0.0, 8.0), 16.0 + pulse_glow * 3.0, Color(core_color.r, core_color.g, core_color.b, 0.35))
 	draw_circle(Vector2(0.0, 8.0), 13.0, core_color)
 	draw_circle(Vector2(0.0, 8.0), 6.0, Color(1.0, 1.0, 1.0, 0.85))
+	
+	if current_health <= max_health * 0.4 and not is_dead:
+		_draw_fire(Vector2(0.0, 8.0), 0.45, 0.2)
+
+# -----------------------------------------------------------------------------
+# DAMAGED PART BURNING FIRE ANIMATION HELPER (Fire.png 80x128)
+# -----------------------------------------------------------------------------
+func _draw_fire(pos: Vector2, scale_mult: float = 0.5, time_offset: float = 0.0) -> void:
+	if fire_textures.size() == 0:
+		return
+	var frame_idx := int(fmod(fire_anim_timer + time_offset * 15.0, float(fire_textures.size())))
+	frame_idx = clampi(frame_idx, 0, fire_textures.size() - 1)
+	var tex: Texture2D = fire_textures[frame_idx]
+	if tex != null:
+		var fw := 80.0 * scale_mult
+		var fh := 128.0 * scale_mult
+		draw_texture_rect(tex, Rect2(pos.x - fw * 0.5, pos.y - fh * 0.85, fw, fh), false)

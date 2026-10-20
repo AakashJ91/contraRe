@@ -1,0 +1,6 @@
+[gd_scene format=3 uid="uid://cbossfire1234"]
+
+[ext_resource type="Script" path="res://scratch/test_boss_fire_effect.gd" id="1_fire"]
+
+[node name="TestBossFireEffect" type="Node2D"]
+script = ExtResource("1_fire")

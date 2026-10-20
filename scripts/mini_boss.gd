@@ -725,12 +725,12 @@ func _process_death(delta: float) -> void:
 				exp_node.global_position = exp_pos
 				get_parent().add_child(exp_node)
 		else:
-			# Final massive explosion, sound, debris, and destruction
+			# Final massive explosion, sound, debris, and destruction (192x192 big_explosion)
 			Global.play_sfx("boss_defeat")
-			Global.shake_screen(12.0, 0.5)
+			Global.shake_screen(14.0, 0.6)
 			if has_node("/root/VFX"):
-				VFX.spawn_explosion_by_name(global_position + Vector2(0.0, -mech_height * 0.5), "nuclear", 2.2)
-				VFX.spawn_dust_puff(global_position + Vector2(0.0, -30.0), 12, Color(0.2, 0.2, 0.25, 0.8))
+				VFX.spawn_big_explosion(global_position + Vector2(0.0, -mech_height * 0.5), 1.1)
+				VFX.spawn_dust_puff(global_position + Vector2(0.0, -30.0), 16, Color(0.2, 0.2, 0.25, 0.8))
 			queue_free()
 
 func _draw() -> void:

@@ -24,6 +24,10 @@ var tex_shockwave: Texture2D = null
 var tex_explosion_frames: Array[Texture2D] = []
 var tex_skull_smoke_frames: Array[Texture2D] = []
 var tex_skull_smoke_sheet: Texture2D = null
+var tex_fire_anim_frames: Array[Texture2D] = []
+var tex_fire_sheet: Texture2D = null
+var tex_big_explosion_frames: Array[Texture2D] = []
+var tex_big_explosion_sheet: Texture2D = null
 var explosion_resources: Dictionary = {}
 
 func _ready() -> void:
@@ -78,11 +82,53 @@ func _load_textures() -> void:
 			atlas.region = Rect2(float(i * 64), 0.0, 64.0, 64.0)
 			tex_skull_smoke_frames.append(atlas)
 	
+	# Boss Damaged Part Fire Spritesheet (80x128 frames, 15 frames from Fire.png)
+	if ResourceLoader.exists("res://assets/vfx/effect/fire_strip.png"):
+		tex_fire_sheet = load("res://assets/vfx/effect/fire_strip.png")
+	elif ResourceLoader.exists("res://assets/vfx/fire.png"):
+		tex_fire_sheet = load("res://assets/vfx/fire.png")
+	elif ResourceLoader.exists("res://assets/vfx/effect/Fire.png"):
+		tex_fire_sheet = load("res://assets/vfx/effect/Fire.png")
+	
+	tex_fire_anim_frames.clear()
+	for i in range(15):
+		var fp := "res://assets/vfx/effect/fire/frame_%d.png" % i
+		if ResourceLoader.exists(fp):
+			tex_fire_anim_frames.append(load(fp))
+		elif tex_fire_sheet != null:
+			var atlas := AtlasTexture.new()
+			atlas.atlas = tex_fire_sheet
+			var c: int = i % 6
+			var r: int = i / 6
+			atlas.region = Rect2(float(c * 80), float(r * 128), 80.0, 128.0)
+			tex_fire_anim_frames.append(atlas)
+	
+	# Big Final Death Explosion Spritesheet (192x192 frames, 15 frames from big_explosion.png)
+	if ResourceLoader.exists("res://assets/vfx/effect/big_explosion.png"):
+		tex_big_explosion_sheet = load("res://assets/vfx/effect/big_explosion.png")
+	elif ResourceLoader.exists("res://assets/vfx/big_explosion.png"):
+		tex_big_explosion_sheet = load("res://assets/vfx/big_explosion.png")
+	
+	tex_big_explosion_frames.clear()
+	for i in range(15):
+		var bp := "res://assets/vfx/effect/big_explosion/frame_%d.png" % i
+		if ResourceLoader.exists(bp):
+			tex_big_explosion_frames.append(load(bp))
+		elif tex_big_explosion_sheet != null:
+			var atlas := AtlasTexture.new()
+			atlas.atlas = tex_big_explosion_sheet
+			atlas.region = Rect2(float(i * 192), 0.0, 192.0, 192.0)
+			tex_big_explosion_frames.append(atlas)
+	
 	_load_explosion_resources()
 
 func _load_explosion_resources() -> void:
 	explosion_resources.clear()
 	var res_map := {
+		"big": "res://resources/vfx/explosion_big.tres",
+		"big_explosion": "res://resources/vfx/explosion_big.tres",
+		"boss_death": "res://resources/vfx/explosion_big.tres",
+		"mini_boss_death": "res://resources/vfx/explosion_big.tres",
 		"skull": "res://resources/vfx/explosion_skull_smoke.tres",
 		"skullsmoke": "res://resources/vfx/explosion_skull_smoke.tres",
 		"enemy_death": "res://resources/vfx/explosion_skull_smoke.tres",
@@ -260,6 +306,62 @@ func spawn_enemy_death_explosion(pos: Vector2, scale_mult: float = 1.0) -> void:
 	fx.tex_fire = tex_fire
 	fx.tex_smoke = tex_smoke
 	parent.add_child(fx)
+
+# -----------------------------------------------------------------------------
+# 5C. BOSS DAMAGED PART BURNING FIRE EFFECT (80x128 SPRITESHEET)
+# -----------------------------------------------------------------------------
+func spawn_boss_fire(pos: Vector2, scale_mult: float = 0.75, duration: float = 2.0) -> Node2D:
+	var parent := _get_vfx_parent()
+	if parent == null:
+		return null
+	var fx := BossFireEffect.new()
+	fx.global_position = pos
+	fx.scale_mult = scale_mult
+	fx.duration = duration
+	fx.fire_frames = tex_fire_anim_frames
+	parent.add_child(fx)
+	return fx
+
+# -----------------------------------------------------------------------------
+# 5D. BOSS & MINI-BOSS FINAL DEATH BIG EXPLOSION (192x192 SPRITESHEET)
+# -----------------------------------------------------------------------------
+func spawn_big_explosion(pos: Vector2, scale_mult: float = 1.0) -> Node2D:
+	if explosion_resources.has("big"):
+		spawn_explosion_from_resource(pos, explosion_resources["big"], scale_mult)
+		return null
+	elif explosion_resources.has("nuclear"):
+		spawn_explosion_from_resource(pos, explosion_resources["nuclear"], scale_mult)
+		return null
+	
+	var parent := _get_vfx_parent()
+	if parent == null:
+		return null
+	var fx := AnimatedExplosionEffect.new()
+	fx.global_position = pos
+	fx.scale_mult = scale_mult
+	fx.duration = 0.85
+	fx.frame_size = Vector2(192.0, 192.0)
+	fx.screen_shake_intensity = 16.0
+	fx.screen_shake_duration = 0.65
+	fx.sfx_name = "boss_defeat"
+	fx.shockwave_color = Color(1.0, 0.92, 0.6, 0.95)
+	fx.shockwave_radius = 110.0
+	fx.shockwave_ring_count = 3
+	fx.shockwave_ring_width = 4.0
+	fx.debris_count = 18
+	fx.debris_color = Color(1.0, 0.92, 0.7, 1)
+	fx.sparks_count = 28
+	fx.sparks_color = Color(1.0, 0.9, 0.35, 1)
+	fx.smoke_count = 12
+	fx.smoke_color = Color(0.25, 0.22, 0.28, 0.85)
+	fx.explosion_frames = tex_big_explosion_frames
+	fx.tex_debris = tex_debris
+	fx.tex_spark = tex_spark
+	fx.tex_shockwave = tex_shockwave
+	fx.tex_fire = tex_fire
+	fx.tex_smoke = tex_smoke
+	parent.add_child(fx)
+	return fx
 
 func spawn_explosion(pos: Vector2, scale_mult: float = 1.0, is_electric: bool = false, is_alien: bool = false) -> void:
 	var target_key := "fiery"
@@ -1100,3 +1202,35 @@ class LaserHitEffect extends Node2D:
 		else:
 			draw_circle(Vector2.ZERO, 12.0 * alpha, Color(0.2, 0.9, 1.0, alpha))
 		draw_circle(Vector2.ZERO, 5.0 * alpha, Color(1.0, 1.0, 1.0, alpha))
+
+
+# --- BOSS DAMAGED PART FIRE EFFECT (80x128 SPRITESHEET) ---
+class BossFireEffect extends Node2D:
+	var fire_frames: Array[Texture2D] = []
+	var elapsed: float = 0.0
+	var duration: float = 2.0
+	var scale_mult: float = 0.75
+	var anim_speed: float = 16.0
+	var frame_size: Vector2 = Vector2(80.0, 128.0)
+	
+	func _process(delta: float) -> void:
+		elapsed += delta
+		if duration > 0.0 and elapsed >= duration:
+			queue_free()
+			return
+		queue_redraw()
+		
+	func _draw() -> void:
+		if fire_frames.size() == 0:
+			return
+		var frame_idx := int(fmod(elapsed * anim_speed, float(fire_frames.size())))
+		var tex: Texture2D = fire_frames[frame_idx]
+		if tex != null:
+			var w := frame_size.x * scale_mult
+			var h := frame_size.y * scale_mult
+			var alpha := 1.0
+			if duration > 0.0 and elapsed > duration * 0.7:
+				alpha = clampf((duration - elapsed) / (duration * 0.3), 0.0, 1.0)
+			var col := Color(1.0, 1.0, 1.0, alpha)
+			draw_texture_rect(tex, Rect2(-w * 0.5, -h * 0.85, w, h), false, col)
+
