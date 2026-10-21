@@ -21,29 +21,43 @@ var is_dying: bool = false
 var death_frame: int = 0
 var death_timer: float = 0.0
 
+static var s_crawl_textures: Array[Texture2D] = []
+static var s_death_textures: Array[Texture2D] = []
+static var s_crawler_texture: Texture2D = null
+static var s_assets_loaded: bool = false
+
+static func _ensure_assets_loaded(e_data: EnemyData) -> void:
+	if s_assets_loaded:
+		return
+	s_assets_loaded = true
+	s_crawl_textures.clear()
+	for i in range(4):
+		var p := "res://assets/enemies/crawler/movement/crawl_%d.png" % i
+		if ResourceLoader.exists(p):
+			s_crawl_textures.append(load(p))
+	
+	s_death_textures.clear()
+	for i in range(4):
+		var p := "res://assets/enemies/crawler/death/death_%d.png" % i
+		if ResourceLoader.exists(p):
+			s_death_textures.append(load(p))
+	
+	if ResourceLoader.exists("res://assets/enemies/crawler/crawler.png"):
+		s_crawler_texture = load("res://assets/enemies/crawler/crawler.png")
+	elif e_data != null and e_data.sprite_texture != null:
+		s_crawler_texture = e_data.sprite_texture
+	elif ResourceLoader.exists("res://assets/enemies/enemy_crawler.png"):
+		s_crawler_texture = load("res://assets/enemies/enemy_crawler.png")
+
 func _ready() -> void:
 	collision_layer = 1 << 2 # Layer 3: Enemies
 	collision_mask = 1 << 1 # Layer 2: World
 	is_alien_theme = (Global.current_stage == 3 or Global.current_stage == 8)
 	
-	crawl_textures.clear()
-	for i in range(4):
-		var p := "res://assets/enemies/crawler/movement/crawl_%d.png" % i
-		if ResourceLoader.exists(p):
-			crawl_textures.append(load(p))
-	
-	death_textures.clear()
-	for i in range(4):
-		var p := "res://assets/enemies/crawler/death/death_%d.png" % i
-		if ResourceLoader.exists(p):
-			death_textures.append(load(p))
-	
-	if ResourceLoader.exists("res://assets/enemies/crawler/crawler.png"):
-		crawler_texture = load("res://assets/enemies/crawler/crawler.png")
-	elif enemy_data != null and enemy_data.sprite_texture != null:
-		crawler_texture = enemy_data.sprite_texture
-	elif ResourceLoader.exists("res://assets/enemies/enemy_crawler.png"):
-		crawler_texture = load("res://assets/enemies/enemy_crawler.png")
+	_ensure_assets_loaded(enemy_data)
+	crawl_textures = s_crawl_textures
+	death_textures = s_death_textures
+	crawler_texture = s_crawler_texture
 	
 	if enemy_data != null:
 		health = enemy_data.max_health

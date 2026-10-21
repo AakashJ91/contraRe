@@ -21,30 +21,44 @@ var is_dying: bool = false
 var death_frame: int = 0
 var death_timer: float = 0.0
 
+static var s_aim_textures: Array[Texture2D] = []
+static var s_death_textures: Array[Texture2D] = []
+static var s_sniper_texture: Texture2D = null
+static var s_assets_loaded: bool = false
+
+static func _ensure_assets_loaded(e_data: EnemyData) -> void:
+	if s_assets_loaded:
+		return
+	s_assets_loaded = true
+	s_aim_textures.clear()
+	for i in range(4):
+		var p := "res://assets/enemies/sniper/movement/aim_%d.png" % i
+		if ResourceLoader.exists(p):
+			s_aim_textures.append(load(p))
+	
+	s_death_textures.clear()
+	for i in range(4):
+		var p := "res://assets/enemies/sniper/death/death_%d.png" % i
+		if ResourceLoader.exists(p):
+			s_death_textures.append(load(p))
+	
+	if ResourceLoader.exists("res://assets/enemies/sniper/sniper.png"):
+		s_sniper_texture = load("res://assets/enemies/sniper/sniper.png")
+	elif e_data != null and e_data.sprite_texture != null:
+		s_sniper_texture = e_data.sprite_texture
+	elif ResourceLoader.exists("res://assets/enemies/enemy_sniper.png"):
+		s_sniper_texture = load("res://assets/enemies/enemy_sniper.png")
+
 func _ready() -> void:
 	collision_layer = 1 << 2 # Layer 3: Enemies
 	collision_mask = 1 << 1  # Layer 2: World
 	z_index = 1
 	show_behind_parent = false
 	
-	aim_textures.clear()
-	for i in range(4):
-		var p := "res://assets/enemies/sniper/movement/aim_%d.png" % i
-		if ResourceLoader.exists(p):
-			aim_textures.append(load(p))
-	
-	death_textures.clear()
-	for i in range(4):
-		var p := "res://assets/enemies/sniper/death/death_%d.png" % i
-		if ResourceLoader.exists(p):
-			death_textures.append(load(p))
-	
-	if ResourceLoader.exists("res://assets/enemies/sniper/sniper.png"):
-		sniper_texture = load("res://assets/enemies/sniper/sniper.png")
-	elif enemy_data != null and enemy_data.sprite_texture != null:
-		sniper_texture = enemy_data.sprite_texture
-	elif ResourceLoader.exists("res://assets/enemies/enemy_sniper.png"):
-		sniper_texture = load("res://assets/enemies/enemy_sniper.png")
+	_ensure_assets_loaded(enemy_data)
+	aim_textures = s_aim_textures
+	death_textures = s_death_textures
+	sniper_texture = s_sniper_texture
 	
 	if enemy_data != null:
 		health = enemy_data.max_health

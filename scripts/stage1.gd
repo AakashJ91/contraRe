@@ -108,7 +108,8 @@ enum PlatformType {
 	LAVA_GRATE,
 	ENERGY_BARRIER,
 	TECH_CATWALK,
-	BIO_RIB
+	BIO_RIB,
+	WATERFALL_LEDGE
 }
 
 var ground_segments: Array[Rect2] = []
@@ -143,7 +144,7 @@ func _ready() -> void:
 			camera.limit_top = 0
 			camera.limit_bottom = 540
 		var is_mob: bool = Global.is_mobile_device()
-		var entry_zoom := Vector2(1.75, 1.75) if is_mob else Vector2(1.60, 1.60)
+		var entry_zoom := Vector2(2.28, 2.28) if is_mob else Vector2(2.08, 2.08)
 		camera.zoom = entry_zoom
 		var cur_half_w: float = (960.0 / entry_zoom.x) * 0.5
 		var cur_half_h: float = (540.0 / entry_zoom.y) * 0.5
@@ -161,79 +162,99 @@ func _ready() -> void:
 	
 	queue_redraw()
 
+static var s_stage_textures: Dictionary = {}
+static var s_stage_frames: Dictionary = {}
+static var s_cached_shaders: Dictionary = {}
+
+static func get_stage_texture(path: String) -> Texture2D:
+	if s_stage_textures.has(path):
+		return s_stage_textures[path]
+	if ResourceLoader.exists(path):
+		var tex: Texture2D = load(path)
+		s_stage_textures[path] = tex
+		return tex
+	return null
+
+static func get_stage_frames(path_fmt: String, count: int) -> Array[Texture2D]:
+	if s_stage_frames.has(path_fmt):
+		return s_stage_frames[path_fmt]
+	var frames: Array[Texture2D] = []
+	for i in range(count):
+		var p := path_fmt % i
+		if ResourceLoader.exists(p):
+			frames.append(load(p))
+	s_stage_frames[path_fmt] = frames
+	return frames
+
+static func get_cached_shader(path: String) -> Shader:
+	if s_cached_shaders.has(path):
+		return s_cached_shaders[path]
+	if ResourceLoader.exists(path):
+		var s: Shader = load(path)
+		s_cached_shaders[path] = s
+		return s
+	return null
+
 func _load_textures() -> void:
-	if ResourceLoader.exists("res://assets/tiles/ground_tile.png"):
-		ground_tile_texture = load("res://assets/tiles/ground_tile.png")
-	if ResourceLoader.exists("res://assets/tiles/ground_boss_fortress.png"):
-		boss_ground_texture = load("res://assets/tiles/ground_boss_fortress.png")
+	var stg := clampi(Global.current_stage, 1, 8)
+	
+	ground_tile_texture = get_stage_texture("res://assets/tiles/ground_tile.png")
+	boss_ground_texture = get_stage_texture("res://assets/tiles/ground_boss_fortress.png")
 	
 	ground_textures_by_stage.clear()
 	ground_textures_by_stage[1] = ground_tile_texture
-	if ResourceLoader.exists("res://assets/tiles/ground_waterfall.png"):
-		ground_textures_by_stage[2] = load("res://assets/tiles/ground_waterfall.png")
-	if ResourceLoader.exists("res://assets/tiles/ground_hive.png"):
-		ground_textures_by_stage[3] = load("res://assets/tiles/ground_hive.png")
-		ground_textures_by_stage[8] = ground_textures_by_stage[3]
-	if ResourceLoader.exists("res://assets/tiles/ground_tundra.png"):
-		ground_textures_by_stage[4] = load("res://assets/tiles/ground_tundra.png")
-	if ResourceLoader.exists("res://assets/tiles/ground_refinery.png"):
-		ground_textures_by_stage[5] = load("res://assets/tiles/ground_refinery.png")
-	if ResourceLoader.exists("res://assets/tiles/ground_dynamo.png"):
-		ground_textures_by_stage[6] = load("res://assets/tiles/ground_dynamo.png")
+	
+	match stg:
+		2:
+			ground_textures_by_stage[2] = get_stage_texture("res://assets/tiles/ground_waterfall.png")
+		3, 8:
+			var hive_tex := get_stage_texture("res://assets/tiles/ground_hive.png")
+			ground_textures_by_stage[3] = hive_tex
+			ground_textures_by_stage[8] = hive_tex
+		4:
+			ground_textures_by_stage[4] = get_stage_texture("res://assets/tiles/ground_tundra.png")
+		5:
+			ground_textures_by_stage[5] = get_stage_texture("res://assets/tiles/ground_refinery.png")
+		6:
+			ground_textures_by_stage[6] = get_stage_texture("res://assets/tiles/ground_dynamo.png")
+		7:
+			ground_textures_by_stage[7] = get_stage_texture("res://assets/tiles/ground_hangar.png")
 	
 	ground_frames_by_stage.clear()
-	var dynamo_frames: Array[Texture2D] = []
-	for i in range(4):
-		var dp := "res://assets/tiles/ground_dynamo_%d.png" % i
-		if ResourceLoader.exists(dp):
-			dynamo_frames.append(load(dp))
-	if not dynamo_frames.is_empty():
-		ground_frames_by_stage[6] = dynamo_frames
-	if ResourceLoader.exists("res://assets/tiles/ground_hangar.png"):
-		ground_textures_by_stage[7] = load("res://assets/tiles/ground_hangar.png")
-	if ResourceLoader.exists("res://assets/tiles/platform_girder.png"):
-		platform_girder_texture = load("res://assets/tiles/platform_girder.png")
-	if ResourceLoader.exists("res://assets/tiles/platform_bridge.png"):
-		platform_bridge_texture = load("res://assets/tiles/platform_bridge.png")
-	if ResourceLoader.exists("res://assets/tiles/platform_turf.png"):
-		platform_turf_texture = load("res://assets/tiles/platform_turf.png")
-	if ResourceLoader.exists("res://assets/tiles/platform_turf_small.png"):
-		platform_turf_small_texture = load("res://assets/tiles/platform_turf_small.png")
-	if ResourceLoader.exists("res://assets/tiles/platform_turf_wide.png"):
-		platform_turf_wide_texture = load("res://assets/tiles/platform_turf_wide.png")
-	if ResourceLoader.exists("res://assets/tiles/platform_turf_crag.png"):
-		platform_turf_crag_texture = load("res://assets/tiles/platform_turf_crag.png")
-	if ResourceLoader.exists("res://assets/tiles/platform_turf_thin.png"):
-		platform_turf_thin_texture = load("res://assets/tiles/platform_turf_thin.png")
-	if ResourceLoader.exists("res://assets/tiles/platform_turf_wedge_left.png"):
-		platform_turf_wedge_left_texture = load("res://assets/tiles/platform_turf_wedge_left.png")
-	if ResourceLoader.exists("res://assets/tiles/platform_turf_wedge_right.png"):
-		platform_turf_wedge_right_texture = load("res://assets/tiles/platform_turf_wedge_right.png")
-	if ResourceLoader.exists("res://assets/tiles/platform_tech.png"):
-		platform_tech_texture = load("res://assets/tiles/platform_tech.png")
-	if ResourceLoader.exists("res://assets/tiles/platform_chain.png"):
-		platform_chain_texture = load("res://assets/tiles/platform_chain.png")
-	if ResourceLoader.exists("res://assets/tiles/platform_chain_hook.png"):
-		platform_chain_hook_texture = load("res://assets/tiles/platform_chain_hook.png")
-	if ResourceLoader.exists("res://assets/tiles/platform_ice_slab.png"):
-		platform_ice_slab_texture = load("res://assets/tiles/platform_ice_slab.png")
-	if ResourceLoader.exists("res://assets/tiles/platform_lava_grate.png"):
-		platform_lava_grate_texture = load("res://assets/tiles/platform_lava_grate.png")
-	if ResourceLoader.exists("res://assets/tiles/platform_energy_barrier.png"):
-		platform_energy_barrier_texture = load("res://assets/tiles/platform_energy_barrier.png")
-	if ResourceLoader.exists("res://assets/tiles/platform_tech_catwalk.png"):
-		platform_tech_catwalk_texture = load("res://assets/tiles/platform_tech_catwalk.png")
-	if ResourceLoader.exists("res://assets/tiles/platform_bio_rib.png"):
-		platform_bio_rib_texture = load("res://assets/tiles/platform_bio_rib.png")
+	if stg == 6:
+		var dynamo_frames := get_stage_frames("res://assets/tiles/ground_dynamo_%d.png", 4)
+		if not dynamo_frames.is_empty():
+			ground_frames_by_stage[6] = dynamo_frames
+	
+	# Load standard platform textures
+	platform_girder_texture = get_stage_texture("res://assets/tiles/platform_girder.png")
+	platform_bridge_texture = get_stage_texture("res://assets/tiles/platform_bridge.png")
+	platform_turf_texture = get_stage_texture("res://assets/tiles/platform_turf.png")
+	platform_turf_small_texture = get_stage_texture("res://assets/tiles/platform_turf_small.png")
+	platform_turf_wide_texture = get_stage_texture("res://assets/tiles/platform_turf_wide.png")
+	platform_turf_crag_texture = get_stage_texture("res://assets/tiles/platform_turf_crag.png")
+	platform_turf_thin_texture = get_stage_texture("res://assets/tiles/platform_turf_thin.png")
+	platform_turf_wedge_left_texture = get_stage_texture("res://assets/tiles/platform_turf_wedge_left.png")
+	platform_turf_wedge_right_texture = get_stage_texture("res://assets/tiles/platform_turf_wedge_right.png")
+	
+	# Themed platform textures (loaded across all stages and editor)
+	platform_tech_texture = get_stage_texture("res://assets/tiles/platform_tech.png")
+	platform_tech_catwalk_texture = get_stage_texture("res://assets/tiles/platform_tech_catwalk.png")
+	platform_energy_barrier_texture = get_stage_texture("res://assets/tiles/platform_energy_barrier.png")
+	platform_chain_texture = get_stage_texture("res://assets/tiles/platform_chain.png")
+	platform_chain_hook_texture = get_stage_texture("res://assets/tiles/platform_chain_hook.png")
+	platform_ice_slab_texture = get_stage_texture("res://assets/tiles/platform_ice_slab.png")
+	platform_lava_grate_texture = get_stage_texture("res://assets/tiles/platform_lava_grate.png")
+	platform_bio_rib_texture = get_stage_texture("res://assets/tiles/platform_bio_rib.png")
+	
 	ground_edge_left_textures_by_stage.clear()
 	ground_edge_right_textures_by_stage.clear()
-	if ResourceLoader.exists("res://assets/tiles/ground_edge_left.png"):
-		ground_edge_left_texture = load("res://assets/tiles/ground_edge_left.png")
-		ground_edge_left_textures_by_stage[1] = ground_edge_left_texture
-	if ResourceLoader.exists("res://assets/tiles/ground_edge_right.png"):
-		ground_edge_right_texture = load("res://assets/tiles/ground_edge_right.png")
-		ground_edge_right_textures_by_stage[1] = ground_edge_right_texture
-
+	
+	ground_edge_left_texture = get_stage_texture("res://assets/tiles/ground_edge_left.png")
+	ground_edge_right_texture = get_stage_texture("res://assets/tiles/ground_edge_right.png")
+	ground_edge_left_textures_by_stage[1] = ground_edge_left_texture
+	ground_edge_right_textures_by_stage[1] = ground_edge_right_texture
+	
 	var edge_stage_names: Dictionary = {
 		2: "waterfall",
 		3: "hive",
@@ -241,58 +262,71 @@ func _load_textures() -> void:
 		5: "refinery",
 		6: "dynamo",
 		7: "hangar",
+		8: "hive",
 	}
-	for st_id in edge_stage_names:
-		var sname: String = edge_stage_names[st_id]
+	if edge_stage_names.has(stg):
+		var sname: String = edge_stage_names[stg]
 		var l_path := "res://assets/tiles/ground_%s_edge_left.png" % sname
 		var r_path := "res://assets/tiles/ground_%s_edge_right.png" % sname
-		if ResourceLoader.exists(l_path):
-			ground_edge_left_textures_by_stage[st_id] = load(l_path)
-		if ResourceLoader.exists(r_path):
-			ground_edge_right_textures_by_stage[st_id] = load(r_path)
-	
-	if ground_edge_left_textures_by_stage.has(3):
-		ground_edge_left_textures_by_stage[8] = ground_edge_left_textures_by_stage[3]
-	if ground_edge_right_textures_by_stage.has(3):
-		ground_edge_right_textures_by_stage[8] = ground_edge_right_textures_by_stage[3]
+		var l_tex := get_stage_texture(l_path)
+		var r_tex := get_stage_texture(r_path)
+		if l_tex != null:
+			ground_edge_left_textures_by_stage[stg] = l_tex
+		if r_tex != null:
+			ground_edge_right_textures_by_stage[stg] = r_tex
 	
 	ground_edge_left_frames_by_stage.clear()
 	ground_edge_right_frames_by_stage.clear()
-	var dynamo_elf: Array[Texture2D] = []
-	var dynamo_erf: Array[Texture2D] = []
-	for i in range(4):
-		var elp := "res://assets/tiles/ground_dynamo_edge_left_%d.png" % i
-		var erp := "res://assets/tiles/ground_dynamo_edge_right_%d.png" % i
-		if ResourceLoader.exists(elp):
-			dynamo_elf.append(load(elp))
-		if ResourceLoader.exists(erp):
-			dynamo_erf.append(load(erp))
-	if not dynamo_elf.is_empty():
-		ground_edge_left_frames_by_stage[6] = dynamo_elf
-	if not dynamo_erf.is_empty():
-		ground_edge_right_frames_by_stage[6] = dynamo_erf
+	if stg == 6:
+		var dynamo_elf := get_stage_frames("res://assets/tiles/ground_dynamo_edge_left_%d.png", 4)
+		var dynamo_erf := get_stage_frames("res://assets/tiles/ground_dynamo_edge_right_%d.png", 4)
+		if not dynamo_elf.is_empty():
+			ground_edge_left_frames_by_stage[6] = dynamo_elf
+		if not dynamo_erf.is_empty():
+			ground_edge_right_frames_by_stage[6] = dynamo_erf
+	elif stg == 2:
+		var waterfall_elf := get_stage_frames("res://assets/tiles/ground_waterfall_edge_left_%d.png", 4)
+		var waterfall_erf := get_stage_frames("res://assets/tiles/ground_waterfall_edge_right_%d.png", 4)
+		if not waterfall_elf.is_empty():
+			ground_edge_left_frames_by_stage[2] = waterfall_elf
+		if not waterfall_erf.is_empty():
+			ground_edge_right_frames_by_stage[2] = waterfall_erf
 	
-	var waterfall_elf: Array[Texture2D] = []
-	var waterfall_erf: Array[Texture2D] = []
-	for i in range(4):
-		var welp := "res://assets/tiles/ground_waterfall_edge_left_%d.png" % i
-		var werp := "res://assets/tiles/ground_waterfall_edge_right_%d.png" % i
-		if ResourceLoader.exists(welp):
-			waterfall_elf.append(load(welp))
-		if ResourceLoader.exists(werp):
-			waterfall_erf.append(load(werp))
-	if not waterfall_elf.is_empty():
-		ground_edge_left_frames_by_stage[2] = waterfall_elf
-	if not waterfall_erf.is_empty():
-		ground_edge_right_frames_by_stage[2] = waterfall_erf
-	
-	water_surface_frames.clear()
-	for i in range(4):
-		var wp := "res://assets/tiles/water_surface_%d.png" % i
-		if ResourceLoader.exists(wp):
-			water_surface_frames.append(load(wp))
-	if ResourceLoader.exists("res://assets/tiles/water_body_deep.png"):
-		water_deep_texture = load("res://assets/tiles/water_body_deep.png")
+	# Water surface & deep textures
+	if stg in [1, 2]:
+		water_surface_frames = get_stage_frames("res://assets/tiles/water_surface_%d.png", 4)
+		water_deep_texture = get_stage_texture("res://assets/tiles/water_body_deep.png")
+
+
+func _parse_platform_type(val: Variant) -> int:
+	if val is int:
+		return val
+	if val is float:
+		return int(val)
+	if val is String:
+		var s: String = str(val).strip_edges().to_lower()
+		match s:
+			"0", "turf", "default":
+				return PlatformType.TURF
+			"1", "girder":
+				return PlatformType.GIRDER
+			"2", "bridge", "rope_bridge":
+				return PlatformType.ROPE_BRIDGE
+			"3", "perch", "high_perch":
+				return PlatformType.HIGH_PERCH
+			"4", "ice", "ice_slab":
+				return PlatformType.ICE_SLAB
+			"5", "lava", "lava_grate":
+				return PlatformType.LAVA_GRATE
+			"6", "energy", "energy_barrier":
+				return PlatformType.ENERGY_BARRIER
+			"7", "tech", "platform_tech", "catwalk", "tech_catwalk":
+				return PlatformType.TECH_CATWALK
+			"8", "bio", "bio_rib":
+				return PlatformType.BIO_RIB
+			"9", "waterfall", "waterfall_ledge", "ledge":
+				return PlatformType.WATERFALL_LEDGE
+	return 0
 
 func _init_stage_geometry() -> void:
 	ground_segments.clear()
@@ -301,7 +335,9 @@ func _init_stage_geometry() -> void:
 	for g in map_data.get("ground_segments", []):
 		ground_segments.append(g)
 	for p in map_data.get("platforms", []):
-		platforms.append(p)
+		var p_dict: Dictionary = p.duplicate(true) if p is Dictionary else {}
+		p_dict["type"] = _parse_platform_type(p_dict.get("type", 0))
+		platforms.append(p_dict)
 	_init_stage_hazards()
 
 func _init_stage_hazards() -> void:
@@ -410,6 +446,7 @@ func _init_stage_hazards() -> void:
 
 
 func _setup_background() -> void:
+	_load_textures()
 	for c in get_children():
 		if c is ParallaxBackground or c.name == "SkyFleetCanvas" or c.is_in_group("sky_fleet"):
 			c.queue_free()
@@ -431,8 +468,8 @@ func _setup_background() -> void:
 	p_bg.layer = -10
 	add_child(p_bg)
 	
-	if ResourceLoader.exists(bg_path):
-		bg_texture = load(bg_path)
+	bg_texture = get_stage_texture(bg_path)
+	if bg_texture != null:
 		var p_layer := ParallaxLayer.new()
 		var tile_w: float = 960.0
 		var tile_h: float = 540.0
@@ -452,13 +489,13 @@ func _setup_background() -> void:
 		
 		# Load living background shader for Stage 1 Jungle & Stage 2 Waterfall
 		var bg_mat: ShaderMaterial = null
-		if Global.current_stage == 1 and ResourceLoader.exists("res://shaders/stage1_jungle_bg.gdshader"):
-			var j_shader: Shader = load("res://shaders/stage1_jungle_bg.gdshader")
+		if Global.current_stage == 1:
+			var j_shader := get_cached_shader("res://shaders/stage1_jungle_bg.gdshader")
 			if j_shader != null:
 				bg_mat = ShaderMaterial.new()
 				bg_mat.shader = j_shader
-		elif Global.current_stage == 2 and ResourceLoader.exists("res://shaders/stage2_waterfall_bg.gdshader"):
-			var w_shader: Shader = load("res://shaders/stage2_waterfall_bg.gdshader")
+		elif Global.current_stage == 2:
+			var w_shader := get_cached_shader("res://shaders/stage2_waterfall_bg.gdshader")
 			if w_shader != null:
 				bg_mat = ShaderMaterial.new()
 				bg_mat.shader = w_shader
@@ -620,8 +657,8 @@ func _physics_process(delta: float) -> void:
 	
 	if player != null and is_instance_valid(player) and camera != null:
 		var is_mob: bool = Global.is_mobile_device()
-		var target_zoom: Vector2 = Vector2(1.18, 1.18) if is_mob else Vector2(1.0, 1.0)
-		var entry_zoom: Vector2 = Vector2(1.75, 1.75) if is_mob else Vector2(1.60, 1.60)
+		var target_zoom: Vector2 = Vector2(1.53, 1.53) if is_mob else Vector2(1.30, 1.30)
+		var entry_zoom: Vector2 = Vector2(2.28, 2.28) if is_mob else Vector2(2.08, 2.08)
 		
 		var t_elapsed: float = Global.STAGE_INTRO_DURATION - Global.stage_intro_timer
 		var zoom_anim_dur: float = 1.6
@@ -644,7 +681,7 @@ func _physics_process(delta: float) -> void:
 			if Global.current_stage >= 2:
 				game_cam_y = clampf(player.global_position.y - 40.0, 110.0, 310.0)
 			else:
-				game_cam_y = clampf(280.0 if is_mob else 270.0, min_y, max_y)
+				game_cam_y = clampf(300.0 if is_mob else 290.0, min_y, max_y)
 			
 			camera.global_position.x = lerpf(entry_cam_x, game_cam_x, zoom_ease)
 			camera.global_position.y = lerpf(entry_cam_y, game_cam_y, zoom_ease)
@@ -669,10 +706,10 @@ func _physics_process(delta: float) -> void:
 			if Global.current_stage >= 2:
 				var target_cam_y: float = clampf(player.global_position.y - 40.0, 110.0, 310.0)
 				if is_mini_boss_active or Global.is_boss_cutscene_active or camera.global_position.x >= BOSS_TRIGGER_X:
-					target_cam_y = 280.0 if is_mob else 270.0
+					target_cam_y = 300.0 if is_mob else 290.0
 				camera.global_position.y = lerpf(camera.global_position.y, target_cam_y, delta * 3.8)
 			else:
-				camera.global_position.y = 280.0 if is_mob else 270.0
+				camera.global_position.y = 300.0 if is_mob else 290.0
 		
 		# Boss arena player containment (Player must never pass behind the boss)
 		if boss != null and is_instance_valid(boss):
@@ -693,7 +730,7 @@ func _physics_process(delta: float) -> void:
 		if Global.is_boss_cutscene_active:
 			var arena_cam_x := BOSS_TRIGGER_X
 			camera.global_position.x = lerpf(camera.global_position.x, arena_cam_x, delta * 3.5)
-			camera.global_position.y = lerpf(camera.global_position.y, (280.0 if is_mob else 270.0), delta * 3.5)
+			camera.global_position.y = lerpf(camera.global_position.y, (300.0 if is_mob else 290.0), delta * 3.5)
 	
 	_process_stage_mechanics(delta)
 	
@@ -2417,7 +2454,7 @@ func _draw_platforms(view_left: float, view_right: float) -> void:
 	for p_idx in range(platforms.size()):
 		var p: Dictionary = platforms[p_idx]
 		var b: Rect2 = p["rect"]
-		var ptype: int = p["type"]
+		var ptype: int = _parse_platform_type(p.get("type", 0))
 		
 		# Check if this is an active drop platform
 		var is_drop_plat: bool = false
@@ -2545,8 +2582,11 @@ func _draw_platforms(view_left: float, view_right: float) -> void:
 				var perch_rx: float = b.end.x - 12.0
 				_draw_vertical_chain(Vector2(perch_lx, -12.0), Vector2(perch_lx, b.position.y), 12.0, p_tint)
 				_draw_vertical_chain(Vector2(perch_rx, -12.0), Vector2(perch_rx, b.position.y), 12.0, p_tint)
-				if platform_tech_texture != null:
-					draw_texture_rect(platform_tech_texture, Rect2(b.position.x, b.position.y - 16.0, b.size.x, 56.0), false, p_tint)
+				var perch_tex := platform_tech_texture
+				if perch_tex == null:
+					perch_tex = platform_tech_catwalk_texture
+				if perch_tex != null:
+					draw_texture_rect(perch_tex, Rect2(b.position.x, b.position.y - 16.0, b.size.x, 56.0), false, p_tint)
 				else:
 					draw_rect(b, Color(0.20, 0.25, 0.35))
 					draw_line(Vector2(b.position.x, b.position.y), Vector2(b.end.x, b.position.y), Color(0.4, 0.7, 1.0), 2.0)
@@ -2566,6 +2606,17 @@ func _draw_platforms(view_left: float, view_right: float) -> void:
 				_draw_platform_tech_catwalk(b, p_tint)
 			PlatformType.BIO_RIB:
 				_draw_platform_bio_rib(b, p_tint)
+			PlatformType.WATERFALL_LEDGE:
+				_draw_platform_waterfall_ledge(b, active_p_tint, p)
+			_:
+				if platform_tech_catwalk_texture != null:
+					draw_texture_rect(platform_tech_catwalk_texture, Rect2(b.position.x, b.position.y - 6.0, b.size.x, 36.0), false, p_tint)
+				elif platform_tech_texture != null:
+					draw_texture_rect(platform_tech_texture, Rect2(b.position.x, b.position.y - 16.0, b.size.x, 56.0), false, p_tint)
+				elif platform_turf_texture != null:
+					draw_texture_rect(platform_turf_texture, Rect2(b.position.x, b.position.y - 6.0, b.size.x, 46.0), false, p_tint)
+				else:
+					draw_rect(Rect2(b.position.x, b.position.y, b.size.x, 24.0), Color(0.12, 0.14, 0.18))
 
 func _draw_platform_ice_slab(b: Rect2, p_tint: Color) -> void:
 	if platform_ice_slab_texture != null:
@@ -2601,8 +2652,11 @@ func _draw_platform_energy_barrier(b: Rect2, p_tint: Color) -> void:
 				draw_line(Vector2((ax1 + ax2) * 0.5, ay_top), Vector2(ax2, b.position.y), Color(1.0, 0.95, 0.35), 2.5)
 
 func _draw_platform_tech_catwalk(b: Rect2, p_tint: Color) -> void:
-	if platform_tech_catwalk_texture != null:
-		draw_texture_rect(platform_tech_catwalk_texture, Rect2(b.position.x, b.position.y - 6.0, b.size.x, 36.0), false, p_tint)
+	var tech_tex := platform_tech_catwalk_texture
+	if tech_tex == null:
+		tech_tex = platform_tech_texture
+	if tech_tex != null:
+		draw_texture_rect(tech_tex, Rect2(b.position.x, b.position.y - 6.0, b.size.x, 36.0), false, p_tint)
 	else:
 		draw_rect(Rect2(b.position.x, b.position.y, b.size.x, 24.0), Color(0.12, 0.14, 0.18))
 	
@@ -2612,6 +2666,34 @@ func _draw_platform_tech_catwalk(b: Rect2, p_tint: Color) -> void:
 		var flash := sin(anim_timer * 6.0 + float(led) * 1.5) > 0.0
 		var l_col := Color(1.0, 0.75, 0.15) if flash else Color(0.15, 0.20, 0.22)
 		draw_circle(Vector2(lx, b.position.y + 10.0), 2.5, l_col)
+
+func _draw_platform_waterfall_ledge(b: Rect2, p_tint: Color, p_data: Dictionary) -> void:
+	var v_name: String = str(p_data.get("variant", "crag"))
+	var tex: Texture2D = platform_turf_crag_texture
+	var draw_h: float = 46.0
+	match v_name:
+		"wide":
+			if platform_turf_wide_texture != null:
+				tex = platform_turf_wide_texture
+				draw_h = 50.0
+		"crag":
+			if platform_turf_crag_texture != null:
+				tex = platform_turf_crag_texture
+				draw_h = 82.0
+		"ledge", _:
+			if platform_turf_small_texture != null:
+				tex = platform_turf_small_texture
+				draw_h = 46.0
+			elif platform_turf_texture != null:
+				tex = platform_turf_texture
+				draw_h = 46.0
+	
+	if tex != null:
+		var slate_tint := Color(0.85, 0.95, 1.05, 1.0) * p_tint
+		draw_texture_rect(tex, Rect2(b.position.x, b.position.y - 6.0, b.size.x, draw_h), false, slate_tint)
+	else:
+		draw_rect(Rect2(b.position.x, b.position.y, b.size.x, 20.0), Color(0.25, 0.35, 0.45) * p_tint)
+		draw_rect(Rect2(b.position.x, b.position.y, b.size.x, 4.0), Color(0.55, 0.70, 0.80) * p_tint)
 
 func _draw_platform_bio_rib(b: Rect2, p_tint: Color) -> void:
 	if platform_bio_rib_texture != null:

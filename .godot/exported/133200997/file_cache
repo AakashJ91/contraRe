@@ -88,15 +88,8 @@ res://resources/enemies/thunder_dynamo_data.tres::580c473c172a100251e9ae05a42117
 res://resources/enemies/torpedo_drone_data.tres::15222f8178ac118a7b3ff48a344e89e3::1792219612::res://.godot/exported/133200997/export-a305e577a21c8b1c8ee445a6141f41d5-torpedo_drone_data.res
 res://resources/ui/health_pips.tres::8d14df456ddab72df358a8afca744645::1792423214::res://.godot/exported/133200997/export-fe33abbd92c4cc6c2696a06f7ffadc19-health_pips.res
 res://resources/ui/medal_life.tres::f0533c4fc37fd1d14eb3f8a9d72e6161::1792423662::res://.godot/exported/133200997/export-d6e49257dc0d3a57c29492786ba189cb-medal_life.res
-res://resources/vfx/explosion_alien_bio.tres::87721931fadefe4f0f29485d526dcff3::1792468133::res://.godot/exported/133200997/export-4ea586a6b87d61c428188be813c84197-explosion_alien_bio.res
-res://resources/vfx/explosion_arcade_fiery.tres::2accd79de12086d585fb728a8af9c42a::1792475002::res://.godot/exported/133200997/export-a5aff636f329bae6feb29789c96d3961-explosion_arcade_fiery.res
-res://resources/vfx/explosion_big.tres::ff7598b17d7e6152c35c028df18cebd1::1792478275::res://.godot/exported/133200997/export-695db6cda1b9a32a8a2e8eb558ac61c4-explosion_big.res
-res://resources/vfx/explosion_cryo_frost.tres::7677716889f3c694b87538dbf3095416::1792468133::res://.godot/exported/133200997/export-a1d6eb0a7ae94c36eceee449ac1ae0c0-explosion_cryo_frost.res
-res://resources/vfx/explosion_default.tres::479a144cc356a910759030b70b695504::1792474990::res://.godot/exported/133200997/export-d8b69a86bb492584f5382c27d6d53697-explosion_default.res
-res://resources/vfx/explosion_electric_tesla.tres::79489378a250ebe73236d9255f9a4225::1792468133::res://.godot/exported/133200997/export-c7333ce998df58cd7a0bdfec4bc99e0d-explosion_electric_tesla.res
-res://resources/vfx/explosion_magma_volcanic.tres::3859163a1d5480511b114d1928c9a9a7::1792468133::res://.godot/exported/133200997/export-35dfd637b59052d148e951cdaba252e2-explosion_magma_volcanic.res
-res://resources/vfx/explosion_mini_impact.tres::f26306b3da85ca72e46353d07c695efa::1792468133::res://.godot/exported/133200997/export-edad6146e701ab35bf214eed28da93eb-explosion_mini_impact.res
-res://resources/vfx/explosion_nuclear_mega.tres::21499407fe5317387da15e62107f82bd::1792478275::res://.godot/exported/133200997/export-defeef55b88795f6d7f43772e88f9f14-explosion_nuclear_mega.res
+res://resources/vfx/explosion_big.tres::bca85c065b63e081d96db969d01dd3d0::1792494964::res://.godot/exported/133200997/export-695db6cda1b9a32a8a2e8eb558ac61c4-explosion_big.res
+res://resources/vfx/explosion_default.tres::374c473378741a58685fd6c26526caf6::1792494974::res://.godot/exported/133200997/export-d8b69a86bb492584f5382c27d6d53697-explosion_default.res
 res://resources/vfx/explosion_skull_smoke.tres::865d0d2085628a2861730ffd8c9341e7::1792473790::res://.godot/exported/133200997/export-767e7b9be39860847779d82ef8f2253b-explosion_skull_smoke.res
 res://scenes/capture_test.tscn::0aa0af2174ed45a8dbd7ce6b63a07a26::1792247265::res://.godot/exported/133200997/export-4d103af7eb6596770c164f200399aece-capture_test.scn
 res://scenes/enemy_acid_spitter.tscn::b1c904008423df3635b3a493ed23f070::1792218505::res://.godot/exported/133200997/export-9df52091348309e55488fa535fb909fe-enemy_acid_spitter.scn
@@ -139,3 +132,6 @@ res://scratch/test_skull_smoke.tscn::3cee4504848cfd875fbbd8bbea56fd10::179247424
 res://scratch/test_spread_scene.tscn::c39ff4f26ea90b1525b142af5c01351e::1792458522::res://.godot/exported/133200997/export-993bc43383c8b166a9e60c7650429a04-test_spread_scene.scn
 res://scratch/test_stage1_spread_hover.tscn::fbfef45e1a48caa9c2777198b06cc073::1792459172::res://.godot/exported/133200997/export-258669d5130f1fd7a3cfdc564dd2090c-test_stage1_spread_hover.scn
 res://scratch/test_twisting_bullet.tscn::862c0644a343715d3a71fc68f216e504::1792459571::res://.godot/exported/133200997/export-d1d41f561ab75d6a69e3a0cc875e353c-test_twisting_bullet.scn
+res://scratch/preview_stage1_hit_explosion.tscn::07d8c4c310f96b62a22f2c042f714d46::1792496067::res://.godot/exported/133200997/export-cd027e72e98f6d7ebc92f95f2e49f6bb-preview_stage1_hit_explosion.scn
+res://scratch/test_hit_explosion.tscn::5e2e9d4d1613b055e13c2216c20cdb1c::1792495938::res://.godot/exported/133200997/export-b94b5f9f779f77d8a3bfacce56abe14a-test_hit_explosion.scn
+res://scratch/verify_tech_platforms.tscn::105e5085e8c895b32e3518cdcb77c70d::1792553520::res://.godot/exported/133200997/export-ae8216503bb096b1473198ada5fb246a-verify_tech_platforms.scn

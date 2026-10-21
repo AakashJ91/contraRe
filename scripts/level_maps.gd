@@ -22,6 +22,36 @@ enum PlatformType {
 	WATERFALL_LEDGE
 }
 
+static func parse_platform_type(val: Variant) -> int:
+	if val is int:
+		return val
+	if val is float:
+		return int(val)
+	if val is String:
+		var s: String = str(val).strip_edges().to_lower()
+		match s:
+			"0", "turf", "default":
+				return PlatformType.TURF
+			"1", "girder":
+				return PlatformType.GIRDER
+			"2", "bridge", "rope_bridge":
+				return PlatformType.ROPE_BRIDGE
+			"3", "perch", "high_perch":
+				return PlatformType.HIGH_PERCH
+			"4", "ice", "ice_slab":
+				return PlatformType.ICE_SLAB
+			"5", "lava", "lava_grate":
+				return PlatformType.LAVA_GRATE
+			"6", "energy", "energy_barrier":
+				return PlatformType.ENERGY_BARRIER
+			"7", "tech", "platform_tech", "catwalk", "tech_catwalk":
+				return PlatformType.TECH_CATWALK
+			"8", "bio", "bio_rib":
+				return PlatformType.BIO_RIB
+			"9", "waterfall", "waterfall_ledge", "ledge":
+				return PlatformType.WATERFALL_LEDGE
+	return 0
+
 static func get_map_data(stage_id: int) -> Dictionary:
 	var s_id := clampi(stage_id, 1, 8)
 	var custom_path := "user://custom_levels/stage_%d.json" % s_id
@@ -58,7 +88,7 @@ static func load_custom_stage_data(file_path: String, stage_id: int) -> Dictiona
 		for p in data["platforms"]:
 			var p_dict: Dictionary = {
 				"rect": Rect2(p["x"], p["y"], p["w"], p["h"]),
-				"type": p.get("type", 0),
+				"type": parse_platform_type(p.get("type", 0)),
 				"is_drop": p.get("is_drop", false),
 				"variant": p.get("variant", "default")
 			}
@@ -908,7 +938,7 @@ static func draw_level_map(canvas: CanvasItem, stage_id: int, map_rect: Rect2, p
 		var rel_y: float = clampf((pr.position.y - world_y_top) / world_y_range, 0.0, 1.0)
 		var py: float = map_rect.position.y + map_h * 0.16 + rel_y * (ground_y_base - (map_rect.position.y + map_h * 0.16))
 		
-		var p_type: int = p["type"]
+		var p_type: int = parse_platform_type(p.get("type", 0))
 		var p_col: Color = prim_col
 		var is_drop: bool = p.get("is_drop", false)
 		
@@ -922,6 +952,7 @@ static func draw_level_map(canvas: CanvasItem, stage_id: int, map_rect: Rect2, p
 			PlatformType.ENERGY_BARRIER: p_col = Color(0.30, 0.90, 1.0)
 			PlatformType.TECH_CATWALK: p_col = Color(0.70, 0.50, 0.95)
 			PlatformType.BIO_RIB: p_col = Color(0.95, 0.35, 0.60)
+			PlatformType.WATERFALL_LEDGE: p_col = Color(0.40, 0.80, 0.90)
 		
 		if is_drop:
 			p_col = Color(1.0, 0.4, 0.4)

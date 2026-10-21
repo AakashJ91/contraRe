@@ -283,7 +283,9 @@ func _load_current_stage_geometry(force_default: bool = false) -> void:
 	for g in map_info.get("ground_segments", []):
 		editor_ground.append(g)
 	for p in map_info.get("platforms", []):
-		editor_platforms.append(p.duplicate(true))
+		var p_copy: Dictionary = p.duplicate(true)
+		p_copy["type"] = LevelMaps.parse_platform_type(p_copy.get("type", 0))
+		editor_platforms.append(p_copy)
 	
 	# Load custom enemies if present in saved stage, else default landmarks
 	if map_info.has("custom_enemies") and not force_default:
@@ -916,7 +918,7 @@ func load_level_from_file(slot_id: int = 1) -> void:
 	for p_dict in data.get("platforms", []):
 		editor_platforms.append({
 			"rect": Rect2(p_dict["x"], p_dict["y"], p_dict["w"], p_dict["h"]),
-			"type": p_dict.get("type", 0),
+			"type": LevelMaps.parse_platform_type(p_dict.get("type", 0)),
 			"is_drop": p_dict.get("is_drop", false),
 			"variant": p_dict.get("variant", "default")
 		})

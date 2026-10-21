@@ -29,6 +29,9 @@ var thruster_col: Color = Color(1.0, 0.55, 0.12)
 var core_glow_col: Color = Color(1.0, 0.25, 0.15)
 var is_hover_initialized: bool = false
 
+static var s_sensor_data_cache: Dictionary = {}
+static var s_frames_cache: Dictionary = {}
+
 func _ready() -> void:
 	add_to_group("enemies")
 	add_to_group("powerup_sensors")
@@ -36,15 +39,19 @@ func _ready() -> void:
 	collision_mask = (1 << 3) # Layer 4: PlayerBullets
 	
 	hover_timer = randf_range(0.0, 10.0)
+	var stage_idx := clampi(Global.current_stage, 1, 8)
 	
 	# Load stage-specific theme resource if not manually specified
 	if sensor_data == null:
-		var stage_idx := clampi(Global.current_stage, 1, 8)
-		var theme_res_path := "res://resources/enemies/powerup_sensor_stage%d.tres" % stage_idx
-		if ResourceLoader.exists(theme_res_path):
-			sensor_data = load(theme_res_path)
-		elif ResourceLoader.exists("res://resources/enemies/powerup_sensor_data.tres"):
-			sensor_data = load("res://resources/enemies/powerup_sensor_data.tres")
+		if s_sensor_data_cache.has(stage_idx):
+			sensor_data = s_sensor_data_cache[stage_idx]
+		else:
+			var theme_res_path := "res://resources/enemies/powerup_sensor_stage%d.tres" % stage_idx
+			if ResourceLoader.exists(theme_res_path):
+				sensor_data = load(theme_res_path)
+			elif ResourceLoader.exists("res://resources/enemies/powerup_sensor_data.tres"):
+				sensor_data = load("res://resources/enemies/powerup_sensor_data.tres")
+			s_sensor_data_cache[stage_idx] = sensor_data
 	
 	if sensor_data != null:
 		max_health = sensor_data.get("max_health") if sensor_data.get("max_health") != null else 3.0
@@ -64,18 +71,21 @@ func _ready() -> void:
 	
 	# Fallback dynamic theme loading if frames empty
 	if frames.is_empty():
-		var stage_names: Array[String] = ["military", "aqua", "alien", "cryo", "magma", "tesla", "stealth", "sanctum"]
-		var s_idx := clampi(Global.current_stage, 1, 8) - 1
-		var t_name: String = stage_names[s_idx]
-		for i in range(6):
-			var fp := "res://assets/powerups/sensor/themes/%s/frame_%d.png" % [t_name, i]
-			if ResourceLoader.exists(fp):
-				frames.append(load(fp))
-			elif ResourceLoader.exists("res://assets/powerups/sensor/sensor_frame_%d.png" % i):
-				frames.append(load("res://assets/powerups/sensor/sensor_frame_%d.png" % i))
-	
-	if frames.is_empty() and ResourceLoader.exists("res://assets/powerups/powerup_sensor.png"):
-		frames.append(load("res://assets/powerups/powerup_sensor.png"))
+		if s_frames_cache.has(stage_idx):
+			frames = s_frames_cache[stage_idx]
+		else:
+			var stage_names: Array[String] = ["military", "aqua", "alien", "cryo", "magma", "tesla", "stealth", "sanctum"]
+			var s_idx := stage_idx - 1
+			var t_name: String = stage_names[s_idx]
+			for i in range(6):
+				var fp := "res://assets/powerups/sensor/themes/%s/frame_%d.png" % [t_name, i]
+				if ResourceLoader.exists(fp):
+					frames.append(load(fp))
+				elif ResourceLoader.exists("res://assets/powerups/sensor/sensor_frame_%d.png" % i):
+					frames.append(load("res://assets/powerups/sensor/sensor_frame_%d.png" % i))
+			if frames.is_empty() and ResourceLoader.exists("res://assets/powerups/powerup_sensor.png"):
+				frames.append(load("res://assets/powerups/powerup_sensor.png"))
+			s_frames_cache[stage_idx] = frames
 	
 	queue_redraw()
 

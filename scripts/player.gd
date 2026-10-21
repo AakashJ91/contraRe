@@ -66,6 +66,106 @@ var coyote_timer: float = 0.0
 
 @onready var collision_shape: CollisionShape2D = $CollisionShape2D
 
+static var s_tex_idle: Texture2D = null
+static var s_tex_aim: Texture2D = null
+static var s_tex_aim_diag_up: Texture2D = null
+static var s_tex_aim_up: Texture2D = null
+static var s_tex_fire: Texture2D = null
+static var s_tex_fire_1: Texture2D = null
+static var s_tex_fire_diag_up: Texture2D = null
+static var s_tex_fire_diag_up_1: Texture2D = null
+static var s_tex_fire_up: Texture2D = null
+static var s_tex_fire_up_1: Texture2D = null
+static var s_tex_jump: Texture2D = null
+static var s_tex_prone: Texture2D = null
+static var s_tex_aim_diag_down: Texture2D = null
+static var s_tex_fire_diag_down: Texture2D = null
+static var s_tex_run: Array[Texture2D] = []
+static var s_tex_run_fire: Array[Texture2D] = []
+static var s_tex_run_up: Array[Texture2D] = []
+static var s_tex_run_fire_up: Array[Texture2D] = []
+static var s_tex_run_down: Array[Texture2D] = []
+static var s_tex_run_fire_down: Array[Texture2D] = []
+static var s_tex_invisible_frames: Array[Texture2D] = []
+static var s_tex_invisible_sheet: Texture2D = null
+static var s_player_assets_loaded: bool = false
+
+static func _ensure_player_assets_loaded() -> void:
+	if s_player_assets_loaded:
+		return
+	s_player_assets_loaded = true
+	
+	if ResourceLoader.exists("res://assets/player/player_idle.png"):
+		s_tex_idle = load("res://assets/player/player_idle.png")
+	if ResourceLoader.exists("res://assets/player/player_aim.png"):
+		s_tex_aim = load("res://assets/player/player_aim.png")
+	if ResourceLoader.exists("res://assets/player/player_aim_diag_up.png"):
+		s_tex_aim_diag_up = load("res://assets/player/player_aim_diag_up.png")
+	if ResourceLoader.exists("res://assets/player/player_aim_up.png"):
+		s_tex_aim_up = load("res://assets/player/player_aim_up.png")
+	if ResourceLoader.exists("res://assets/player/player_fire.png"):
+		s_tex_fire = load("res://assets/player/player_fire.png")
+	if ResourceLoader.exists("res://assets/player/player_fire_1.png"):
+		s_tex_fire_1 = load("res://assets/player/player_fire_1.png")
+	if ResourceLoader.exists("res://assets/player/player_fire_diag_up.png"):
+		s_tex_fire_diag_up = load("res://assets/player/player_fire_diag_up.png")
+	if ResourceLoader.exists("res://assets/player/player_fire_diag_up_1.png"):
+		s_tex_fire_diag_up_1 = load("res://assets/player/player_fire_diag_up_1.png")
+	if ResourceLoader.exists("res://assets/player/player_fire_up.png"):
+		s_tex_fire_up = load("res://assets/player/player_fire_up.png")
+	if ResourceLoader.exists("res://assets/player/player_fire_up_1.png"):
+		s_tex_fire_up_1 = load("res://assets/player/player_fire_up_1.png")
+	if ResourceLoader.exists("res://assets/player/player_jump.png"):
+		s_tex_jump = load("res://assets/player/player_jump.png")
+	if ResourceLoader.exists("res://assets/player/player_prone.png"):
+		s_tex_prone = load("res://assets/player/player_prone.png")
+	if ResourceLoader.exists("res://assets/player/player_aim_diag_down.png"):
+		s_tex_aim_diag_down = load("res://assets/player/player_aim_diag_down.png")
+	if ResourceLoader.exists("res://assets/player/player_fire_diag_down.png"):
+		s_tex_fire_diag_down = load("res://assets/player/player_fire_diag_down.png")
+	
+	s_tex_run.clear()
+	s_tex_run_fire.clear()
+	s_tex_run_up.clear()
+	s_tex_run_fire_up.clear()
+	s_tex_run_down.clear()
+	s_tex_run_fire_down.clear()
+	for i in range(4):
+		var p := "res://assets/player/player_run_%d.png" % i
+		if ResourceLoader.exists(p):
+			s_tex_run.append(load(p))
+		var pf := "res://assets/player/player_run_fire_%d.png" % i
+		if ResourceLoader.exists(pf):
+			s_tex_run_fire.append(load(pf))
+		var pu := "res://assets/player/player_run_up_%d.png" % i
+		if ResourceLoader.exists(pu):
+			s_tex_run_up.append(load(pu))
+		var pfu := "res://assets/player/player_run_fire_up_%d.png" % i
+		if ResourceLoader.exists(pfu):
+			s_tex_run_fire_up.append(load(pfu))
+		var pd := "res://assets/player/player_run_down_%d.png" % i
+		if ResourceLoader.exists(pd):
+			s_tex_run_down.append(load(pd))
+		var pfd := "res://assets/player/player_run_fire_down_%d.png" % i
+		if ResourceLoader.exists(pfd):
+			s_tex_run_fire_down.append(load(pfd))
+	
+	if ResourceLoader.exists("res://assets/vfx/effect/invisible.png"):
+		s_tex_invisible_sheet = load("res://assets/vfx/effect/invisible.png")
+	elif ResourceLoader.exists("res://assets/vfx/invisible.png"):
+		s_tex_invisible_sheet = load("res://assets/vfx/invisible.png")
+	
+	s_tex_invisible_frames.clear()
+	for i in range(12):
+		var ip := "res://assets/vfx/effect/invisible/frame_%d.png" % i
+		if ResourceLoader.exists(ip):
+			s_tex_invisible_frames.append(load(ip))
+		elif s_tex_invisible_sheet != null:
+			var atlas := AtlasTexture.new()
+			atlas.atlas = s_tex_invisible_sheet
+			atlas.region = Rect2(float(i * 64), 0.0, 64.0, 64.0)
+			s_tex_invisible_frames.append(atlas)
+
 func _ready() -> void:
 	add_to_group("player")
 	collision_layer = 1 << 0 # Layer 1: Player
@@ -74,70 +174,30 @@ func _ready() -> void:
 		stage_gravity_scale = 0.60 # Stage 7 Orbital Hangar Low Gravity
 	else:
 		stage_gravity_scale = 1.0
-	if ResourceLoader.exists("res://assets/player/player_idle.png"):
-		tex_idle = load("res://assets/player/player_idle.png")
-	if ResourceLoader.exists("res://assets/player/player_aim.png"):
-		tex_aim = load("res://assets/player/player_aim.png")
-	if ResourceLoader.exists("res://assets/player/player_aim_diag_up.png"):
-		tex_aim_diag_up = load("res://assets/player/player_aim_diag_up.png")
-	if ResourceLoader.exists("res://assets/player/player_aim_up.png"):
-		tex_aim_up = load("res://assets/player/player_aim_up.png")
-	if ResourceLoader.exists("res://assets/player/player_fire.png"):
-		tex_fire = load("res://assets/player/player_fire.png")
-	if ResourceLoader.exists("res://assets/player/player_fire_1.png"):
-		tex_fire_1 = load("res://assets/player/player_fire_1.png")
-	if ResourceLoader.exists("res://assets/player/player_fire_diag_up.png"):
-		tex_fire_diag_up = load("res://assets/player/player_fire_diag_up.png")
-	if ResourceLoader.exists("res://assets/player/player_fire_diag_up_1.png"):
-		tex_fire_diag_up_1 = load("res://assets/player/player_fire_diag_up_1.png")
-	if ResourceLoader.exists("res://assets/player/player_fire_up.png"):
-		tex_fire_up = load("res://assets/player/player_fire_up.png")
-	if ResourceLoader.exists("res://assets/player/player_fire_up_1.png"):
-		tex_fire_up_1 = load("res://assets/player/player_fire_up_1.png")
-	if ResourceLoader.exists("res://assets/player/player_jump.png"):
-		tex_jump = load("res://assets/player/player_jump.png")
-	if ResourceLoader.exists("res://assets/player/player_prone.png"):
-		tex_prone = load("res://assets/player/player_prone.png")
-	if ResourceLoader.exists("res://assets/player/player_aim_diag_down.png"):
-		tex_aim_diag_down = load("res://assets/player/player_aim_diag_down.png")
-	if ResourceLoader.exists("res://assets/player/player_fire_diag_down.png"):
-		tex_fire_diag_down = load("res://assets/player/player_fire_diag_down.png")
-	for i in range(4):
-		var p := "res://assets/player/player_run_%d.png" % i
-		if ResourceLoader.exists(p):
-			tex_run.append(load(p))
-		var pf := "res://assets/player/player_run_fire_%d.png" % i
-		if ResourceLoader.exists(pf):
-			tex_run_fire.append(load(pf))
-		var pu := "res://assets/player/player_run_up_%d.png" % i
-		if ResourceLoader.exists(pu):
-			tex_run_up.append(load(pu))
-		var pfu := "res://assets/player/player_run_fire_up_%d.png" % i
-		if ResourceLoader.exists(pfu):
-			tex_run_fire_up.append(load(pfu))
-		var pd := "res://assets/player/player_run_down_%d.png" % i
-		if ResourceLoader.exists(pd):
-			tex_run_down.append(load(pd))
-		var pfd := "res://assets/player/player_run_fire_down_%d.png" % i
-		if ResourceLoader.exists(pfd):
-			tex_run_fire_down.append(load(pfd))
-	
-	# Load invisible/invulnerable respawn sparkle frames (64x64, 12 frames from invisible.png)
-	if ResourceLoader.exists("res://assets/vfx/effect/invisible.png"):
-		tex_invisible_sheet = load("res://assets/vfx/effect/invisible.png")
-	elif ResourceLoader.exists("res://assets/vfx/invisible.png"):
-		tex_invisible_sheet = load("res://assets/vfx/invisible.png")
-	
-	tex_invisible_frames.clear()
-	for i in range(12):
-		var ip := "res://assets/vfx/effect/invisible/frame_%d.png" % i
-		if ResourceLoader.exists(ip):
-			tex_invisible_frames.append(load(ip))
-		elif tex_invisible_sheet != null:
-			var atlas := AtlasTexture.new()
-			atlas.atlas = tex_invisible_sheet
-			atlas.region = Rect2(float(i * 64), 0.0, 64.0, 64.0)
-			tex_invisible_frames.append(atlas)
+
+	_ensure_player_assets_loaded()
+	tex_idle = s_tex_idle
+	tex_aim = s_tex_aim
+	tex_aim_diag_up = s_tex_aim_diag_up
+	tex_aim_up = s_tex_aim_up
+	tex_fire = s_tex_fire
+	tex_fire_1 = s_tex_fire_1
+	tex_fire_diag_up = s_tex_fire_diag_up
+	tex_fire_diag_up_1 = s_tex_fire_diag_up_1
+	tex_fire_up = s_tex_fire_up
+	tex_fire_up_1 = s_tex_fire_up_1
+	tex_jump = s_tex_jump
+	tex_prone = s_tex_prone
+	tex_aim_diag_down = s_tex_aim_diag_down
+	tex_fire_diag_down = s_tex_fire_diag_down
+	tex_run = s_tex_run
+	tex_run_fire = s_tex_run_fire
+	tex_run_up = s_tex_run_up
+	tex_run_fire_up = s_tex_run_fire_up
+	tex_run_down = s_tex_run_down
+	tex_run_fire_down = s_tex_run_fire_down
+	tex_invisible_frames = s_tex_invisible_frames
+	tex_invisible_sheet = s_tex_invisible_sheet
 	
 	Global.player_health = Global.PLAYER_MAX_HEALTH
 	Global.player_health_changed.emit(Global.player_health, Global.PLAYER_MAX_HEALTH)

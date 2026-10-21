@@ -65,37 +65,56 @@ var step_sound_cooldown: float = 0.0
 
 @onready var hurtbox: Area2D = $Hurtbox
 
+static var s_walk_cache: Dictionary = {}
+static var s_death_cache: Dictionary = {}
+static var s_mech_cache: Dictionary = {}
+static var s_res_cache: Dictionary = {}
+
 func _ready() -> void:
-	walk_textures.clear()
-	death_textures.clear()
-	
 	var stg := clampi(Global.current_stage, 1, 8)
 	var is_stage1: bool = (stg == 1)
-	var move_prefix: String = "res://assets/enemies/mini_boss/movement/walk_%d.png" if is_stage1 else ("res://assets/enemies/mini_boss_stage%d/movement/walk_%%d.png" % stg)
-	var death_prefix: String = "res://assets/enemies/mini_boss/death/death_%d.png" if is_stage1 else ("res://assets/enemies/mini_boss_stage%d/death/death_%%d.png" % stg)
-	var base_mech_path: String = "res://assets/enemies/mini_boss/mini_boss_mech.png" if is_stage1 else ("res://assets/enemies/mini_boss_stage%d/mini_boss_stage%d.png" % [stg, stg])
 	
-	for i in range(4):
-		var p := move_prefix % i
-		if not ResourceLoader.exists(p) and is_stage1:
-			p = "res://assets/enemies/mini_boss_walk_%d.png" % i
-		if ResourceLoader.exists(p):
-			walk_textures.append(load(p))
+	if s_walk_cache.has(stg):
+		walk_textures = s_walk_cache[stg]
+		death_textures = s_death_cache[stg]
+		mech_texture = s_mech_cache.get(stg, null)
+	else:
+		walk_textures.clear()
+		death_textures.clear()
+		var move_prefix: String = "res://assets/enemies/mini_boss/movement/walk_%d.png" if is_stage1 else ("res://assets/enemies/mini_boss_stage%d/movement/walk_%%d.png" % stg)
+		var death_prefix: String = "res://assets/enemies/mini_boss/death/death_%d.png" if is_stage1 else ("res://assets/enemies/mini_boss_stage%d/death/death_%%d.png" % stg)
+		var base_mech_path: String = "res://assets/enemies/mini_boss/mini_boss_mech.png" if is_stage1 else ("res://assets/enemies/mini_boss_stage%d/mini_boss_stage%d.png" % [stg, stg])
+		
+		for i in range(4):
+			var p := move_prefix % i
+			if not ResourceLoader.exists(p) and is_stage1:
+				p = "res://assets/enemies/mini_boss_walk_%d.png" % i
+			if ResourceLoader.exists(p):
+				walk_textures.append(load(p))
+		
+		for i in range(4):
+			var p := death_prefix % i
+			if ResourceLoader.exists(p):
+				death_textures.append(load(p))
+		
+		if ResourceLoader.exists(base_mech_path):
+			mech_texture = load(base_mech_path)
+		elif is_stage1 and ResourceLoader.exists("res://assets/enemies/mini_boss_mech.png"):
+			mech_texture = load("res://assets/enemies/mini_boss_mech.png")
+		elif walk_textures.size() > 0:
+			mech_texture = walk_textures[0]
+		
+		s_walk_cache[stg] = walk_textures
+		s_death_cache[stg] = death_textures
+		s_mech_cache[stg] = mech_texture
 	
-	for i in range(4):
-		var p := death_prefix % i
-		if ResourceLoader.exists(p):
-			death_textures.append(load(p))
-	
-	if ResourceLoader.exists(base_mech_path):
-		mech_texture = load(base_mech_path)
-	elif is_stage1 and ResourceLoader.exists("res://assets/enemies/mini_boss_mech.png"):
-		mech_texture = load("res://assets/enemies/mini_boss_mech.png")
-	elif walk_textures.size() > 0:
-		mech_texture = walk_textures[0]
-	
-	var res_path := "res://resources/enemies/mini_boss_stage%d_data.tres" % stg
-	var res: EnemyData = load(res_path) if ResourceLoader.exists(res_path) else null
+	var res: EnemyData = null
+	if s_res_cache.has(stg):
+		res = s_res_cache[stg]
+	else:
+		var res_path := "res://resources/enemies/mini_boss_stage%d_data.tres" % stg
+		res = load(res_path) if ResourceLoader.exists(res_path) else null
+		s_res_cache[stg] = res
 	
 	if res != null:
 		max_health = res.max_health

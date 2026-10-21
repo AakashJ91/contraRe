@@ -18,18 +18,34 @@ var is_dying: bool = false
 var death_frame: int = 0
 var death_timer: float = 0.0
 
+static var s_base_texture: Texture2D = null
+static var s_walk_textures: Array[Texture2D] = []
+static var s_death_textures: Array[Texture2D] = []
+static var s_assets_loaded: bool = false
+
+static func _ensure_assets_loaded() -> void:
+	if s_assets_loaded:
+		return
+	s_assets_loaded = true
+	if ResourceLoader.exists("res://assets/enemies/scuba_commando/scuba_commando.png"):
+		s_base_texture = load("res://assets/enemies/scuba_commando/scuba_commando.png")
+	s_walk_textures.clear()
+	s_death_textures.clear()
+	for i in range(4):
+		var p_walk := "res://assets/enemies/scuba_commando/movement/walk_%d.png" % i
+		if ResourceLoader.exists(p_walk): s_walk_textures.append(load(p_walk))
+		var p_death := "res://assets/enemies/scuba_commando/death/destroy_%d.png" % i
+		if ResourceLoader.exists(p_death): s_death_textures.append(load(p_death))
+
 func _ready() -> void:
 	add_to_group("enemies")
 	collision_layer = 1 << 2
 	collision_mask = 1 << 1
 	
-	if ResourceLoader.exists("res://assets/enemies/scuba_commando/scuba_commando.png"):
-		base_texture = load("res://assets/enemies/scuba_commando/scuba_commando.png")
-	for i in range(4):
-		var p_walk := "res://assets/enemies/scuba_commando/movement/walk_%d.png" % i
-		if ResourceLoader.exists(p_walk): walk_textures.append(load(p_walk))
-		var p_death := "res://assets/enemies/scuba_commando/death/destroy_%d.png" % i
-		if ResourceLoader.exists(p_death): death_textures.append(load(p_death))
+	_ensure_assets_loaded()
+	base_texture = s_base_texture
+	walk_textures = s_walk_textures
+	death_textures = s_death_textures
 	queue_redraw()
 
 func _physics_process(delta: float) -> void:

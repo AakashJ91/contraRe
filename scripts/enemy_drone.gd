@@ -31,6 +31,34 @@ var attack_cooldown: float = 2.5
 var target_aim_dir: Vector2 = Vector2.DOWN
 var is_alien_theme: bool = false
 
+static var s_fly_textures: Array[Texture2D] = []
+static var s_death_textures: Array[Texture2D] = []
+static var s_drone_texture: Texture2D = null
+static var s_assets_loaded: bool = false
+
+static func _ensure_assets_loaded(e_data: EnemyData) -> void:
+	if s_assets_loaded:
+		return
+	s_assets_loaded = true
+	s_fly_textures.clear()
+	for i in range(4):
+		var p := "res://assets/enemies/drone/movement/fly_%d.png" % i
+		if ResourceLoader.exists(p):
+			s_fly_textures.append(load(p))
+	
+	s_death_textures.clear()
+	for i in range(4):
+		var p := "res://assets/enemies/drone/death/crash_%d.png" % i
+		if ResourceLoader.exists(p):
+			s_death_textures.append(load(p))
+	
+	if ResourceLoader.exists("res://assets/enemies/drone/drone.png"):
+		s_drone_texture = load("res://assets/enemies/drone/drone.png")
+	elif e_data != null and e_data.sprite_texture != null:
+		s_drone_texture = e_data.sprite_texture
+	elif ResourceLoader.exists("res://assets/enemies/enemy_drone.png"):
+		s_drone_texture = load("res://assets/enemies/enemy_drone.png")
+
 func _ready() -> void:
 	motion_mode = CharacterBody2D.MOTION_MODE_FLOATING
 	collision_layer = 1 << 2 # Layer 3: Enemies
@@ -38,24 +66,10 @@ func _ready() -> void:
 	base_altitude = global_position.y
 	is_alien_theme = (Global.current_stage == 2 or Global.current_stage == 8)
 	
-	fly_textures.clear()
-	for i in range(4):
-		var p := "res://assets/enemies/drone/movement/fly_%d.png" % i
-		if ResourceLoader.exists(p):
-			fly_textures.append(load(p))
-	
-	death_textures.clear()
-	for i in range(4):
-		var p := "res://assets/enemies/drone/death/crash_%d.png" % i
-		if ResourceLoader.exists(p):
-			death_textures.append(load(p))
-	
-	if ResourceLoader.exists("res://assets/enemies/drone/drone.png"):
-		drone_texture = load("res://assets/enemies/drone/drone.png")
-	elif enemy_data != null and enemy_data.sprite_texture != null:
-		drone_texture = enemy_data.sprite_texture
-	elif ResourceLoader.exists("res://assets/enemies/enemy_drone.png"):
-		drone_texture = load("res://assets/enemies/enemy_drone.png")
+	_ensure_assets_loaded(enemy_data)
+	fly_textures = s_fly_textures
+	death_textures = s_death_textures
+	drone_texture = s_drone_texture
 	
 	if enemy_data != null:
 		health = enemy_data.max_health

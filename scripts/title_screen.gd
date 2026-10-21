@@ -22,6 +22,46 @@ func _ready() -> void:
 	for i in range(50):
 		stars.append(Vector2(randf_range(0.0, 960.0), randf_range(0.0, 540.0)))
 	queue_redraw()
+	call_deferred("_prewarm_game_assets")
+
+func _prewarm_game_assets() -> void:
+	WorkerThreadPool.add_task(Callable(self, "_bg_warm_task"))
+
+func _bg_warm_task() -> void:
+	Player._ensure_player_assets_loaded()
+	var s_sniper = load("res://scripts/enemy_sniper.gd")
+	if s_sniper and s_sniper.has_method("_ensure_assets_loaded"): s_sniper._ensure_assets_loaded(null)
+	var s_turret = load("res://scripts/enemy_turret.gd")
+	if s_turret and s_turret.has_method("_ensure_assets_loaded"): s_turret._ensure_assets_loaded()
+	var s_crawler = load("res://scripts/enemy_crawler.gd")
+	if s_crawler and s_crawler.has_method("_ensure_assets_loaded"): s_crawler._ensure_assets_loaded(null)
+	var s_grenadier = load("res://scripts/enemy_grenadier.gd")
+	if s_grenadier and s_grenadier.has_method("_ensure_assets_loaded"): s_grenadier._ensure_assets_loaded(null)
+	var s_gunner = load("res://scripts/enemy_guerrilla_gunner.gd")
+	if s_gunner and s_gunner.has_method("_ensure_assets_loaded"): s_gunner._ensure_assets_loaded()
+	var s_flame = load("res://scripts/enemy_flame_trooper.gd")
+	if s_flame and s_flame.has_method("_ensure_assets_loaded"): s_flame._ensure_assets_loaded()
+	var s_soldier = load("res://scripts/enemy_soldier.gd")
+	if s_soldier and s_soldier.has_method("_ensure_assets_loaded"): s_soldier._ensure_assets_loaded()
+	var s_drone = load("res://scripts/enemy_drone.gd")
+	if s_drone and s_drone.has_method("_ensure_assets_loaded"): s_drone._ensure_assets_loaded(null)
+	
+	var s_stage1 = load("res://scripts/stage1.gd")
+	if s_stage1 != null:
+		s_stage1.get_stage_texture("res://assets/tiles/ground_tile.png")
+		s_stage1.get_stage_texture("res://assets/tiles/ground_boss_fortress.png")
+		s_stage1.get_stage_texture("res://assets/tiles/platform_girder.png")
+		s_stage1.get_stage_texture("res://assets/tiles/platform_turf.png")
+		s_stage1.get_stage_texture("res://assets/tiles/platform_turf_small.png")
+		s_stage1.get_stage_texture("res://assets/tiles/platform_turf_wide.png")
+		s_stage1.get_stage_texture("res://assets/tiles/platform_turf_wedge_left.png")
+		s_stage1.get_stage_texture("res://assets/tiles/platform_turf_wedge_right.png")
+		s_stage1.get_stage_texture("res://assets/tiles/platform_tech.png")
+		s_stage1.get_stage_texture("res://assets/tiles/platform_tech_catwalk.png")
+		s_stage1.get_stage_texture("res://assets/tiles/ground_edge_left.png")
+		s_stage1.get_stage_texture("res://assets/tiles/ground_edge_right.png")
+		s_stage1.get_stage_texture("res://assets/backgrounds/stage1_jungle.jpg")
+		s_stage1.get_cached_shader("res://shaders/stage1_jungle_bg.gdshader")
 
 func _process(delta: float) -> void:
 	anim_timer += delta

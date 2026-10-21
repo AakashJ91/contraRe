@@ -31,32 +31,46 @@ var state_timer: float = 0.0
 var recoil_offset: float = 0.0
 var muzzle_flash_timer: float = 0.0
 
+static var s_attack_textures: Array[Texture2D] = []
+static var s_death_textures: Array[Texture2D] = []
+static var s_grenadier_texture: Texture2D = null
+static var s_assets_loaded: bool = false
+
+static func _ensure_assets_loaded(e_data: EnemyData) -> void:
+	if s_assets_loaded:
+		return
+	s_assets_loaded = true
+	s_attack_textures.clear()
+	for i in range(4):
+		var p := "res://assets/enemies/grenadier/movement/attack_%d.png" % i
+		if ResourceLoader.exists(p):
+			s_attack_textures.append(load(p))
+		else:
+			var p_walk := "res://assets/enemies/grenadier/movement/walk_%d.png" % i
+			if ResourceLoader.exists(p_walk):
+				s_attack_textures.append(load(p_walk))
+	
+	s_death_textures.clear()
+	for i in range(4):
+		var p := "res://assets/enemies/grenadier/death/death_%d.png" % i
+		if ResourceLoader.exists(p):
+			s_death_textures.append(load(p))
+	
+	if ResourceLoader.exists("res://assets/enemies/grenadier/grenadier.png"):
+		s_grenadier_texture = load("res://assets/enemies/grenadier/grenadier.png")
+	elif e_data != null and e_data.sprite_texture != null:
+		s_grenadier_texture = e_data.sprite_texture
+	elif ResourceLoader.exists("res://assets/enemies/enemy_grenadier.png"):
+		s_grenadier_texture = load("res://assets/enemies/enemy_grenadier.png")
+
 func _ready() -> void:
 	collision_layer = 1 << 2 # Layer 3: Enemies
 	collision_mask = 1 << 1 # Layer 2: World
 	
-	attack_textures.clear()
-	for i in range(4):
-		var p := "res://assets/enemies/grenadier/movement/attack_%d.png" % i
-		if ResourceLoader.exists(p):
-			attack_textures.append(load(p))
-		else:
-			var p_walk := "res://assets/enemies/grenadier/movement/walk_%d.png" % i
-			if ResourceLoader.exists(p_walk):
-				attack_textures.append(load(p_walk))
-	
-	death_textures.clear()
-	for i in range(4):
-		var p := "res://assets/enemies/grenadier/death/death_%d.png" % i
-		if ResourceLoader.exists(p):
-			death_textures.append(load(p))
-	
-	if ResourceLoader.exists("res://assets/enemies/grenadier/grenadier.png"):
-		grenadier_texture = load("res://assets/enemies/grenadier/grenadier.png")
-	elif enemy_data != null and enemy_data.sprite_texture != null:
-		grenadier_texture = enemy_data.sprite_texture
-	elif ResourceLoader.exists("res://assets/enemies/enemy_grenadier.png"):
-		grenadier_texture = load("res://assets/enemies/enemy_grenadier.png")
+	_ensure_assets_loaded(enemy_data)
+	attack_textures = s_attack_textures
+	death_textures = s_death_textures
+	grenadier_texture = s_grenadier_texture
 	
 	if enemy_data != null:
 		health = enemy_data.max_health

@@ -20,6 +20,28 @@ var is_dying: bool = false
 var death_frame: int = 0
 var death_timer: float = 0.0
 
+static var s_run_textures: Array[Texture2D] = []
+static var s_death_textures: Array[Texture2D] = []
+static var s_assets_loaded: bool = false
+
+static func _ensure_assets_loaded() -> void:
+	if s_assets_loaded:
+		return
+	s_assets_loaded = true
+	s_run_textures.clear()
+	for i in range(4):
+		var p := "res://assets/enemies/soldier/movement/run_%d.png" % i
+		if ResourceLoader.exists(p):
+			s_run_textures.append(load(p))
+		elif ResourceLoader.exists("res://assets/enemies/enemy_soldier_run_%d.png" % i):
+			s_run_textures.append(load("res://assets/enemies/enemy_soldier_run_%d.png" % i))
+	
+	s_death_textures.clear()
+	for i in range(4):
+		var p := "res://assets/enemies/soldier/death/death_%d.png" % i
+		if ResourceLoader.exists(p):
+			s_death_textures.append(load(p))
+
 func _ready() -> void:
 	add_to_group("foot_soldiers")
 	add_to_group("enemies")
@@ -27,19 +49,9 @@ func _ready() -> void:
 	collision_mask = (1 << 1) # Layer 2: World
 	shoot_timer = randf_range(1.5, 3.5)
 	
-	run_textures.clear()
-	for i in range(4):
-		var p := "res://assets/enemies/soldier/movement/run_%d.png" % i
-		if ResourceLoader.exists(p):
-			run_textures.append(load(p))
-		elif ResourceLoader.exists("res://assets/enemies/enemy_soldier_run_%d.png" % i):
-			run_textures.append(load("res://assets/enemies/enemy_soldier_run_%d.png" % i))
-	
-	death_textures.clear()
-	for i in range(4):
-		var p := "res://assets/enemies/soldier/death/death_%d.png" % i
-		if ResourceLoader.exists(p):
-			death_textures.append(load(p))
+	_ensure_assets_loaded()
+	run_textures = s_run_textures
+	death_textures = s_death_textures
 	
 	queue_redraw()
 

@@ -73,12 +73,24 @@ var heat_tr: float = 0.0
 
 var shell_casings: Array[Dictionary] = []
 
+static var s_fire_textures: Array[Texture2D] = []
+static var s_boss_cache: Dictionary = {}
+static func get_cached_boss_tex(path: String) -> Texture2D:
+	if s_boss_cache.has(path):
+		return s_boss_cache[path]
+	if ResourceLoader.exists(path):
+		var t: Texture2D = load(path)
+		s_boss_cache[path] = t
+		return t
+	return null
+
 func _ready() -> void:
-	fire_textures.clear()
-	for i in range(15):
-		var fp := "res://assets/vfx/effect/fire/frame_%d.png" % i
-		if ResourceLoader.exists(fp):
-			fire_textures.append(load(fp))
+	if s_fire_textures.is_empty():
+		for i in range(15):
+			var fp := "res://assets/vfx/effect/fire/frame_%d.png" % i
+			if ResourceLoader.exists(fp):
+				s_fire_textures.append(load(fp))
+	fire_textures = s_fire_textures
 	
 	_init_boss_stats()
 	_setup_solid_barrier()
@@ -90,21 +102,23 @@ func _ready() -> void:
 		core_textures.clear()
 		for i in range(4):
 			var cp := "res://assets/enemies/boss_fortress/movement/core_%d.png" % i
-			if ResourceLoader.exists(cp):
-				core_textures.append(load(cp))
+			var ct := get_cached_boss_tex(cp)
+			if ct != null:
+				core_textures.append(ct)
 		
 		death_textures.clear()
 		for i in range(4):
 			var dp := "res://assets/enemies/boss_fortress/death/destroy_%d.png" % i
-			if ResourceLoader.exists(dp):
-				death_textures.append(load(dp))
+			var dt := get_cached_boss_tex(dp)
+			if dt != null:
+				death_textures.append(dt)
 		
-		if ResourceLoader.exists("res://assets/enemies/boss_fortress/boss_fortress.png"):
-			boss_texture = load("res://assets/enemies/boss_fortress/boss_fortress.png")
-		elif ResourceLoader.exists("res://assets/enemies/boss_fortress.png"):
-			boss_texture = load("res://assets/enemies/boss_fortress.png")
-		elif ResourceLoader.exists("res://assets/enemies/boss_wall.png"):
-			boss_texture = load("res://assets/enemies/boss_wall.png")
+		var b_tex := get_cached_boss_tex("res://assets/enemies/boss_fortress/boss_fortress.png")
+		if b_tex == null:
+			b_tex = get_cached_boss_tex("res://assets/enemies/boss_fortress.png")
+		if b_tex == null:
+			b_tex = get_cached_boss_tex("res://assets/enemies/boss_wall.png")
+		boss_texture = b_tex
 	elif Global.current_stage == 2:
 		walk_textures.clear()
 		for i in range(4):

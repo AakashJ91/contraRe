@@ -50,32 +50,50 @@ var spark_timer: float = 0.0
 const ACTIVATION_DIST: float = 520.0
 const DEACTIVATE_DIST: float = 680.0
 
+static var s_deploy_textures: Array[Texture2D] = []
+static var s_death_textures: Array[Texture2D] = []
+static var s_turret_base_texture: Texture2D = null
+static var s_turret_arm_texture: Texture2D = null
+static var s_turret_texture: Texture2D = null
+static var s_assets_loaded: bool = false
+
+static func _ensure_assets_loaded() -> void:
+	if s_assets_loaded:
+		return
+	s_assets_loaded = true
+	s_deploy_textures.clear()
+	for i in range(4):
+		var p := "res://assets/enemies/turret/movement/deploy_%d.png" % i
+		if ResourceLoader.exists(p):
+			s_deploy_textures.append(load(p))
+	
+	s_death_textures.clear()
+	for i in range(4):
+		var p := "res://assets/enemies/turret/death/destroy_%d.png" % i
+		if ResourceLoader.exists(p):
+			s_death_textures.append(load(p))
+	
+	if ResourceLoader.exists("res://assets/enemies/turret/turret_base.png"):
+		s_turret_base_texture = load("res://assets/enemies/turret/turret_base.png")
+	
+	if ResourceLoader.exists("res://assets/enemies/turret/turret_arm.png"):
+		s_turret_arm_texture = load("res://assets/enemies/turret/turret_arm.png")
+	
+	if ResourceLoader.exists("res://assets/enemies/turret/turret.png"):
+		s_turret_texture = load("res://assets/enemies/turret/turret.png")
+	elif ResourceLoader.exists("res://assets/enemies/enemy_turret.png"):
+		s_turret_texture = load("res://assets/enemies/enemy_turret.png")
+
 func _ready() -> void:
 	collision_layer = 1 << 2 # Layer 3: Enemies
 	collision_mask = (1 << 3) # Layer 4: PlayerBullets
 	
-	deploy_textures.clear()
-	for i in range(4):
-		var p := "res://assets/enemies/turret/movement/deploy_%d.png" % i
-		if ResourceLoader.exists(p):
-			deploy_textures.append(load(p))
-	
-	death_textures.clear()
-	for i in range(4):
-		var p := "res://assets/enemies/turret/death/destroy_%d.png" % i
-		if ResourceLoader.exists(p):
-			death_textures.append(load(p))
-	
-	if ResourceLoader.exists("res://assets/enemies/turret/turret_base.png"):
-		turret_base_texture = load("res://assets/enemies/turret/turret_base.png")
-	
-	if ResourceLoader.exists("res://assets/enemies/turret/turret_arm.png"):
-		turret_arm_texture = load("res://assets/enemies/turret/turret_arm.png")
-	
-	if ResourceLoader.exists("res://assets/enemies/turret/turret.png"):
-		turret_texture = load("res://assets/enemies/turret/turret.png")
-	elif ResourceLoader.exists("res://assets/enemies/enemy_turret.png"):
-		turret_texture = load("res://assets/enemies/enemy_turret.png")
+	_ensure_assets_loaded()
+	deploy_textures = s_deploy_textures
+	death_textures = s_death_textures
+	turret_base_texture = s_turret_base_texture
+	turret_arm_texture = s_turret_arm_texture
+	turret_texture = s_turret_texture
 	
 	if enemy_data != null:
 		health = enemy_data.max_health
