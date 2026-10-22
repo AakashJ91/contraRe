@@ -13,6 +13,7 @@ var core_flash_timer: float = 0.0
 var attack_timer_1: float = 1.6
 var attack_timer_2: float = 2.4
 var attack_timer_3: float = 4.2
+var heavy_bullet_timer: float = 2.0
 var is_enraged: bool = false
 var enrage_threshold: float = 0.5
 var enrage_flash_timer: float = 0.0
@@ -364,6 +365,13 @@ func _physics_process(delta: float) -> void:
 		attack_timer_3 = maxf(2.0, interval_3)
 		_execute_attack_3()
 	
+	# Random Boss Heavy Energy Orbs / Slow Big Bullets
+	heavy_bullet_timer -= delta
+	if heavy_bullet_timer <= 0.0:
+		var base_interval := 3.2 if is_enraged else 4.6
+		heavy_bullet_timer = randf_range(base_interval * 0.8, base_interval * 1.25)
+		_fire_random_heavy_bullet()
+	
 	queue_redraw()
 
 func _process_hydro_goliath_movement(delta: float) -> void:
@@ -470,19 +478,19 @@ func _execute_attack_1() -> void:
 		1: # Multi-gatling machinegun salvo
 			_trigger_stage1_machinegun_burst(player_node)
 		2: # Triple hydro spray
-			_fire_spread_cannons(player_node, 300.0, 3)
+			_fire_spread_cannons(player_node, 270.0, 3)
 		3: # Toxic bio-needle bursts
-			_fire_spread_cannons(player_node, 290.0, 3)
+			_fire_spread_cannons(player_node, 260.0, 3)
 		4: # Frost gatling bursts
-			_fire_straight_cannons(player_node, 320.0)
+			_fire_straight_cannons(player_node, 288.0)
 		5: # Dual flamethrower jets
-			_fire_spread_cannons(player_node, 270.0, 4)
+			_fire_spread_cannons(player_node, 243.0, 4)
 		6: # High-voltage electric spark waves
-			_fire_spread_cannons(player_node, 320.0, 4)
+			_fire_spread_cannons(player_node, 288.0, 4)
 		7: # Twin plasma blasters
-			_fire_straight_cannons(player_node, 340.0)
+			_fire_straight_cannons(player_node, 306.0)
 		8: # Optic drone dual laser streams
-			_fire_spread_cannons(player_node, 330.0, 5)
+			_fire_spread_cannons(player_node, 297.0, 5)
 
 func _trigger_stage1_machinegun_burst(player_node: Node2D) -> void:
 	if is_dead:
@@ -518,7 +526,7 @@ func _fire_next_machinegun_shot() -> void:
 	
 	var muzzle_offset: Vector2 = Vector2.ZERO
 	var shell_port: Vector2 = Vector2.ZERO
-	var bullet_speed: float = 320.0
+	var bullet_speed: float = 288.0
 	
 	match mg_burst_gun:
 		0: # Middle-Left Lower Gatling
@@ -530,7 +538,7 @@ func _fire_next_machinegun_shot() -> void:
 			recoil_mid = 5.0
 			heat_mid = minf(1.0, heat_mid + 0.35)
 			muzzle_flash_left = 0.10
-			bullet_speed = 320.0
+			bullet_speed = 288.0
 		1: # Top-Left Upper Gatling
 			if right_part_hp <= 0.0:
 				mg_burst_active = false
@@ -540,14 +548,14 @@ func _fire_next_machinegun_shot() -> void:
 			recoil_tl = 5.0
 			heat_tl = minf(1.0, heat_tl + 0.35)
 			muzzle_flash_top = 0.10
-			bullet_speed = 300.0
+			bullet_speed = 270.0
 		2: # Top-Right Upper Gatling
 			muzzle_offset = Vector2(-2.0, -85.0)
 			shell_port = Vector2(65.0, -98.0)
 			recoil_tr = 5.0
 			heat_tr = minf(1.0, heat_tr + 0.35)
 			muzzle_flash_right = 0.10
-			bullet_speed = 330.0
+			bullet_speed = 297.0
 	
 	var spawn_pos: Vector2 = global_position + muzzle_offset
 	var aim_dir: Vector2 = (player_pos - spawn_pos).normalized()
@@ -586,29 +594,29 @@ func _execute_attack_2() -> void:
 			muzzle_flash_top = 0.16
 			for angle in [-0.22, 0.22]:
 				var rocket_spawn := global_position + Vector2(-30.0, -35.0) if angle < 0 else global_position + Vector2(30.0, -35.0)
-				_spawn_bullet(rocket_spawn, dir.rotated(angle), 290.0)
+				_spawn_bullet(rocket_spawn, dir.rotated(angle), 260.0)
 		2: # Core hydro-plasma surge
 			for angle in [-0.30, 0.0, 0.30]:
-				_spawn_bullet(global_position + Vector2(0.0, 8.0), dir.rotated(angle), 310.0)
+				_spawn_bullet(global_position + Vector2(0.0, 8.0), dir.rotated(angle), 280.0)
 		3: # Bio-heart toxic spore cluster
 			for angle in [-0.35, -0.12, 0.12, 0.35]:
-				_spawn_bullet(global_position + Vector2(0.0, 8.0), dir.rotated(angle), 280.0)
+				_spawn_bullet(global_position + Vector2(0.0, 8.0), dir.rotated(angle), 250.0)
 		4: # High-trajectory freeze mortar shell
-			_spawn_bullet(global_position + Vector2(0.0, -60.0), Vector2(-0.7, -0.7).normalized(), 330.0)
-			_spawn_bullet(global_position + Vector2(0.0, -60.0), dir, 300.0)
+			_spawn_bullet(global_position + Vector2(0.0, -60.0), Vector2(-0.7, -0.7).normalized(), 295.0)
+			_spawn_bullet(global_position + Vector2(0.0, -60.0), dir, 270.0)
 		5: # Magma slag volcanic eruption
 			for angle in [-0.4, -0.15, 0.15, 0.4]:
-				_spawn_bullet(global_position + Vector2(0.0, -40.0), dir.rotated(angle), 290.0)
+				_spawn_bullet(global_position + Vector2(0.0, -40.0), dir.rotated(angle), 260.0)
 		6: # Rotating electrostatic laser arc
 			for angle in [-0.45, -0.22, 0.0, 0.22, 0.45]:
-				_spawn_bullet(global_position + Vector2(0.0, 8.0), dir.rotated(angle), 320.0)
+				_spawn_bullet(global_position + Vector2(0.0, 8.0), dir.rotated(angle), 288.0)
 		7: # Cluster micro-missiles
 			for i in range(4):
 				var offset_ang := (float(i) - 1.5) * 0.18
-				_spawn_bullet(global_position + Vector2(0.0, -35.0), dir.rotated(offset_ang), 340.0)
+				_spawn_bullet(global_position + Vector2(0.0, -35.0), dir.rotated(offset_ang), 306.0)
 		8: # Mother Brain 5-way psychic wave spread
 			for angle in [-0.55, -0.28, 0.0, 0.28, 0.55]:
-				_spawn_bullet(global_position + Vector2(0.0, 8.0), dir.rotated(angle), 330.0)
+				_spawn_bullet(global_position + Vector2(0.0, 8.0), dir.rotated(angle), 297.0)
 
 func _execute_attack_3() -> void:
 	if is_dead:
@@ -636,7 +644,7 @@ func _execute_attack_3() -> void:
 			parent_node.add_child(shell)
 			if is_enraged:
 				for ang in [-0.35, 0.35]:
-					_spawn_bullet(global_position + Vector2(0.0, -40.0), dir_to_p.rotated(ang), 310.0)
+					_spawn_bullet(global_position + Vector2(0.0, -40.0), dir_to_p.rotated(ang), 280.0)
 		2: # Stage 2 Hydro-Goliath: High-Pressure Hydro Cutter Beam & Swimming Torpedoes
 			Global.play_sfx("shoot_laser")
 			Global.shake_screen(4.0, 0.2)
@@ -778,6 +786,63 @@ func _spawn_bullet(start_pos: Vector2, dir: Vector2, spd: float) -> void:
 	b.speed = spd
 	b.global_position = start_pos + dir * 16.0
 	get_parent().add_child(b)
+
+func _spawn_heavy_bullet(start_pos: Vector2, dir: Vector2, spd: float = 117.0) -> void:
+	if bullet_scene == null:
+		return
+	var b = bullet_scene.instantiate()
+	b.bullet_owner = b.BulletOwner.ENEMY
+	b.is_boss_heavy = true
+	b.direction = dir
+	b.speed = spd
+	b.damage = 1.0
+	b.global_position = start_pos + dir * 22.0
+	get_parent().add_child(b)
+
+func _fire_random_heavy_bullet() -> void:
+	if is_dead or not is_active:
+		return
+	var player_node: Node2D = get_tree().get_first_node_in_group("player") as Node2D
+	var player_pos: Vector2 = player_node.global_position if (player_node != null and is_instance_valid(player_node)) else (global_position + Vector2(-300.0, 30.0))
+	
+	var spawn_pos: Vector2 = global_position
+	match Global.current_stage:
+		1:
+			# Stage 1 Wall Fortress: alternates between central alien core and upper heavy turret hatch
+			if randf() < 0.55:
+				spawn_pos = global_position + Vector2(-60.0, -10.0)
+				core_flash_timer = 0.22
+			else:
+				spawn_pos = global_position + Vector2(-30.0, -80.0)
+				muzzle_flash_top = 0.22
+		2:
+			# Stage 2 Hydro Goliath: Chest turbine or left heavy arm
+			spawn_pos = global_position + (Vector2(-80.0, 10.0) if randf() < 0.6 else Vector2(-110.0, -25.0))
+			muzzle_flash_left = 0.22
+		_:
+			spawn_pos = global_position + Vector2(-40.0, 0.0)
+			core_flash_timer = 0.22
+	
+	var to_player := (player_pos - spawn_pos).normalized()
+	# Slow speed between 103 and 130 px/s (10% slower)
+	var slow_spd := randf_range(103.0, 130.0)
+	
+	# Randomize attack flavor:
+	# 70% single heavy aimed shot with slight dispersion
+	# 30% dual angled heavy salvo
+	var pattern_roll := randf()
+	if pattern_roll < 0.70 or not is_enraged:
+		var disp := randf_range(-0.16, 0.16)
+		_spawn_heavy_bullet(spawn_pos, to_player.rotated(disp), slow_spd)
+	else:
+		# Dual heavy spread
+		for angle in [-0.22, 0.22]:
+			_spawn_heavy_bullet(spawn_pos, to_player.rotated(angle), slow_spd)
+	
+	Global.play_sfx("shoot_spread")
+	Global.shake_screen(3.5, 0.14)
+	if has_node("/root/VFX"):
+		VFX.spawn_hit_sparks(spawn_pos, to_player, Color(1.0, 0.55, 0.2))
 
 func _on_core_hit(area: Area2D) -> void:
 	if is_dead:

@@ -120,7 +120,7 @@ func _shoot(target_pos: Vector2) -> void:
 	var b = bullet_scene.instantiate()
 	b.bullet_owner = b.BulletOwner.ENEMY
 	b.direction = dir
-	b.speed = 300.0
+	b.speed = 270.0
 	b.z_index = 5
 	b.global_position = gun_pos + dir * 18.0
 	get_parent().add_child(b)

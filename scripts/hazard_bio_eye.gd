@@ -83,7 +83,7 @@ func _fire_optic_dart(target_pos: Vector2) -> void:
 	var b = bullet_scene.instantiate()
 	b.bullet_owner = b.BulletOwner.ENEMY
 	b.direction = dir
-	b.speed = 280.0
+	b.speed = 252.0
 	b.damage = 1.0
 	b.global_position = global_position + dir * 14.0
 	get_parent().add_child(b)

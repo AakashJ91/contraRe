@@ -38,6 +38,7 @@ var missile_timer: float = 3.6
 var leap_timer: float = 6.2
 var special_attack_timer: float = 3.5
 var special_attack_cooldown: float = 4.0
+var heavy_bullet_timer: float = 4.0
 var enrage_threshold: float = 0.5
 var is_enraged: bool = false
 var enrage_flash_timer: float = 0.0
@@ -300,6 +301,40 @@ func _process_combat(delta: float) -> void:
 	if leap_timer <= 0.0 and is_on_ground:
 		leap_timer = randf_range(5.5, 8.0) * (0.8 if is_enraged else 1.0)
 		_execute_jet_leap(player_node)
+	
+	# Random slow big bullet from mini boss cannon
+	heavy_bullet_timer -= delta
+	if heavy_bullet_timer <= 0.0:
+		var base_cd := 4.8 if is_enraged else 6.2
+		heavy_bullet_timer = randf_range(base_cd * 0.85, base_cd * 1.2)
+		_fire_mini_boss_heavy_bullet(player_node)
+
+func _fire_mini_boss_heavy_bullet(player_node: Node2D) -> void:
+	if is_dead or bullet_scene == null:
+		return
+	var parent_node = get_parent()
+	if parent_node == null:
+		return
+	
+	var spawn_pos := get_muzzle_pos()
+	var dir := Vector2(facing, 0.0)
+	if player_node != null and is_instance_valid(player_node):
+		var aim_vec := (player_node.global_position - spawn_pos).normalized()
+		dir = aim_vec.rotated(randf_range(-0.12, 0.12))
+	
+	muzzle_flash_timer = 0.18
+	Global.play_sfx("shoot_spread")
+	Global.shake_screen(3.2, 0.12)
+	VFX.spawn_dust_puff(spawn_pos, 3, Color(1.0, 0.6, 0.2))
+	
+	var b = bullet_scene.instantiate()
+	b.bullet_owner = b.BulletOwner.ENEMY
+	b.is_boss_heavy = true
+	b.direction = dir
+	b.speed = randf_range(108.0, 126.0)
+	b.damage = 1.0
+	b.global_position = spawn_pos + dir * 20.0
+	parent_node.add_child(b)
 
 func get_muzzle_pos() -> Vector2:
 	var bob_y := 0.0
@@ -373,7 +408,7 @@ func _fire_gatling_bullet(player_node: Node2D) -> void:
 			var b = bullet_scene.instantiate()
 			b.bullet_owner = b.BulletOwner.ENEMY
 			b.direction = dir
-			b.speed = 360.0 if Global.current_stage >= 4 else 340.0
+			b.speed = 324.0 if Global.current_stage >= 4 else 306.0
 			b.global_position = spawn_pos
 			parent_node.add_child(b)
 			var spark_col := Color(0.4, 0.9, 1.0) if Global.current_stage == 7 else Color(1.0, 0.85, 0.3)

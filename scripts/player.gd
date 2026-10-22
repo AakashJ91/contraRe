@@ -150,21 +150,38 @@ static func _ensure_player_assets_loaded() -> void:
 		if ResourceLoader.exists(pfd):
 			s_tex_run_fire_down.append(load(pfd))
 	
-	if ResourceLoader.exists("res://assets/vfx/effect/invisible.png"):
-		s_tex_invisible_sheet = load("res://assets/vfx/effect/invisible.png")
-	elif ResourceLoader.exists("res://assets/vfx/invisible.png"):
-		s_tex_invisible_sheet = load("res://assets/vfx/invisible.png")
-	
 	s_tex_invisible_frames.clear()
-	for i in range(12):
-		var ip := "res://assets/vfx/effect/invisible/frame_%d.png" % i
-		if ResourceLoader.exists(ip):
-			s_tex_invisible_frames.append(load(ip))
-		elif s_tex_invisible_sheet != null:
-			var atlas := AtlasTexture.new()
-			atlas.atlas = s_tex_invisible_sheet
-			atlas.region = Rect2(float(i * 64), 0.0, 64.0, 64.0)
-			s_tex_invisible_frames.append(atlas)
+	var found_invis2 := false
+	for i in range(1, 6):
+		var ip2 := "res://assets/vfx/effect/invisible2/%d.png" % i
+		if ResourceLoader.exists(ip2):
+			s_tex_invisible_frames.append(load(ip2))
+			found_invis2 = true
+	
+	if not found_invis2:
+		if ResourceLoader.exists("res://assets/vfx/effect/invisible2.png"):
+			s_tex_invisible_sheet = load("res://assets/vfx/effect/invisible2.png")
+		elif ResourceLoader.exists("res://assets/vfx/invisible2.png"):
+			s_tex_invisible_sheet = load("res://assets/vfx/invisible2.png")
+		elif ResourceLoader.exists("res://assets/vfx/effect/invisible.png"):
+			s_tex_invisible_sheet = load("res://assets/vfx/effect/invisible.png")
+		elif ResourceLoader.exists("res://assets/vfx/invisible.png"):
+			s_tex_invisible_sheet = load("res://assets/vfx/invisible.png")
+		
+		if s_tex_invisible_sheet != null:
+			var frame_count := 5 if s_tex_invisible_sheet.get_width() >= 600 else 12
+			var frame_w := float(s_tex_invisible_sheet.get_width()) / float(frame_count)
+			var frame_h := float(s_tex_invisible_sheet.get_height())
+			for i in range(frame_count):
+				var atlas := AtlasTexture.new()
+				atlas.atlas = s_tex_invisible_sheet
+				atlas.region = Rect2(float(i) * frame_w, 0.0, frame_w, frame_h)
+				s_tex_invisible_frames.append(atlas)
+		else:
+			for i in range(12):
+				var ip := "res://assets/vfx/effect/invisible/frame_%d.png" % i
+				if ResourceLoader.exists(ip):
+					s_tex_invisible_frames.append(load(ip))
 
 func _ready() -> void:
 	add_to_group("player")
@@ -456,7 +473,7 @@ func _shoot() -> void:
 		Global.WeaponType.RIFLE:
 			shoot_cooldown = 0.18
 			Global.play_sfx("shoot_rifle")
-			_spawn_bullet(spawn_pos, aim_dir, Global.WeaponType.RIFLE, 620.0, 1.0)
+			_spawn_bullet(spawn_pos, aim_dir, Global.WeaponType.RIFLE, 558.0, 1.0)
 			
 		Global.WeaponType.SPREAD:
 			shoot_cooldown = 0.26
@@ -465,17 +482,17 @@ func _shoot() -> void:
 			var angles := [-0.42, -0.21, 0.0, 0.21, 0.42]
 			for a in angles:
 				var dir := aim_dir.rotated(a)
-				_spawn_bullet(spawn_pos + dir * 4.0, dir, Global.WeaponType.SPREAD, 560.0, 1.2)
+				_spawn_bullet(spawn_pos + dir * 4.0, dir, Global.WeaponType.SPREAD, 504.0, 1.2)
 				
 		Global.WeaponType.MACHINE:
 			shoot_cooldown = 0.09 # Super fast automatic fire
 			Global.play_sfx("shoot_rifle")
-			_spawn_bullet(spawn_pos, aim_dir, Global.WeaponType.MACHINE, 720.0, 1.1)
+			_spawn_bullet(spawn_pos, aim_dir, Global.WeaponType.MACHINE, 648.0, 1.1)
 			
 		Global.WeaponType.LASER:
 			shoot_cooldown = 0.22
 			Global.play_sfx("shoot_laser")
-			_spawn_bullet(spawn_pos, aim_dir, Global.WeaponType.LASER, 950.0, 2.8, 3)
+			_spawn_bullet(spawn_pos, aim_dir, Global.WeaponType.LASER, 855.0, 2.8, 3)
 			
 		Global.WeaponType.FIRE:
 			shoot_cooldown = 0.22
@@ -503,7 +520,7 @@ func _spawn_twisting_bullets(pos: Vector2, dir: Vector2) -> void:
 	b1.bullet_owner = b1.BulletOwner.PLAYER
 	b1.weapon_type = Global.WeaponType.FIRE
 	b1.direction = dir
-	b1.speed = 580.0
+	b1.speed = 522.0
 	b1.damage = 2.4
 	b1.pierce_count = 2
 	b1.is_twisting = true
@@ -517,7 +534,7 @@ func _spawn_twisting_bullets(pos: Vector2, dir: Vector2) -> void:
 	b2.bullet_owner = b2.BulletOwner.PLAYER
 	b2.weapon_type = Global.WeaponType.FIRE
 	b2.direction = dir
-	b2.speed = 580.0
+	b2.speed = 522.0
 	b2.damage = 2.4
 	b2.pierce_count = 2
 	b2.is_twisting = true
@@ -818,9 +835,10 @@ class InvisibleSparkleOverlay extends Node2D:
 			elif player_ref.state == Player.PlayerState.JUMP:
 				center = Vector2.ZERO
 			
-			var iw := 64.0
-			var ih := 64.0
-			# Draw pure pixel-art sparkle frame directly with no shader border
+			var pulse: float = 1.0 + 0.05 * sin(player_ref.invisible_anim_timer * 1.5)
+			var iw := 68.0 * pulse
+			var ih := 68.0 * pulse
+			# Draw pure pixel-art invisible2 sparkle frame directly with no shader border
 			draw_texture_rect(tex, Rect2(center.x - iw * 0.5, center.y - ih * 0.5, iw, ih), false)
 
 func _unhandled_input(event: InputEvent) -> void:

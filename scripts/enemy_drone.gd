@@ -175,7 +175,7 @@ func _fire_plasma_burst() -> void:
 		var b = bullet_scene.instantiate()
 		b.bullet_owner = b.BulletOwner.ENEMY
 		b.direction = target_aim_dir
-		b.speed = 290.0
+		b.speed = 261.0
 		b.global_position = global_position + Vector2(offset_x, 8.0)
 		get_parent().add_child(b)
 
