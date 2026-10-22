@@ -91,7 +91,7 @@ stealth_jet_1.png::CompressedTexture2D::4036627702882319240::1791865300::1791865
 stealth_jet_2.png::CompressedTexture2D::7922423842027323777::1791865300::1791865639::1::::<><><>0<>0<>ed06f0ff621c14e0cd87d397e45f2f8f<>res://.godot/imported/stealth_jet_2.png-942f3299b57937deef0feb7db523b8e2.ctex::
 stealth_jet_3.png::CompressedTexture2D::3454578150210228284::1791865300::1791865639::1::::<><><>0<>0<>b347a12cc4e682b7d163160cc95aba9f<>res://.godot/imported/stealth_jet_3.png-a291f0045ff8f6a66c419324d10c1ae0.ctex::
 stealth_jet_strip.png::CompressedTexture2D::34117160115037400::1791865300::1791865639::1::::<><><>0<>0<>adf035f8d72a0b4f9f4c1425935faa0f<>res://.godot/imported/stealth_jet_strip.png-bf16d1799eab48cb9087eff8c7e00aed.ctex::
-::res://assets/bullets/::1792640735
+::res://assets/bullets/::1792645140
 bullet_boss_heavy.png::CompressedTexture2D::4499377420358011812::1792640436::1792640437::1::::<><><>0<>0<>ea5d3fdc3751db3d54b7948607db7423<>res://.godot/imported/bullet_boss_heavy.png-a18267bb7743a271e632b2bcd8c81cd8.ctex::
 bullet_boss_heavy_24.png::CompressedTexture2D::7242970722699837223::1792640436::1792640735::1::::<><><>0<>0<>f72f1f4250bbd231701849b40896677e<>res://.godot/imported/bullet_boss_heavy_24.png-00323b03168c839dd85f3693a58352b0.ctex::
 bullet_boss_heavy_26.png::CompressedTexture2D::8365920850408924943::1792640436::1792640735::1::::<><><>0<>0<>5a95d4867dc64d3ec2b1b841de14091c<>res://.godot/imported/bullet_boss_heavy_26.png-7c73b6cf27ea5e2103b0689b206a3a87.ctex::
@@ -111,6 +111,10 @@ bullet_rifle_game.png::CompressedTexture2D::8838533902890118018::1792639426::179
 bullet_sheet.png::CompressedTexture2D::1167193458411026145::1792638668::1792638792::1::::<><><>0<>0<>6a1dd6f0c209ebc217e5511a18ddbfc4<>res://.godot/imported/bullet_sheet.png-10986eb13601bfb486eda60201fed558.ctex::
 bullet_spread.png::CompressedTexture2D::3083385180370262627::1792638668::1792638792::1::::<><><>0<>0<>de7c889766f35a51bad48392075c055f<>res://.godot/imported/bullet_spread.png-326c7d82dcf754f1bc74c14746101732.ctex::
 bullet_spread_game.png::CompressedTexture2D::8348300141688807456::1792639426::1792639455::1::::<><><>0<>0<>b7350631ce7babd0573ad24be72e5cf5<>res://.godot/imported/bullet_spread_game.png-14b6dd7c853ad2e4e6813590af11d54b.ctex::
+pixellab_bullet_boss_plasma.png::CompressedTexture2D::8421206254658620698::1792645140::1792645370::1::::<><><>0<>0<>48388a3f084ec508d78293205218e32e<>res://.godot/imported/pixellab_bullet_boss_plasma.png-c3ef0edd0f3e7356ec885593d2c48bda.ctex::
+pixellab_bullet_fire.png::CompressedTexture2D::5244430950031986810::1792645116::1792645370::1::::<><><>0<>0<>9f86b85fc759a6a9927f40699127e978<>res://.godot/imported/pixellab_bullet_fire.png-258cb440a845b739c9e72f3a29729ed1.ctex::
+pixellab_bullet_laser.png::CompressedTexture2D::5122496933661445835::1792645088::1792645370::1::::<><><>0<>0<>bcd7e65a091ad77d03842f7c1d7b45c2<>res://.godot/imported/pixellab_bullet_laser.png-60d0ada1e31e0599f18766e4b449dec9.ctex::
+pixellab_bullet_spread.png::CompressedTexture2D::6810548336915623122::1792645000::1792645370::1::::<><><>0<>0<>891b548ef0cbde842a2627e00c430029<>res://.godot/imported/pixellab_bullet_spread.png-e5a6f9f1861104242f63e4dc856b645e.ctex::
 ::res://assets/enemies/::1792221242
 alien_core.png::CompressedTexture2D::1312982929895091062::1792162269::1792163482::1::::<><><>0<>0<>44ddfaee166f69f77c15c7897841baeb<>res://.godot/imported/alien_core.png-dfa44dc05d41995dfb8aaec5f91fa80f.ctex::
 boss_fortress.png::CompressedTexture2D::6881617219253160967::1792115635::1792116385::1::::<><><>0<>0<>5df79171d55a2bf6f25e6c065da282c1<>res://.godot/imported/boss_fortress.png-8616d320735347ea75cb45090c76d059.ctex::
@@ -863,7 +867,7 @@ medal_life_bronze.png::CompressedTexture2D::6798972344684257372::1792423601::179
 medal_life_gold.png::CompressedTexture2D::8083819158305410867::1792423601::1792423662::1::::<><><>0<>0<>8283a2fad9cb10b44a6c297a23e33d9f<>res://.godot/imported/medal_life_gold.png-dc80a4fab8ca5a8c678c17bc248065e1.ctex::
 medal_life_silver.png::CompressedTexture2D::1487145377797399715::1792423601::1792423662::1::::<><><>0<>0<>4106546662f53d660682689499c0c361<>res://.godot/imported/medal_life_silver.png-c251220c593292717fd1efc3f3ad8662.ctex::
 medal_strip.png::CompressedTexture2D::1987181861862508960::1792423601::1792423662::1::::<><><>0<>0<>0ba5dd78ae043c03f20ce3d9bf9e204e<>res://.godot/imported/medal_strip.png-125e14609edb8ad58113eeb15f3cf33d.ctex::
-::res://assets/vfx/::1792642004
+::res://assets/vfx/::1792642108
 big_explosion.png::CompressedTexture2D::7598982698998972667::1792476102::1792478749::1::::<><><>0<>0<>7696f9d9fd8758ecaaaf7bd9049c9db6<>res://.godot/imported/big_explosion.png-3c5a5e631aaf8fca957109f64a6ea870.ctex::
 blood_splat.png::CompressedTexture2D::6552830166077725198::1791862028::1791862637::1::::<><><>0<>0<>beea2a3e5d29dbe641ef4a7dd8a7d4c4<>res://.godot/imported/blood_splat.png-002cce9f6135011c553ec68bedcfbaf0.ctex::
 debris_chunk.png::CompressedTexture2D::559778118192142311::1791862028::1791862637::1::::<><><>0<>0<>91eea15e77ea97ae3124b18c85f0e772<>res://.godot/imported/debris_chunk.png-99babff854b760b49a520a1863981a1e.ctex::
@@ -887,7 +891,7 @@ skullsmoke.png::CompressedTexture2D::8104913889604881832::1792473694::1792474343
 smoke_puff.png::CompressedTexture2D::2830445709862007781::1791862028::1791862637::1::::<><><>0<>0<>f54e2b30667fa2d7612203845c39494e<>res://.godot/imported/smoke_puff.png-b9a58e00d75b594ba3bb907a999627b2.ctex::
 spark_flare.png::CompressedTexture2D::5386668941003788212::1791862028::1791862637::1::::<><><>0<>0<>e385a83035990be2b67e11c717c6d24c<>res://.godot/imported/spark_flare.png-df2e41185ef44611ef38e37b3ca18f67.ctex::
 star_sparkle.png::CompressedTexture2D::237479227777542135::1791862028::1791862637::1::::<><><>0<>0<>95c923811325c8c9821f37b42128fd7d<>res://.godot/imported/star_sparkle.png-b7fc8e83ba95be29b02c5975918e5d41.ctex::
-::res://assets/vfx/effect/::1792642004
+::res://assets/vfx/effect/::1792642108
 big_explosion.png::CompressedTexture2D::4795386257163460522::1792476102::1792478749::1::::<><><>0<>0<>9b9a0ded2a0e92edfd2cd798db39b758<>res://.godot/imported/big_explosion.png-c8953dbcd78f647ec3d3cb30c4975de4.ctex::
 explosion.png::CompressedTexture2D::567265505940749100::1790093872::1792475253::1::::<><><>0<>0<>992e699fa17404a28c60822d7406b207<>res://.godot/imported/explosion.png-1b6f13a59bb8370db9a6f21c584e7b3a.ctex::
 Fire.png::CompressedTexture2D::792102479976360547::1792476103::1792477717::1::::<><><>0<>0<>5a307f168a177e05295ce09f9c771d85<>res://.godot/imported/Fire.png-300d6cc97782a7d92cc2bae67b774ead.ctex::
@@ -1102,7 +1106,7 @@ stage1.tscn::PackedScene::4262628576158182208::1792167032::0::1::::<><><>0<>0<><
 title_screen.tscn::PackedScene::5153966894299317304::1791735647::0::1::::<><><>0<>0<><>::
 touch_controls.tscn::PackedScene::8965243258406017896::1791731316::0::1::::<><><>0<>0<><>::res://scripts/touch_controls.gd
 water_body.tscn::PackedScene::6318157588543931840::1791866557::0::1::::<><><>0<>0<><>::res://scripts/water_body.gd
-::res://scratch/::1792642013
+::res://scratch/::1792645044
 adv_dynamo.png::CompressedTexture2D::3685884675511673749::1792246549::1792247267::1::::<><><>0<>0<>68ed5c19e7f10a8f47ac9e0d9f962067<>res://.godot/imported/adv_dynamo.png-d4c0dd4294d3a15051a7c226aa57da42.ctex::
 adv_hangar.png::CompressedTexture2D::4629110232452876061::1792246549::1792247266::1::::<><><>0<>0<>0d67cd31d711d986b9254a579eaac294<>res://.godot/imported/adv_hangar.png-0dad9d9f5ed4017b4092c12697cee232.ctex::
 adv_hangar_clean.png::CompressedTexture2D::3586271849681194424::1792246591::1792247266::1::::<><><>0<>0<>2d6ead3ebac00e3865b5661fda98b0f9<>res://.godot/imported/adv_hangar_clean.png-a68ad1ec918b99afbbe19f5723ad801e.ctex::
