@@ -261,6 +261,16 @@ func _physics_process(delta: float) -> void:
 			is_invulnerable = true
 			invulnerable_timer = 2.5
 			VFX.spawn_dust_puff(global_position + Vector2(0.0, 16.0), 3, Color(0.8, 0.85, 0.9, 0.6))
+		
+		# Prevent respawning player from drifting back beyond visible screen
+		var cam = get_viewport().get_camera_2d()
+		if cam != null and not Global.is_maker_mode:
+			var half_w: float = (get_viewport_rect().size.x / cam.zoom.x) * 0.5
+			var min_x: float = cam.global_position.x - half_w + 16.0
+			if global_position.x < min_x:
+				global_position.x = min_x
+				velocity.x = maxf(velocity.x, 0.0)
+		
 		queue_redraw()
 		return
 	
@@ -365,6 +375,16 @@ func _physics_process(delta: float) -> void:
 	move_and_slide()
 	if was_in_air and is_on_floor():
 		VFX.spawn_dust_puff(global_position + Vector2(0.0, 18.0), 6)
+	
+	# Prevent player from moving back beyond visible screen left boundary
+	var cam = get_viewport().get_camera_2d()
+	if cam != null and not Global.is_maker_mode:
+		var half_w: float = (get_viewport_rect().size.x / cam.zoom.x) * 0.5
+		var min_x: float = cam.global_position.x - half_w + 16.0
+		if global_position.x < min_x:
+			global_position.x = min_x
+			if velocity.x < 0.0:
+				velocity.x = 0.0
 	
 	# Reset single-frame stage interaction flags
 	conveyor_push = 0.0

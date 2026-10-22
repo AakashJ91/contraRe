@@ -34,16 +34,23 @@ func _ready() -> void:
 func _load_textures() -> void:
 	surface_frames.clear()
 	for i in range(4):
-		var p := "res://assets/tiles/water_surface_%d.png" % i
+		var p := "res://assets/tiles/common/water_surface_%d.png" % i
+		if not ResourceLoader.exists(p):
+			p = "res://assets/tiles/water_surface_%d.png" % i
 		if ResourceLoader.exists(p):
 			surface_frames.append(load(p))
 	
-	if ResourceLoader.exists("res://assets/tiles/water_body_deep.png"):
-		deep_texture = load("res://assets/tiles/water_body_deep.png")
+	var deep_path := "res://assets/tiles/common/water_body_deep.png"
+	if not ResourceLoader.exists(deep_path):
+		deep_path = "res://assets/tiles/water_body_deep.png"
+	if ResourceLoader.exists(deep_path):
+		deep_texture = load(deep_path)
 	
 	ripple_frames.clear()
 	for i in range(4):
-		var rp := "res://assets/tiles/water_ripple_%d.png" % i
+		var rp := "res://assets/tiles/common/water_ripple_%d.png" % i
+		if not ResourceLoader.exists(rp):
+			rp = "res://assets/tiles/water_ripple_%d.png" % i
 		if ResourceLoader.exists(rp):
 			ripple_frames.append(load(rp))
 

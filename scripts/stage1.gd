@@ -36,6 +36,7 @@ extends Node2D
 @onready var world_colliders: StaticBody2D = $WorldColliders
 
 var contra_maker: ContraMaker = null
+var wall_left: CollisionShape2D = null
 
 var shake_intensity: float = 0.0
 var shake_duration: float = 0.0
@@ -166,6 +167,18 @@ static var s_stage_textures: Dictionary = {}
 static var s_stage_frames: Dictionary = {}
 static var s_cached_shaders: Dictionary = {}
 
+const STAGE_SUBDIRS: Array[String] = [
+	"common",
+	"stage1_jungle",
+	"stage2_waterfall",
+	"stage3_hive",
+	"stage4_tundra",
+	"stage5_refinery",
+	"stage6_dynamo",
+	"stage7_hangar",
+	"stage8_sanctum"
+]
+
 static func get_stage_texture(path: String) -> Texture2D:
 	if s_stage_textures.has(path):
 		return s_stage_textures[path]
@@ -173,6 +186,16 @@ static func get_stage_texture(path: String) -> Texture2D:
 		var tex: Texture2D = load(path)
 		s_stage_textures[path] = tex
 		return tex
+	# Check stagewise subdirectories if given a flat assets/tiles/ path
+	if path.begins_with("res://assets/tiles/"):
+		var fname := path.get_file()
+		for subdir in STAGE_SUBDIRS:
+			var sub_path := "res://assets/tiles/%s/%s" % [subdir, fname]
+			if ResourceLoader.exists(sub_path):
+				var tex: Texture2D = load(sub_path)
+				s_stage_textures[path] = tex
+				s_stage_textures[sub_path] = tex
+				return tex
 	return null
 
 static func get_stage_frames(path_fmt: String, count: int) -> Array[Texture2D]:
@@ -181,8 +204,9 @@ static func get_stage_frames(path_fmt: String, count: int) -> Array[Texture2D]:
 	var frames: Array[Texture2D] = []
 	for i in range(count):
 		var p := path_fmt % i
-		if ResourceLoader.exists(p):
-			frames.append(load(p))
+		var tex: Texture2D = get_stage_texture(p)
+		if tex != null:
+			frames.append(tex)
 	s_stage_frames[path_fmt] = frames
 	return frames
 
@@ -198,76 +222,77 @@ static func get_cached_shader(path: String) -> Shader:
 func _load_textures() -> void:
 	var stg := clampi(Global.current_stage, 1, 8)
 	
-	ground_tile_texture = get_stage_texture("res://assets/tiles/ground_tile.png")
-	boss_ground_texture = get_stage_texture("res://assets/tiles/ground_boss_fortress.png")
+	ground_tile_texture = get_stage_texture("res://assets/tiles/stage1_jungle/ground_tile.png")
+	boss_ground_texture = get_stage_texture("res://assets/tiles/common/ground_boss_fortress.png")
 	
 	ground_textures_by_stage.clear()
 	ground_textures_by_stage[1] = ground_tile_texture
 	
 	match stg:
 		2:
-			ground_textures_by_stage[2] = get_stage_texture("res://assets/tiles/ground_waterfall.png")
+			ground_textures_by_stage[2] = get_stage_texture("res://assets/tiles/stage2_waterfall/ground_waterfall.png")
 		3, 8:
-			var hive_tex := get_stage_texture("res://assets/tiles/ground_hive.png")
+			var hive_tex := get_stage_texture("res://assets/tiles/stage3_hive/ground_hive.png")
 			ground_textures_by_stage[3] = hive_tex
 			ground_textures_by_stage[8] = hive_tex
 		4:
-			ground_textures_by_stage[4] = get_stage_texture("res://assets/tiles/ground_tundra.png")
+			ground_textures_by_stage[4] = get_stage_texture("res://assets/tiles/stage4_tundra/ground_tundra.png")
 		5:
-			ground_textures_by_stage[5] = get_stage_texture("res://assets/tiles/ground_refinery.png")
+			ground_textures_by_stage[5] = get_stage_texture("res://assets/tiles/stage5_refinery/ground_refinery.png")
 		6:
-			ground_textures_by_stage[6] = get_stage_texture("res://assets/tiles/ground_dynamo.png")
+			ground_textures_by_stage[6] = get_stage_texture("res://assets/tiles/stage6_dynamo/ground_dynamo.png")
 		7:
-			ground_textures_by_stage[7] = get_stage_texture("res://assets/tiles/ground_hangar.png")
+			ground_textures_by_stage[7] = get_stage_texture("res://assets/tiles/stage7_hangar/ground_hangar.png")
 	
 	ground_frames_by_stage.clear()
 	if stg == 6:
-		var dynamo_frames := get_stage_frames("res://assets/tiles/ground_dynamo_%d.png", 4)
+		var dynamo_frames := get_stage_frames("res://assets/tiles/stage6_dynamo/ground_dynamo_%d.png", 4)
 		if not dynamo_frames.is_empty():
 			ground_frames_by_stage[6] = dynamo_frames
 	
 	# Load standard platform textures
-	platform_girder_texture = get_stage_texture("res://assets/tiles/platform_girder.png")
-	platform_bridge_texture = get_stage_texture("res://assets/tiles/platform_bridge.png")
-	platform_turf_texture = get_stage_texture("res://assets/tiles/platform_turf.png")
-	platform_turf_small_texture = get_stage_texture("res://assets/tiles/platform_turf_small.png")
-	platform_turf_wide_texture = get_stage_texture("res://assets/tiles/platform_turf_wide.png")
-	platform_turf_crag_texture = get_stage_texture("res://assets/tiles/platform_turf_crag.png")
-	platform_turf_thin_texture = get_stage_texture("res://assets/tiles/platform_turf_thin.png")
-	platform_turf_wedge_left_texture = get_stage_texture("res://assets/tiles/platform_turf_wedge_left.png")
-	platform_turf_wedge_right_texture = get_stage_texture("res://assets/tiles/platform_turf_wedge_right.png")
+	platform_girder_texture = get_stage_texture("res://assets/tiles/common/platform_girder.png")
+	platform_bridge_texture = get_stage_texture("res://assets/tiles/common/platform_bridge.png")
+	platform_turf_texture = get_stage_texture("res://assets/tiles/stage1_jungle/platform_turf.png")
+	platform_turf_small_texture = get_stage_texture("res://assets/tiles/stage1_jungle/platform_turf_small.png")
+	platform_turf_wide_texture = get_stage_texture("res://assets/tiles/stage1_jungle/platform_turf_wide.png")
+	platform_turf_crag_texture = get_stage_texture("res://assets/tiles/stage1_jungle/platform_turf_crag.png")
+	platform_turf_thin_texture = get_stage_texture("res://assets/tiles/stage1_jungle/platform_turf_thin.png")
+	platform_turf_wedge_left_texture = get_stage_texture("res://assets/tiles/stage1_jungle/platform_turf_wedge_left.png")
+	platform_turf_wedge_right_texture = get_stage_texture("res://assets/tiles/stage1_jungle/platform_turf_wedge_right.png")
 	
 	# Themed platform textures (loaded across all stages and editor)
-	platform_tech_texture = get_stage_texture("res://assets/tiles/platform_tech.png")
-	platform_tech_catwalk_texture = get_stage_texture("res://assets/tiles/platform_tech_catwalk.png")
-	platform_energy_barrier_texture = get_stage_texture("res://assets/tiles/platform_energy_barrier.png")
-	platform_chain_texture = get_stage_texture("res://assets/tiles/platform_chain.png")
-	platform_chain_hook_texture = get_stage_texture("res://assets/tiles/platform_chain_hook.png")
-	platform_ice_slab_texture = get_stage_texture("res://assets/tiles/platform_ice_slab.png")
-	platform_lava_grate_texture = get_stage_texture("res://assets/tiles/platform_lava_grate.png")
-	platform_bio_rib_texture = get_stage_texture("res://assets/tiles/platform_bio_rib.png")
+	platform_tech_texture = get_stage_texture("res://assets/tiles/stage6_dynamo/platform_tech.png")
+	platform_tech_catwalk_texture = get_stage_texture("res://assets/tiles/stage6_dynamo/platform_tech_catwalk.png")
+	platform_energy_barrier_texture = get_stage_texture("res://assets/tiles/stage6_dynamo/platform_energy_barrier.png")
+	platform_chain_texture = get_stage_texture("res://assets/tiles/common/platform_chain.png")
+	platform_chain_hook_texture = get_stage_texture("res://assets/tiles/common/platform_chain_hook.png")
+	platform_ice_slab_texture = get_stage_texture("res://assets/tiles/stage4_tundra/platform_ice_slab.png")
+	platform_lava_grate_texture = get_stage_texture("res://assets/tiles/stage5_refinery/platform_lava_grate.png")
+	platform_bio_rib_texture = get_stage_texture("res://assets/tiles/stage3_hive/platform_bio_rib.png")
 	
 	ground_edge_left_textures_by_stage.clear()
 	ground_edge_right_textures_by_stage.clear()
 	
-	ground_edge_left_texture = get_stage_texture("res://assets/tiles/ground_edge_left.png")
-	ground_edge_right_texture = get_stage_texture("res://assets/tiles/ground_edge_right.png")
+	ground_edge_left_texture = get_stage_texture("res://assets/tiles/stage1_jungle/ground_edge_left.png")
+	ground_edge_right_texture = get_stage_texture("res://assets/tiles/stage1_jungle/ground_edge_right.png")
 	ground_edge_left_textures_by_stage[1] = ground_edge_left_texture
 	ground_edge_right_textures_by_stage[1] = ground_edge_right_texture
 	
-	var edge_stage_names: Dictionary = {
-		2: "waterfall",
-		3: "hive",
-		4: "tundra",
-		5: "refinery",
-		6: "dynamo",
-		7: "hangar",
-		8: "hive",
+	var edge_stage_dir_and_names: Dictionary = {
+		2: ["stage2_waterfall", "waterfall"],
+		3: ["stage3_hive", "hive"],
+		4: ["stage4_tundra", "tundra"],
+		5: ["stage5_refinery", "refinery"],
+		6: ["stage6_dynamo", "dynamo"],
+		7: ["stage7_hangar", "hangar"],
+		8: ["stage3_hive", "hive"],
 	}
-	if edge_stage_names.has(stg):
-		var sname: String = edge_stage_names[stg]
-		var l_path := "res://assets/tiles/ground_%s_edge_left.png" % sname
-		var r_path := "res://assets/tiles/ground_%s_edge_right.png" % sname
+	if edge_stage_dir_and_names.has(stg):
+		var sdir: String = edge_stage_dir_and_names[stg][0]
+		var sname: String = edge_stage_dir_and_names[stg][1]
+		var l_path := "res://assets/tiles/%s/ground_%s_edge_left.png" % [sdir, sname]
+		var r_path := "res://assets/tiles/%s/ground_%s_edge_right.png" % [sdir, sname]
 		var l_tex := get_stage_texture(l_path)
 		var r_tex := get_stage_texture(r_path)
 		if l_tex != null:
@@ -278,15 +303,15 @@ func _load_textures() -> void:
 	ground_edge_left_frames_by_stage.clear()
 	ground_edge_right_frames_by_stage.clear()
 	if stg == 6:
-		var dynamo_elf := get_stage_frames("res://assets/tiles/ground_dynamo_edge_left_%d.png", 4)
-		var dynamo_erf := get_stage_frames("res://assets/tiles/ground_dynamo_edge_right_%d.png", 4)
+		var dynamo_elf := get_stage_frames("res://assets/tiles/stage6_dynamo/ground_dynamo_edge_left_%d.png", 4)
+		var dynamo_erf := get_stage_frames("res://assets/tiles/stage6_dynamo/ground_dynamo_edge_right_%d.png", 4)
 		if not dynamo_elf.is_empty():
 			ground_edge_left_frames_by_stage[6] = dynamo_elf
 		if not dynamo_erf.is_empty():
 			ground_edge_right_frames_by_stage[6] = dynamo_erf
 	elif stg == 2:
-		var waterfall_elf := get_stage_frames("res://assets/tiles/ground_waterfall_edge_left_%d.png", 4)
-		var waterfall_erf := get_stage_frames("res://assets/tiles/ground_waterfall_edge_right_%d.png", 4)
+		var waterfall_elf := get_stage_frames("res://assets/tiles/stage2_waterfall/ground_waterfall_edge_left_%d.png", 4)
+		var waterfall_erf := get_stage_frames("res://assets/tiles/stage2_waterfall/ground_waterfall_edge_right_%d.png", 4)
 		if not waterfall_elf.is_empty():
 			ground_edge_left_frames_by_stage[2] = waterfall_elf
 		if not waterfall_erf.is_empty():
@@ -294,8 +319,8 @@ func _load_textures() -> void:
 	
 	# Water surface & deep textures
 	if stg in [1, 2]:
-		water_surface_frames = get_stage_frames("res://assets/tiles/water_surface_%d.png", 4)
-		water_deep_texture = get_stage_texture("res://assets/tiles/water_body_deep.png")
+		water_surface_frames = get_stage_frames("res://assets/tiles/common/water_surface_%d.png", 4)
+		water_deep_texture = get_stage_texture("res://assets/tiles/common/water_body_deep.png")
 
 
 func _parse_platform_type(val: Variant) -> int:
@@ -619,6 +644,15 @@ func _setup_colliders() -> void:
 	for c in world_colliders.get_children():
 		c.queue_free()
 	
+	# Left screen boundary wall (moves dynamically with camera during gameplay)
+	wall_left = CollisionShape2D.new()
+	wall_left.name = "WallLeft"
+	var wall_shape := RectangleShape2D.new()
+	wall_shape.size = Vector2(40.0, 2400.0)
+	wall_left.shape = wall_shape
+	wall_left.position = Vector2(-20.0, 200.0)
+	world_colliders.add_child(wall_left)
+	
 	for g in ground_segments:
 		var c := CollisionShape2D.new()
 		var s := RectangleShape2D.new()
@@ -710,6 +744,19 @@ func _physics_process(delta: float) -> void:
 				camera.global_position.y = lerpf(camera.global_position.y, target_cam_y, delta * 3.8)
 			else:
 				camera.global_position.y = 300.0 if is_mob else 290.0
+		
+		# Left screen boundary enforcement (Player cannot move back beyond the visible screen)
+		var cur_view_half_w: float = (960.0 / camera.zoom.x) * 0.5
+		var screen_left_x: float = camera.global_position.x - cur_view_half_w
+		if wall_left != null and is_instance_valid(wall_left):
+			wall_left.position = Vector2(screen_left_x - 20.0, camera.global_position.y)
+		
+		if not Global.is_maker_mode and player.state != Player.PlayerState.DEAD:
+			var min_player_x: float = screen_left_x + 16.0
+			if player.global_position.x < min_player_x:
+				player.global_position.x = min_player_x
+				if player.velocity.x < 0.0:
+					player.velocity.x = 0.0
 		
 		# Boss arena player containment (Player must never pass behind the boss)
 		if boss != null and is_instance_valid(boss):
@@ -1955,6 +2002,10 @@ func _setup_stage2_fog() -> void:
 		add_child(fg_fog)
 
 func get_safe_respawn_position(target_x: float) -> Vector2:
+	if camera != null:
+		var half_w: float = (960.0 / camera.zoom.x) * 0.5
+		var screen_left: float = camera.global_position.x - half_w
+		target_x = maxf(target_x, screen_left + 60.0)
 	if Global.current_stage == 1 and target_x >= 6220.0 and target_x <= 7720.0:
 		return Vector2(6160.0, 360.0)
 	for g in ground_segments:
