@@ -1,0 +1,686 @@
+[
+  {
+    "name": "player_idle.png",
+    "source_component": 2,
+    "source_bounds": [
+      41,
+      23,
+      158,
+      207
+    ],
+    "size": [
+      240,
+      230
+    ],
+    "position": [
+      30,
+      18
+    ]
+  },
+  {
+    "name": "player_aim.png",
+    "source_component": 3,
+    "source_bounds": [
+      226,
+      25,
+      393,
+      207
+    ],
+    "size": [
+      240,
+      230
+    ],
+    "position": [
+      37,
+      20
+    ]
+  },
+  {
+    "name": "player_aim_diag_down.png",
+    "source_component": 4,
+    "source_bounds": [
+      426,
+      25,
+      571,
+      207
+    ],
+    "size": [
+      240,
+      230
+    ],
+    "position": [
+      35,
+      20
+    ]
+  },
+  {
+    "name": "player_aim_diag_up.png",
+    "source_component": 5,
+    "source_bounds": [
+      627,
+      25,
+      772,
+      208
+    ],
+    "size": [
+      240,
+      230
+    ],
+    "position": [
+      36,
+      19
+    ]
+  },
+  {
+    "name": "player_aim_up.png",
+    "source_component": 1,
+    "source_bounds": [
+      818,
+      2,
+      942,
+      207
+    ],
+    "size": [
+      240,
+      230
+    ],
+    "position": [
+      34,
+      10
+    ]
+  },
+  {
+    "name": "player_fire.png",
+    "source_component": 8,
+    "source_bounds": [
+      1015,
+      28,
+      1198,
+      207
+    ],
+    "size": [
+      240,
+      230
+    ],
+    "position": [
+      34,
+      23
+    ]
+  },
+  {
+    "name": "player_fire_1.png",
+    "source_component": 6,
+    "source_bounds": [
+      1218,
+      27,
+      1400,
+      207
+    ],
+    "size": [
+      240,
+      230
+    ],
+    "position": [
+      38,
+      22
+    ]
+  },
+  {
+    "name": "player_fire_diag_down.png",
+    "source_component": 7,
+    "source_bounds": [
+      1417,
+      28,
+      1574,
+      207
+    ],
+    "size": [
+      240,
+      230
+    ],
+    "position": [
+      36,
+      23
+    ]
+  },
+  {
+    "name": "player_fire_diag_up.png",
+    "source_component": 12,
+    "source_bounds": [
+      33,
+      238,
+      190,
+      429
+    ],
+    "size": [
+      240,
+      230
+    ],
+    "position": [
+      32,
+      10
+    ]
+  },
+  {
+    "name": "player_fire_diag_up_1.png",
+    "source_component": 11,
+    "source_bounds": [
+      216,
+      221,
+      371,
+      429
+    ],
+    "size": [
+      240,
+      230
+    ],
+    "position": [
+      30,
+      10
+    ]
+  },
+  {
+    "name": "player_fire_up.png",
+    "source_component": 9,
+    "source_bounds": [
+      433,
+      215,
+      543,
+      430
+    ],
+    "size": [
+      240,
+      230
+    ],
+    "position": [
+      42,
+      10
+    ]
+  },
+  {
+    "name": "player_fire_up_1.png",
+    "source_component": 10,
+    "source_bounds": [
+      615,
+      215,
+      724,
+      429
+    ],
+    "size": [
+      240,
+      230
+    ],
+    "position": [
+      37,
+      10
+    ]
+  },
+  {
+    "name": "player_jump.png",
+    "source_component": 13,
+    "source_bounds": [
+      799,
+      258,
+      930,
+      396
+    ],
+    "size": [
+      773,
+      773
+    ],
+    "position": [
+      67,
+      50
+    ]
+  },
+  {
+    "name": "player_prone.png",
+    "source_component": 18,
+    "source_bounds": [
+      906,
+      349,
+      1136,
+      417
+    ],
+    "size": [
+      964,
+      262
+    ],
+    "position": [
+      52,
+      4
+    ]
+  },
+  {
+    "name": "player_run_0.png",
+    "source_component": 14,
+    "source_bounds": [
+      1147,
+      258,
+      1279,
+      424
+    ],
+    "size": [
+      240,
+      230
+    ],
+    "position": [
+      32,
+      21
+    ]
+  },
+  {
+    "name": "player_run_1.png",
+    "source_component": 15,
+    "source_bounds": [
+      1261,
+      258,
+      1380,
+      424
+    ],
+    "size": [
+      240,
+      230
+    ],
+    "position": [
+      23,
+      21
+    ]
+  },
+  {
+    "name": "player_run_2.png",
+    "source_component": 16,
+    "source_bounds": [
+      1378,
+      258,
+      1482,
+      424
+    ],
+    "size": [
+      240,
+      230
+    ],
+    "position": [
+      46,
+      21
+    ]
+  },
+  {
+    "name": "player_run_3.png",
+    "source_component": 17,
+    "source_bounds": [
+      1472,
+      258,
+      1582,
+      424
+    ],
+    "size": [
+      240,
+      230
+    ],
+    "position": [
+      28,
+      21
+    ]
+  },
+  {
+    "name": "player_run_down_0.png",
+    "source_component": 25,
+    "source_bounds": [
+      13,
+      452,
+      173,
+      616
+    ],
+    "size": [
+      240,
+      230
+    ],
+    "position": [
+      2,
+      23
+    ]
+  },
+  {
+    "name": "player_run_down_1.png",
+    "source_component": 19,
+    "source_bounds": [
+      222,
+      450,
+      364,
+      617
+    ],
+    "size": [
+      240,
+      230
+    ],
+    "position": [
+      3,
+      20
+    ]
+  },
+  {
+    "name": "player_run_down_2.png",
+    "source_component": 20,
+    "source_bounds": [
+      423,
+      451,
+      561,
+      619
+    ],
+    "size": [
+      240,
+      230
+    ],
+    "position": [
+      8,
+      18
+    ]
+  },
+  {
+    "name": "player_run_down_3.png",
+    "source_component": 21,
+    "source_bounds": [
+      608,
+      451,
+      754,
+      619
+    ],
+    "size": [
+      240,
+      230
+    ],
+    "position": [
+      4,
+      18
+    ]
+  },
+  {
+    "name": "player_run_fire_0.png",
+    "source_component": 22,
+    "source_bounds": [
+      805,
+      451,
+      980,
+      611
+    ],
+    "size": [
+      240,
+      230
+    ],
+    "position": [
+      5,
+      28
+    ]
+  },
+  {
+    "name": "player_run_fire_1.png",
+    "source_component": 26,
+    "source_bounds": [
+      1013,
+      452,
+      1198,
+      618
+    ],
+    "size": [
+      240,
+      230
+    ],
+    "position": [
+      16,
+      21
+    ]
+  },
+  {
+    "name": "player_run_fire_2.png",
+    "source_component": 23,
+    "source_bounds": [
+      1204,
+      451,
+      1389,
+      618
+    ],
+    "size": [
+      240,
+      230
+    ],
+    "position": [
+      9,
+      20
+    ]
+  },
+  {
+    "name": "player_run_fire_3.png",
+    "source_component": 24,
+    "source_bounds": [
+      1408,
+      452,
+      1586,
+      617
+    ],
+    "size": [
+      240,
+      230
+    ],
+    "position": [
+      14,
+      22
+    ]
+  },
+  {
+    "name": "player_run_fire_down_0.png",
+    "source_component": 30,
+    "source_bounds": [
+      17,
+      640,
+      193,
+      806
+    ],
+    "size": [
+      240,
+      230
+    ],
+    "position": [
+      2,
+      21
+    ]
+  },
+  {
+    "name": "player_run_fire_down_1.png",
+    "source_component": 31,
+    "source_bounds": [
+      223,
+      641,
+      376,
+      807
+    ],
+    "size": [
+      240,
+      230
+    ],
+    "position": [
+      5,
+      21
+    ]
+  },
+  {
+    "name": "player_run_fire_down_2.png",
+    "source_component": 32,
+    "source_bounds": [
+      409,
+      640,
+      581,
+      810
+    ],
+    "size": [
+      240,
+      230
+    ],
+    "position": [
+      3,
+      16
+    ]
+  },
+  {
+    "name": "player_run_fire_down_3.png",
+    "source_component": 34,
+    "source_bounds": [
+      622,
+      642,
+      774,
+      810
+    ],
+    "size": [
+      240,
+      230
+    ],
+    "position": [
+      6,
+      18
+    ]
+  },
+  {
+    "name": "player_run_fire_up_0.png",
+    "source_component": 35,
+    "source_bounds": [
+      804,
+      643,
+      970,
+      809
+    ],
+    "size": [
+      240,
+      230
+    ],
+    "position": [
+      9,
+      21
+    ]
+  },
+  {
+    "name": "player_run_fire_up_1.png",
+    "source_component": 33,
+    "source_bounds": [
+      996,
+      640,
+      1164,
+      811
+    ],
+    "size": [
+      240,
+      230
+    ],
+    "position": [
+      5,
+      15
+    ]
+  },
+  {
+    "name": "player_run_fire_up_2.png",
+    "source_component": 29,
+    "source_bounds": [
+      1197,
+      625,
+      1372,
+      810
+    ],
+    "size": [
+      240,
+      230
+    ],
+    "position": [
+      11,
+      10
+    ]
+  },
+  {
+    "name": "player_run_fire_up_3.png",
+    "source_component": 28,
+    "source_bounds": [
+      1406,
+      625,
+      1577,
+      810
+    ],
+    "size": [
+      240,
+      230
+    ],
+    "position": [
+      16,
+      10
+    ]
+  },
+  {
+    "name": "player_run_up_0.png",
+    "source_component": 36,
+    "source_bounds": [
+      24,
+      831,
+      193,
+      982
+    ],
+    "size": [
+      240,
+      230
+    ],
+    "position": [
+      3,
+      39
+    ]
+  },
+  {
+    "name": "player_run_up_1.png",
+    "source_component": 37,
+    "source_bounds": [
+      224,
+      831,
+      369,
+      981
+    ],
+    "size": [
+      240,
+      230
+    ],
+    "position": [
+      9,
+      40
+    ]
+  },
+  {
+    "name": "player_run_up_2.png",
+    "source_component": 38,
+    "source_bounds": [
+      426,
+      831,
+      560,
+      981
+    ],
+    "size": [
+      240,
+      230
+    ],
+    "position": [
+      17,
+      40
+    ]
+  },
+  {
+    "name": "player_run_up_3.png",
+    "source_component": 39,
+    "source_bounds": [
+      610,
+      831,
+      760,
+      982
+    ],
+    "size": [
+      240,
+      230
+    ],
+    "position": [
+      16,
+      39
+    ]
+  }
+]

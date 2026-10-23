@@ -7,8 +7,8 @@ const GRAVITY: float = 950.0
 
 @export var bullet_scene: PackedScene = preload("res://scenes/bullet.tscn")
 @export var explosion_scene: PackedScene = preload("res://scenes/explosion.tscn")
-@export var border_color: Color = Color(1.0, 1.0, 1.0, 1.0)
-@export var border_width: float = 1.35
+@export var border_color: Color = Color(1.0, 1.0, 1.0, 0.0)
+@export var border_width: float = 0.0
 
 enum PlayerState {
 	IDLE,
@@ -232,16 +232,9 @@ func _ready() -> void:
 	Global.player_health = Global.PLAYER_MAX_HEALTH
 	Global.player_health_changed.emit(Global.player_health, Global.PLAYER_MAX_HEALTH)
 	
-	# Apply soft shimmering white outline shader
-	if ResourceLoader.exists("res://shaders/player_outline.gdshader"):
-		var outline_shader = load("res://shaders/player_outline.gdshader")
-		outline_material = ShaderMaterial.new()
-		outline_material.shader = outline_shader
-		outline_material.set_shader_parameter("outline_color", border_color)
-		outline_material.set_shader_parameter("outline_width", border_width)
-		outline_material.set_shader_parameter("shimmer_speed", 3.2)
-		outline_material.set_shader_parameter("shimmer_intensity", 0.38)
-		material = outline_material
+	# Pure clean pixel art rendering (no white border outline)
+	material = null
+	outline_material = null
 	
 	# Clean sparkle overlay (child Node2D has material=null, so NO shader outline border!)
 	sparkle_overlay = InvisibleSparkleOverlay.new()
@@ -262,7 +255,7 @@ func _physics_process(delta: float) -> void:
 	
 	invisible_anim_timer += delta * 15.0
 	
-	if outline_material != null:
+	if outline_material != null and material != null:
 		outline_material.set_shader_parameter("outline_width", border_width)
 	
 	if sparkle_overlay != null:
@@ -558,27 +551,35 @@ func _spawn_twisting_bullets(pos: Vector2, dir: Vector2) -> void:
 
 func _get_gun_barrel_offset() -> Vector2:
 	if state == PlayerState.PRONE:
-		return Vector2(facing_dir * 24.0, 9.0)
+		# Lying prone on the ground, gun barrel resting at ground level
+		return Vector2(facing_dir * 21.1, 9.6)
 	elif state == PlayerState.JUMP:
-		return aim_dir * 12.0
+		# Somersault jump ball (26x26), spawn along radius
+		return aim_dir * 13.0
 	else:
 		if abs(aim_dir.x) < 0.2 and aim_dir.y < -0.3:
 			# Straight vertical UP (90 deg) - directly at muzzle brake tip
-			return Vector2(facing_dir * 0.2, -18.0)
+			return Vector2(facing_dir * 0.15, -17.9)
 		elif aim_dir.y < -0.3:
 			# Diagonal UP (Upper-right / Upper-left)
 			if state == PlayerState.RUN:
-				return Vector2(facing_dir * 13.0, -13.8)
-			return Vector2(facing_dir * 8.0, -15.0)
+				var idx: int = int(fmod(run_frame, 4.0))
+				var bob_y: float = -1.0 if (idx == 1 or idx == 3) else 0.0
+				return Vector2(facing_dir * 16.0, -16.8 + bob_y)
+			return Vector2(facing_dir * 14.7, -16.2)
 		elif aim_dir.y > 0.3:
 			# Diagonal DOWN (Lower-right / Lower-left side gun point)
 			if state == PlayerState.RUN:
-				return Vector2(facing_dir * 15.0, -3.9)
-			return Vector2(facing_dir * 12.5, -3.8)
+				var idx: int = int(fmod(run_frame, 4.0))
+				var bob_y: float = -1.0 if (idx == 1 or idx == 3) else 0.0
+				return Vector2(facing_dir * 14.7, 5.2 + bob_y)
+			return Vector2(facing_dir * 14.4, 4.8)
 		# Horizontal Forward (exact barrel tip)
 		if state == PlayerState.RUN:
-			return Vector2(facing_dir * 15.2, -11.5)
-		return Vector2(facing_dir * 13.5, -12.0)
+			var idx: int = int(fmod(run_frame, 4.0))
+			var bob_y: float = -1.0 if (idx == 1 or idx == 3) else 0.0
+			return Vector2(facing_dir * 18.6, -7.2 + bob_y)
+		return Vector2(facing_dir * 18.2, -6.9)
 
 func take_damage(amount: float = 1.0) -> void:
 	if Global.is_maker_mode or Global.is_stage_intro_active():
@@ -658,7 +659,6 @@ func _draw_player_character() -> void:
 		var col_skin_fb := Color(0.96, 0.76, 0.60, p_alpha)
 		var col_pants_fb := Color(0.15, 0.35, 0.85, p_alpha)
 		draw_set_transform(Vector2.ZERO, somersault_angle, Vector2.ONE)
-		draw_circle(Vector2.ZERO, 11.5, Color(border_color.r, border_color.g, border_color.b, border_color.a * p_alpha))
 		draw_circle(Vector2.ZERO, 10.0, col_pants_fb)
 		draw_circle(Vector2(2.0, -2.0), 6.5, col_skin_fb)
 		draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
@@ -677,7 +677,6 @@ func _draw_player_character() -> void:
 		
 		# Procedural fallback
 		var dir := float(facing_dir)
-		draw_rect(Rect2(-dir * 15.0, 1.0, 16.0, 9.0), Color(border_color.r, border_color.g, border_color.b, border_color.a * p_alpha))
 		draw_rect(Rect2(-dir * 14.0, 2.0, 14.0, 7.0), Color(0.15, 0.35, 0.85, p_alpha))
 		draw_rect(Rect2(-dir * 2.0, 0.0, 10.0, 8.0), Color(0.96, 0.76, 0.60, p_alpha))
 		draw_circle(Vector2(dir * 10.0, 2.0), 5.0, Color(0.96, 0.76, 0.60, p_alpha))
