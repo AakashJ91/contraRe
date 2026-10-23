@@ -503,17 +503,18 @@ func _init_stage_hazards() -> void:
 						"period": 3.0
 					})
 		7: # HANGAR: Moving hydraulic elevator lifts and laser tripwires
-			for idx in [2, 5, 8, 11, 14, 17]:
-				if idx < platforms.size():
+			for idx in range(platforms.size()):
+				# Explicit lift tags keep landing shelves fixed when the map is edited.
+				if platforms[idx].get("is_lift", false):
 					var pr: Rect2 = platforms[idx]["rect"]
 					hydraulic_lifts.append({
 						"platform_index": idx,
 						"base_y": pr.position.y,
-						"amp": 68.0,
+						"amp": float(platforms[idx].get("lift_amplitude", 36.0)),
 						"speed": 1.5,
 						"phase": float(idx) * 1.2
 					})
-			for tw_x in [1350.0, 2600.0, 4100.0, 5400.0, 6800.0]:
+			for tw_x in [1540.0, 2580.0, 4480.0, 6880.0, 8340.0]:
 				security_tripwires.append({
 					"x": tw_x,
 					"top_y": 140.0,
@@ -839,18 +840,29 @@ func _physics_process(delta: float) -> void:
 			var min_interval := maxf(2.6, 4.2 - float(Global.current_stage) * 0.2)
 			var max_interval := maxf(4.2, 6.4 - float(Global.current_stage) * 0.3)
 			soldier_spawn_timer = randf_range(min_interval, max_interval)
-			_spawn_soldier_wave()
+			if _allows_ambient_combat():
+				_spawn_soldier_wave()
 		
 		# Rare ambient aerial drone scouts (measured pacing, not constant swarm)
 		drone_spawn_timer -= delta
 		if drone_spawn_timer <= 0.0:
 			drone_spawn_timer = randf_range(30.0, 52.0)
-			_spawn_drone_wave()
+			if _allows_ambient_combat():
+				_spawn_drone_wave()
 		
 		blimp_spawn_timer -= delta
 		if blimp_spawn_timer <= 0.0:
 			blimp_spawn_timer = 14.0
 			_spawn_flying_blimp()
+
+func _allows_ambient_combat() -> bool:
+	if player == null:
+		return false
+	var x := player.global_position.x
+	if Global.current_stage == 1:
+		return x >= 1100.0 and not (x >= 5260.0 and x < 7950.0)
+	# Introduce the terrain before reinforcements; leave the battery and rearm quiet.
+	return x >= 900.0 and not (x >= 5260.0 and x < 6660.0)
 
 func _process_stage_mechanics(delta: float) -> void:
 	if player == null or not is_instance_valid(player) or player.state == Player.PlayerState.DEAD:
@@ -1036,9 +1048,14 @@ func _process_stage_mechanics(delta: float) -> void:
 						if randf() < 0.15:
 							VFX.spawn_dust_puff(Vector2(p_pos.x + randf_range(-15.0, 15.0), 485.0), 3, Color(0.8, 0.9, 1.0, 0.5))
 
-		4: # TUNDRA: Low-friction ice sliding + falling stalactite icicles
+		4: # TUNDRA: Snowfields slide; steel resting decks provide traction.
 			if p_on_floor:
 				player.is_on_ice = true
+				for p in platforms:
+					var r: Rect2 = p["rect"]
+					if p_pos.x >= r.position.x and p_pos.x <= r.end.x and absf(p_pos.y - r.position.y) < 18.0:
+						player.is_on_ice = p["type"] == PlatformType.ICE_SLAB
+						break
 			
 			for ic in falling_icicles:
 				match ic["state"]:
@@ -1224,328 +1241,133 @@ func _setup_static_enemies() -> void:
 		return
 	
 	match Global.current_stage:
-		1: # JUNGLE PERIMETER
-			# Classic fortified bunkers, high lookouts & river gorge bridges
-			_spawn_turrets([Vector2(720.0, 435.0), Vector2(1380.0, 435.0), Vector2(2650.0, 435.0), Vector2(3180.0, 435.0), Vector2(4100.0, 435.0), Vector2(4800.0, 435.0), Vector2(5320.0, 435.0), Vector2(7850.0, 435.0), Vector2(8350.0, 435.0)])
-			_spawn_snipers([Vector2(530.0, 434.0), Vector2(1080.0, 434.0), Vector2(1550.0, 364.0), Vector2(2080.0, 434.0), Vector2(2800.0, 344.0), Vector2(3480.0, 204.0), Vector2(4200.0, 354.0), Vector2(4750.0, 204.0), Vector2(5450.0, 354.0), Vector2(6800.0, 304.0), Vector2(8000.0, 334.0), Vector2(8550.0, 334.0)])
-			_spawn_grenadiers([Vector2(2200.0, 432.0), Vector2(3600.0, 432.0), Vector2(5000.0, 432.0), Vector2(5800.0, 432.0), Vector2(8200.0, 432.0)])
-			_spawn_crawlers([Vector2(1800.0, 434.0), Vector2(2220.0, 434.0), Vector2(3300.0, 434.0), Vector2(4400.0, 434.0), Vector2(5900.0, 434.0), Vector2(7900.0, 434.0), Vector2(8400.0, 434.0)])
-			_spawn_guerrilla_gunners([Vector2(950.0, 434.0), Vector2(2400.0, 434.0), Vector2(3700.0, 434.0), Vector2(4950.0, 434.0), Vector2(8100.0, 434.0)])
-			_spawn_flame_troopers([Vector2(1650.0, 432.0), Vector2(3050.0, 432.0), Vector2(4500.0, 432.0), Vector2(7950.0, 432.0), Vector2(8450.0, 432.0)])
+		1: # JUNGLE PERIMETER: introduce, combine, respite, final assault.
+			_spawn_turrets([Vector2(1380.0, 435.0), Vector2(3180.0, 435.0), Vector2(4800.0, 435.0), Vector2(8350.0, 435.0)])
+			_spawn_snipers([Vector2(1550.0, 364.0), Vector2(2800.0, 344.0), Vector2(3480.0, 204.0), Vector2(4750.0, 204.0), Vector2(8550.0, 334.0)])
+			_spawn_grenadiers([Vector2(2200.0, 432.0), Vector2(5000.0, 432.0), Vector2(8200.0, 432.0)])
+			_spawn_crawlers([Vector2(1800.0, 434.0), Vector2(3300.0, 434.0), Vector2(4400.0, 434.0), Vector2(8400.0, 434.0)])
+			_spawn_guerrilla_gunners([Vector2(850.0, 434.0), Vector2(2400.0, 434.0), Vector2(3700.0, 434.0), Vector2(8100.0, 434.0)])
+			_spawn_flame_troopers([Vector2(3050.0, 432.0), Vector2(4500.0, 432.0), Vector2(8450.0, 432.0)])
 			_spawn_sensors([
 				{"pos": Vector2(330.0, 358.0), "weapon": Global.WeaponType.SPREAD},
 				{"pos": Vector2(1700.0, 278.0), "weapon": Global.WeaponType.MACHINE},
 				{"pos": Vector2(3050.0, 258.0), "weapon": Global.WeaponType.LASER},
 				{"pos": Vector2(4380.0, 268.0), "weapon": Global.WeaponType.SPREAD},
 				{"pos": Vector2(5700.0, 268.0), "weapon": Global.WeaponType.MACHINE},
+				{"pos": Vector2(7180.0, 248.0), "weapon": Global.WeaponType.SPREAD},
+				{"pos": Vector2(7810.0, 410.0), "weapon": Global.WeaponType.MACHINE},
 				{"pos": Vector2(8200.0, 248.0), "weapon": Global.WeaponType.LASER}
 			])
-		2: # WATERFALL FORTRESS
-			# Cliffside snipers overlooking waterfall chasms + escarpment turrets
-			_spawn_turrets([
-				Vector2(620.0, 360.0),
-				Vector2(1100.0, 280.0),
-				Vector2(1620.0, 200.0),
-				Vector2(2120.0, 300.0),
-				Vector2(3050.0, 470.0),
-				Vector2(4050.0, 270.0),
-				Vector2(4600.0, 210.0),
-				Vector2(5450.0, 440.0),
-				Vector2(7050.0, 220.0),
-				Vector2(8050.0, 280.0),
-				Vector2(8950.0, 440.0)
-			])
-			_spawn_snipers([
-				Vector2(240.0, 370.0),
-				Vector2(300.0, 290.0),
-				Vector2(720.0, 200.0),
-				Vector2(1180.0, 140.0),
-				Vector2(1480.0, 130.0),
-				Vector2(2180.0, 150.0),
-				Vector2(2660.0, 210.0),
-				Vector2(3220.0, 220.0),
-				Vector2(3660.0, 200.0),
-				Vector2(4140.0, 130.0),
-				Vector2(4460.0, 140.0),
-				Vector2(5000.0, 240.0),
-				Vector2(5680.0, 170.0),
-				Vector2(6650.0, 180.0),
-				Vector2(6950.0, 140.0),
-				Vector2(7640.0, 190.0),
-				Vector2(7950.0, 200.0),
-				Vector2(8620.0, 200.0),
-				Vector2(9080.0, 270.0)
-			])
-			_spawn_grenadiers([
-				Vector2(760.0, 360.0),
-				Vector2(1750.0, 200.0),
-				Vector2(2700.0, 390.0),
-				Vector2(3650.0, 370.0),
-				Vector2(4700.0, 210.0),
-				Vector2(6550.0, 340.0),
-				Vector2(8180.0, 280.0),
-				Vector2(8550.0, 360.0)
-			])
-			_spawn_crawlers([
-				Vector2(650.0, 360.0),
-				Vector2(1550.0, 200.0),
-				Vector2(2550.0, 390.0),
-				Vector2(3550.0, 370.0),
-				Vector2(4500.0, 210.0),
-				Vector2(6600.0, 340.0),
-				Vector2(8000.0, 280.0),
-				Vector2(8450.0, 360.0)
-			])
-			_spawn_scuba_commandos([
-				Vector2(350.0, 440.0),
-				Vector2(2280.0, 380.0),
-				Vector2(3000.0, 470.0),
-				Vector2(3180.0, 470.0),
-				Vector2(5100.0, 330.0),
-				Vector2(6200.0, 440.0),
-				Vector2(7550.0, 350.0),
-				Vector2(8700.0, 360.0)
-			])
-			_spawn_torpedo_drones([
-				Vector2(440.0, 280.0),
-				Vector2(880.0, 220.0),
-				Vector2(1900.0, 170.0),
-				Vector2(2820.0, 320.0),
-				Vector2(3370.0, 310.0),
-				Vector2(4340.0, 180.0),
-				Vector2(4860.0, 200.0),
-				Vector2(6820.0, 180.0),
-				Vector2(7360.0, 240.0),
-				Vector2(8330.0, 230.0)
-			])
+		2: # Authored encounters alternate combat lanes and traversal.
+			_spawn_turrets([Vector2(960.0, 360.0), Vector2(2090.0, 200.0), Vector2(3860.0, 360.0), Vector2(4880.0, 350.0), Vector2(8100.0, 320.0), Vector2(8560.0, 440.0)])
+			_spawn_snipers([Vector2(880.0, 280.0), Vector2(1900.0, 130.0), Vector2(3350.0, 280.0), Vector2(4310.0, 200.0), Vector2(7560.0, 120.0), Vector2(8780.0, 280.0)])
+			_spawn_scuba_commandos([Vector2(1540.0, 280.0), Vector2(2590.0, 300.0), Vector2(3240.0, 440.0), Vector2(4380.0, 280.0), Vector2(7190.0, 280.0), Vector2(8500.0, 440.0)])
+			_spawn_torpedo_drones([Vector2(2820.0, 250.0), Vector2(3930.0, 190.0), Vector2(7190.0, 160.0), Vector2(8230.0, 220.0)])
+			_spawn_grenadiers([Vector2(2740.0, 300.0), Vector2(4970.0, 350.0), Vector2(8210.0, 320.0)])
 			_spawn_sensors([
-				{"pos": Vector2(300.0, 290.0), "weapon": Global.WeaponType.SPREAD},
-				{"pos": Vector2(1480.0, 130.0), "weapon": Global.WeaponType.MACHINE},
-				{"pos": Vector2(3060.0, 300.0), "weapon": Global.WeaponType.LASER},
-				{"pos": Vector2(4460.0, 140.0), "weapon": Global.WeaponType.SPREAD},
-				{"pos": Vector2(5580.0, 260.0), "weapon": Global.WeaponType.MACHINE},
-				{"pos": Vector2(6950.0, 140.0), "weapon": Global.WeaponType.SPREAD},
-				{"pos": Vector2(8130.0, 210.0), "weapon": Global.WeaponType.LASER}
+				{"pos": Vector2(310.0, 360.0), "weapon": Global.WeaponType.MACHINE},
+				{"pos": Vector2(1900.0, 130.0), "weapon": Global.WeaponType.SPREAD},
+				{"pos": Vector2(3350.0, 280.0), "weapon": Global.WeaponType.LASER},
+				{"pos": Vector2(4840.0, 270.0), "weapon": Global.WeaponType.MACHINE},
+				{"pos": Vector2(5720.0, 280.0), "weapon": Global.WeaponType.SPREAD},
+				{"pos": Vector2(6150.0, 440.0), "weapon": Global.WeaponType.MACHINE},
+				{"pos": Vector2(7560.0, 120.0), "weapon": Global.WeaponType.LASER},
+				{"pos": Vector2(8780.0, 280.0), "weapon": Global.WeaponType.SPREAD},
 			])
-		3: # ALIEN HIVE BIO-CAVERN
-			# Living spore egg pods + swarming crawlers & bio-snipers
-			_spawn_spore_pods([
-				Vector2(250.0, 440.0), Vector2(620.0, 350.0), Vector2(1050.0, 260.0), Vector2(1580.0, 200.0),
-				Vector2(2100.0, 300.0), Vector2(3050.0, 470.0), Vector2(3550.0, 360.0), Vector2(4550.0, 200.0),
-				Vector2(5080.0, 320.0), Vector2(7050.0, 220.0), Vector2(8050.0, 270.0)
-			])
-			_spawn_turrets([
-				Vector2(700.0, 350.0), Vector2(1150.0, 260.0), Vector2(1650.0, 200.0), Vector2(2550.0, 390.0),
-				Vector2(3600.0, 360.0), Vector2(4050.0, 260.0), Vector2(4620.0, 200.0), Vector2(5480.0, 440.0),
-				Vector2(6600.0, 330.0), Vector2(7980.0, 270.0), Vector2(8520.0, 360.0)
-			])
-			_spawn_snipers([
-				Vector2(360.0, 280.0), Vector2(760.0, 190.0), Vector2(1240.0, 130.0), Vector2(1550.0, 120.0),
-				Vector2(2240.0, 140.0), Vector2(2720.0, 220.0), Vector2(3280.0, 220.0), Vector2(3710.0, 190.0),
-				Vector2(4180.0, 120.0), Vector2(4500.0, 130.0), Vector2(5200.0, 290.0), Vector2(5680.0, 260.0),
-				Vector2(6710.0, 180.0), Vector2(7010.0, 130.0), Vector2(7700.0, 190.0), Vector2(8680.0, 200.0)
-			])
-			_spawn_crawlers([
-				Vector2(520.0, 350.0), Vector2(1000.0, 260.0), Vector2(1450.0, 200.0), Vector2(2020.0, 300.0),
-				Vector2(2950.0, 470.0), Vector2(3480.0, 360.0), Vector2(4420.0, 200.0), Vector2(4980.0, 320.0),
-				Vector2(6500.0, 330.0), Vector2(7150.0, 220.0), Vector2(8450.0, 360.0)
-			])
-			_spawn_acid_spitters([
-				Vector2(800.0, 350.0), Vector2(1620.0, 200.0), Vector2(2600.0, 390.0), Vector2(3680.0, 360.0),
-				Vector2(4680.0, 200.0), Vector2(6680.0, 330.0), Vector2(8100.0, 270.0)
-			])
-			_spawn_ceiling_stalkers([
-				Vector2(600.0, 210.0), Vector2(1150.0, 160.0), Vector2(1750.0, 140.0), Vector2(3100.0, 240.0),
-				Vector2(4400.0, 140.0), Vector2(5800.0, 180.0), Vector2(7200.0, 150.0)
-			])
+		3: # Authored encounters alternate combat lanes and traversal.
+			_spawn_acid_spitters([Vector2(1250.0, 390.0), Vector2(2810.0, 410.0), Vector2(4020.0, 330.0), Vector2(4800.0, 400.0), Vector2(7500.0, 340.0), Vector2(8460.0, 410.0)])
+			_spawn_ceiling_stalkers([Vector2(1640.0, 140.0), Vector2(2320.0, 160.0), Vector2(3910.0, 110.0), Vector2(4970.0, 160.0), Vector2(6900.0, 130.0), Vector2(8470.0, 110.0)])
+			_spawn_spore_pods([Vector2(2070.0, 470.0), Vector2(3030.0, 410.0), Vector2(4520.0, 400.0), Vector2(8100.0, 410.0)])
+			_spawn_snipers([Vector2(1660.0, 165.0), Vector2(3190.0, 185.0), Vector2(4650.0, 240.0), Vector2(7500.0, 185.0)])
+			_spawn_crawlers([Vector2(1460.0, 390.0), Vector2(2290.0, 470.0), Vector2(3760.0, 330.0), Vector2(4910.0, 400.0), Vector2(7330.0, 340.0), Vector2(8530.0, 410.0)])
 			_spawn_sensors([
-				{"pos": Vector2(360.0, 280.0), "weapon": Global.WeaponType.SPREAD},
-				{"pos": Vector2(1550.0, 120.0), "weapon": Global.WeaponType.MACHINE},
-				{"pos": Vector2(3280.0, 220.0), "weapon": Global.WeaponType.LASER},
-				{"pos": Vector2(4500.0, 130.0), "weapon": Global.WeaponType.SPREAD},
-				{"pos": Vector2(5840.0, 440.0), "weapon": Global.WeaponType.MACHINE},
-				{"pos": Vector2(7010.0, 130.0), "weapon": Global.WeaponType.SPREAD},
-				{"pos": Vector2(8680.0, 200.0), "weapon": Global.WeaponType.LASER}
+				{"pos": Vector2(530.0, 280.0), "weapon": Global.WeaponType.SPREAD},
+				{"pos": Vector2(1660.0, 165.0), "weapon": Global.WeaponType.FIRE},
+				{"pos": Vector2(3190.0, 185.0), "weapon": Global.WeaponType.LASER},
+				{"pos": Vector2(4650.0, 240.0), "weapon": Global.WeaponType.SPREAD},
+				{"pos": Vector2(5740.0, 280.0), "weapon": Global.WeaponType.MACHINE},
+				{"pos": Vector2(6150.0, 440.0), "weapon": Global.WeaponType.MACHINE},
+				{"pos": Vector2(7500.0, 185.0), "weapon": Global.WeaponType.FIRE},
+				{"pos": Vector2(8400.0, 250.0), "weapon": Global.WeaponType.LASER},
 			])
-		4: # SNOWFIELD TUNDRA
-			# Fortified mortar grenadiers & frost snipers
-			_spawn_turrets([
-				Vector2(700.0, 350.0), Vector2(1150.0, 260.0), Vector2(1650.0, 200.0), Vector2(2550.0, 390.0),
-				Vector2(3600.0, 370.0), Vector2(4050.0, 260.0), Vector2(4620.0, 200.0), Vector2(5480.0, 440.0),
-				Vector2(6600.0, 330.0), Vector2(7980.0, 280.0), Vector2(8520.0, 360.0)
-			])
-			_spawn_snipers([
-				Vector2(360.0, 280.0), Vector2(760.0, 190.0), Vector2(1240.0, 130.0), Vector2(1550.0, 120.0),
-				Vector2(2240.0, 140.0), Vector2(2720.0, 220.0), Vector2(3280.0, 220.0), Vector2(3710.0, 190.0),
-				Vector2(4180.0, 120.0), Vector2(4500.0, 130.0), Vector2(5200.0, 290.0), Vector2(5680.0, 260.0),
-				Vector2(6710.0, 180.0), Vector2(7010.0, 130.0), Vector2(7700.0, 190.0), Vector2(8680.0, 200.0)
-			])
-			_spawn_grenadiers([
-				Vector2(780.0, 350.0), Vector2(1740.0, 200.0), Vector2(2680.0, 390.0), Vector2(3980.0, 260.0),
-				Vector2(4720.0, 200.0), Vector2(6550.0, 330.0), Vector2(8150.0, 280.0)
-			])
-			_spawn_cryo_troopers([
-				Vector2(550.0, 350.0), Vector2(1500.0, 200.0), Vector2(2450.0, 390.0), Vector2(3480.0, 370.0),
-				Vector2(4450.0, 200.0), Vector2(6700.0, 330.0), Vector2(8000.0, 280.0)
-			])
-			_spawn_sled_raiders([
-				Vector2(980.0, 260.0), Vector2(2050.0, 290.0), Vector2(3000.0, 470.0), Vector2(4050.0, 260.0),
-				Vector2(5050.0, 320.0), Vector2(7100.0, 220.0), Vector2(8450.0, 360.0)
-			])
+		4: # Authored encounters alternate combat lanes and traversal.
+			_spawn_cryo_troopers([Vector2(1280.0, 410.0), Vector2(2100.0, 350.0), Vector2(3180.0, 450.0), Vector2(3950.0, 380.0), Vector2(4910.0, 420.0), Vector2(7480.0, 340.0), Vector2(8480.0, 410.0)])
+			_spawn_sled_raiders([Vector2(740.0, 440.0), Vector2(1570.0, 410.0), Vector2(2450.0, 350.0), Vector2(4560.0, 420.0), Vector2(6950.0, 400.0), Vector2(8240.0, 410.0)])
+			_spawn_snipers([Vector2(590.0, 280.0), Vector2(2390.0, 200.0), Vector2(4000.0, 220.0), Vector2(7700.0, 190.0)])
+			_spawn_turrets([Vector2(2260.0, 350.0), Vector2(3820.0, 380.0), Vector2(5050.0, 420.0), Vector2(8510.0, 410.0)])
 			_spawn_sensors([
-				{"pos": Vector2(360.0, 280.0), "weapon": Global.WeaponType.SPREAD},
-				{"pos": Vector2(1550.0, 120.0), "weapon": Global.WeaponType.MACHINE},
-				{"pos": Vector2(3280.0, 220.0), "weapon": Global.WeaponType.SPREAD},
-				{"pos": Vector2(4500.0, 130.0), "weapon": Global.WeaponType.LASER},
-				{"pos": Vector2(5840.0, 440.0), "weapon": Global.WeaponType.MACHINE},
-				{"pos": Vector2(7010.0, 130.0), "weapon": Global.WeaponType.SPREAD},
-				{"pos": Vector2(8680.0, 200.0), "weapon": Global.WeaponType.LASER}
+				{"pos": Vector2(590.0, 280.0), "weapon": Global.WeaponType.MACHINE},
+				{"pos": Vector2(2390.0, 200.0), "weapon": Global.WeaponType.SPREAD},
+				{"pos": Vector2(4000.0, 220.0), "weapon": Global.WeaponType.LASER},
+				{"pos": Vector2(4830.0, 260.0), "weapon": Global.WeaponType.MACHINE},
+				{"pos": Vector2(5770.0, 280.0), "weapon": Global.WeaponType.SPREAD},
+				{"pos": Vector2(6150.0, 440.0), "weapon": Global.WeaponType.MACHINE},
+				{"pos": Vector2(7700.0, 190.0), "weapon": Global.WeaponType.LASER},
+				{"pos": Vector2(8420.0, 250.0), "weapon": Global.WeaponType.SPREAD},
 			])
-		5: # STEEL REFINERY
-			# Conveyor rush, molten foundry turrets & upper mortar posts
-			_spawn_turrets([
-				Vector2(700.0, 340.0), Vector2(1150.0, 250.0), Vector2(1650.0, 190.0), Vector2(2550.0, 390.0),
-				Vector2(3600.0, 360.0), Vector2(4050.0, 260.0), Vector2(4620.0, 210.0), Vector2(5480.0, 440.0),
-				Vector2(6600.0, 330.0), Vector2(7980.0, 280.0), Vector2(8520.0, 360.0)
-			])
-			_spawn_snipers([
-				Vector2(360.0, 280.0), Vector2(760.0, 180.0), Vector2(1240.0, 120.0), Vector2(1550.0, 120.0),
-				Vector2(2240.0, 140.0), Vector2(2720.0, 220.0), Vector2(3280.0, 220.0), Vector2(3710.0, 190.0),
-				Vector2(4180.0, 120.0), Vector2(4500.0, 130.0), Vector2(5200.0, 290.0), Vector2(5680.0, 260.0),
-				Vector2(6710.0, 180.0), Vector2(7010.0, 130.0), Vector2(7700.0, 190.0), Vector2(8680.0, 200.0)
-			])
-			_spawn_grenadiers([
-				Vector2(780.0, 340.0), Vector2(1740.0, 190.0), Vector2(2680.0, 390.0), Vector2(3980.0, 260.0),
-				Vector2(4720.0, 210.0), Vector2(6550.0, 330.0), Vector2(8150.0, 280.0)
-			])
-			_spawn_slag_mechs([
-				Vector2(520.0, 340.0), Vector2(1450.0, 190.0), Vector2(2620.0, 390.0), Vector2(4450.0, 210.0),
-				Vector2(5800.0, 440.0), Vector2(7050.0, 220.0), Vector2(8450.0, 360.0)
-			])
-			_spawn_conveyor_droids([
-				Vector2(1020.0, 250.0), Vector2(2080.0, 300.0), Vector2(3050.0, 470.0), Vector2(3520.0, 360.0),
-				Vector2(5000.0, 320.0), Vector2(6500.0, 330.0), Vector2(7900.0, 280.0)
-			])
+		5: # Authored encounters alternate combat lanes and traversal.
+			_spawn_slag_mechs([Vector2(1590.0, 380.0), Vector2(3250.0, 380.0), Vector2(4820.0, 360.0), Vector2(7650.0, 340.0), Vector2(8500.0, 400.0)])
+			_spawn_conveyor_droids([Vector2(760.0, 440.0), Vector2(1410.0, 380.0), Vector2(2310.0, 440.0), Vector2(3950.0, 440.0), Vector2(4990.0, 360.0), Vector2(6970.0, 420.0), Vector2(8250.0, 400.0)])
+			_spawn_turrets([Vector2(1690.0, 380.0), Vector2(2520.0, 440.0), Vector2(4220.0, 440.0), Vector2(7770.0, 340.0), Vector2(8580.0, 400.0)])
+			_spawn_snipers([Vector2(1540.0, 220.0), Vector2(3230.0, 220.0), Vector2(4930.0, 210.0), Vector2(7720.0, 185.0)])
+			_spawn_grenadiers([Vector2(2410.0, 440.0), Vector2(4090.0, 440.0), Vector2(8460.0, 400.0)])
 			_spawn_sensors([
-				{"pos": Vector2(360.0, 280.0), "weapon": Global.WeaponType.LASER},
-				{"pos": Vector2(1550.0, 120.0), "weapon": Global.WeaponType.MACHINE},
-				{"pos": Vector2(3280.0, 220.0), "weapon": Global.WeaponType.SPREAD},
-				{"pos": Vector2(4500.0, 130.0), "weapon": Global.WeaponType.LASER},
-				{"pos": Vector2(5840.0, 440.0), "weapon": Global.WeaponType.MACHINE},
-				{"pos": Vector2(7010.0, 130.0), "weapon": Global.WeaponType.SPREAD},
-				{"pos": Vector2(8680.0, 200.0), "weapon": Global.WeaponType.LASER}
+				{"pos": Vector2(530.0, 280.0), "weapon": Global.WeaponType.LASER},
+				{"pos": Vector2(1540.0, 220.0), "weapon": Global.WeaponType.MACHINE},
+				{"pos": Vector2(3230.0, 220.0), "weapon": Global.WeaponType.SPREAD},
+				{"pos": Vector2(4930.0, 210.0), "weapon": Global.WeaponType.LASER},
+				{"pos": Vector2(5750.0, 280.0), "weapon": Global.WeaponType.MACHINE},
+				{"pos": Vector2(6150.0, 440.0), "weapon": Global.WeaponType.MACHINE},
+				{"pos": Vector2(7720.0, 185.0), "weapon": Global.WeaponType.SPREAD},
+				{"pos": Vector2(8490.0, 240.0), "weapon": Global.WeaponType.LASER},
 			])
-		6: # ELECTRIC DYNAMO
-			# High-voltage surge grid, tesla coils & dielectric snipers
-			_spawn_turrets([
-				Vector2(700.0, 350.0), Vector2(1150.0, 260.0), Vector2(1650.0, 200.0), Vector2(2550.0, 390.0),
-				Vector2(3600.0, 370.0), Vector2(4050.0, 250.0), Vector2(4620.0, 200.0), Vector2(5480.0, 440.0),
-				Vector2(6600.0, 330.0), Vector2(7980.0, 270.0), Vector2(8520.0, 360.0)
-			])
-			_spawn_snipers([
-				Vector2(360.0, 280.0), Vector2(760.0, 180.0), Vector2(1240.0, 120.0), Vector2(1550.0, 120.0),
-				Vector2(2240.0, 140.0), Vector2(2720.0, 220.0), Vector2(3280.0, 220.0), Vector2(3710.0, 190.0),
-				Vector2(4180.0, 120.0), Vector2(4500.0, 130.0), Vector2(5200.0, 290.0), Vector2(5680.0, 260.0),
-				Vector2(6710.0, 180.0), Vector2(7010.0, 130.0), Vector2(7700.0, 190.0), Vector2(8680.0, 200.0)
-			])
-			_spawn_grenadiers([
-				Vector2(780.0, 350.0), Vector2(1740.0, 200.0), Vector2(2680.0, 390.0), Vector2(3980.0, 250.0),
-				Vector2(4720.0, 200.0), Vector2(6550.0, 330.0), Vector2(8150.0, 270.0)
-			])
-			_spawn_tesla_troopers([
-				Vector2(540.0, 350.0), Vector2(1480.0, 200.0), Vector2(2440.0, 390.0), Vector2(3500.0, 370.0),
-				Vector2(4450.0, 200.0), Vector2(6700.0, 330.0), Vector2(7950.0, 270.0)
-			])
-			_spawn_spark_drones([
-				Vector2(850.0, 280.0), Vector2(1880.0, 220.0), Vector2(2850.0, 360.0), Vector2(4250.0, 180.0),
-				Vector2(5600.0, 300.0), Vector2(7100.0, 180.0), Vector2(8350.0, 280.0)
-			])
+		6: # Authored encounters alternate combat lanes and traversal.
+			_spawn_tesla_troopers([Vector2(1210.0, 380.0), Vector2(2220.0, 320.0), Vector2(2920.0, 420.0), Vector2(3900.0, 350.0), Vector2(4650.0, 300.0), Vector2(7610.0, 300.0), Vector2(8500.0, 380.0)])
+			_spawn_spark_drones([Vector2(1630.0, 180.0), Vector2(3040.0, 220.0), Vector2(4510.0, 130.0), Vector2(6900.0, 190.0), Vector2(8430.0, 190.0)])
+			_spawn_turrets([Vector2(1550.0, 380.0), Vector2(2350.0, 320.0), Vector2(3990.0, 350.0), Vector2(5040.0, 380.0), Vector2(8530.0, 380.0)])
+			_spawn_snipers([Vector2(1590.0, 220.0), Vector2(3150.0, 200.0), Vector2(4550.0, 145.0), Vector2(7590.0, 150.0)])
 			_spawn_sensors([
-				{"pos": Vector2(360.0, 280.0), "weapon": Global.WeaponType.SPREAD},
-				{"pos": Vector2(1550.0, 120.0), "weapon": Global.WeaponType.LASER},
-				{"pos": Vector2(3280.0, 220.0), "weapon": Global.WeaponType.MACHINE},
-				{"pos": Vector2(4500.0, 130.0), "weapon": Global.WeaponType.SPREAD},
-				{"pos": Vector2(5840.0, 440.0), "weapon": Global.WeaponType.LASER},
-				{"pos": Vector2(7010.0, 130.0), "weapon": Global.WeaponType.MACHINE},
-				{"pos": Vector2(8680.0, 200.0), "weapon": Global.WeaponType.SPREAD}
+				{"pos": Vector2(520.0, 280.0), "weapon": Global.WeaponType.SPREAD},
+				{"pos": Vector2(1590.0, 220.0), "weapon": Global.WeaponType.LASER},
+				{"pos": Vector2(3150.0, 200.0), "weapon": Global.WeaponType.MACHINE},
+				{"pos": Vector2(4550.0, 145.0), "weapon": Global.WeaponType.SPREAD},
+				{"pos": Vector2(5740.0, 280.0), "weapon": Global.WeaponType.LASER},
+				{"pos": Vector2(6150.0, 440.0), "weapon": Global.WeaponType.MACHINE},
+				{"pos": Vector2(7590.0, 150.0), "weapon": Global.WeaponType.MACHINE},
+				{"pos": Vector2(8380.0, 220.0), "weapon": Global.WeaponType.SPREAD},
 			])
-		7: # ALIEN AEROSPACE HANGAR
-			# Moving hydraulic elevators, security lasers, orbital gantry turrets
-			_spawn_turrets([
-				Vector2(700.0, 350.0), Vector2(1150.0, 260.0), Vector2(1650.0, 200.0), Vector2(2550.0, 390.0),
-				Vector2(3600.0, 360.0), Vector2(4050.0, 250.0), Vector2(4620.0, 200.0), Vector2(5480.0, 440.0),
-				Vector2(6600.0, 330.0), Vector2(7980.0, 280.0), Vector2(8520.0, 360.0)
-			])
-			_spawn_snipers([
-				Vector2(360.0, 280.0), Vector2(760.0, 180.0), Vector2(1240.0, 120.0), Vector2(1550.0, 120.0),
-				Vector2(2240.0, 140.0), Vector2(2720.0, 220.0), Vector2(3280.0, 220.0), Vector2(3710.0, 190.0),
-				Vector2(4180.0, 120.0), Vector2(4500.0, 130.0), Vector2(5200.0, 290.0), Vector2(5680.0, 260.0),
-				Vector2(6710.0, 180.0), Vector2(7010.0, 130.0), Vector2(7700.0, 190.0), Vector2(8680.0, 200.0)
-			])
-			_spawn_grenadiers([
-				Vector2(780.0, 350.0), Vector2(1740.0, 200.0), Vector2(2680.0, 390.0), Vector2(3980.0, 250.0),
-				Vector2(4720.0, 200.0), Vector2(6550.0, 330.0), Vector2(8150.0, 280.0)
-			])
-			_spawn_jetpack_marines([
-				Vector2(850.0, 260.0), Vector2(2000.0, 240.0), Vector2(3400.0, 260.0), Vector2(4800.0, 220.0),
-				Vector2(6200.0, 280.0), Vector2(7800.0, 240.0)
-			])
-			_spawn_rail_turrets([
-				Vector2(1100.0, 120.0), Vector2(2450.0, 140.0), Vector2(3850.0, 140.0), Vector2(5150.0, 160.0),
-				Vector2(6550.0, 140.0), Vector2(8000.0, 150.0)
-			])
+		7: # Authored encounters alternate combat lanes and traversal.
+			_spawn_jetpack_marines([Vector2(1550.0, 240.0), Vector2(2830.0, 180.0), Vector2(3830.0, 180.0), Vector2(4870.0, 230.0), Vector2(7020.0, 180.0), Vector2(8440.0, 200.0)])
+			_spawn_rail_turrets([Vector2(1830.0, 140.0), Vector2(2890.0, 120.0), Vector2(4740.0, 110.0), Vector2(7700.0, 100.0), Vector2(8500.0, 150.0)])
+			_spawn_turrets([Vector2(1930.0, 370.0), Vector2(2720.0, 440.0), Vector2(3900.0, 360.0), Vector2(4950.0, 410.0), Vector2(7800.0, 320.0), Vector2(8510.0, 390.0)])
+			_spawn_grenadiers([Vector2(2930.0, 440.0), Vector2(4620.0, 410.0), Vector2(7770.0, 320.0), Vector2(8410.0, 390.0)])
+			_spawn_snipers([Vector2(1720.0, 210.0), Vector2(2940.0, 210.0), Vector2(4790.0, 180.0), Vector2(7760.0, 165.0)])
 			_spawn_sensors([
-				{"pos": Vector2(360.0, 280.0), "weapon": Global.WeaponType.MACHINE},
-				{"pos": Vector2(1550.0, 120.0), "weapon": Global.WeaponType.SPREAD},
-				{"pos": Vector2(3280.0, 220.0), "weapon": Global.WeaponType.LASER},
-				{"pos": Vector2(4500.0, 130.0), "weapon": Global.WeaponType.MACHINE},
-				{"pos": Vector2(5840.0, 440.0), "weapon": Global.WeaponType.SPREAD},
-				{"pos": Vector2(7010.0, 130.0), "weapon": Global.WeaponType.LASER},
-				{"pos": Vector2(8680.0, 200.0), "weapon": Global.WeaponType.SPREAD}
+				{"pos": Vector2(560.0, 280.0), "weapon": Global.WeaponType.MACHINE},
+				{"pos": Vector2(1720.0, 210.0), "weapon": Global.WeaponType.SPREAD},
+				{"pos": Vector2(2940.0, 210.0), "weapon": Global.WeaponType.LASER},
+				{"pos": Vector2(4790.0, 180.0), "weapon": Global.WeaponType.MACHINE},
+				{"pos": Vector2(5750.0, 280.0), "weapon": Global.WeaponType.SPREAD},
+				{"pos": Vector2(6150.0, 440.0), "weapon": Global.WeaponType.MACHINE},
+				{"pos": Vector2(7760.0, 165.0), "weapon": Global.WeaponType.LASER},
+				{"pos": Vector2(8500.0, 230.0), "weapon": Global.WeaponType.SPREAD},
 			])
-		8: # MOTHER BRAIN SANCTUM
-			# Living bio-eye sentries, egg sacs, heavy crawler packs, final powerups
-			_spawn_bio_eyes([
-				Vector2(360.0, 280.0), Vector2(760.0, 180.0), Vector2(1240.0, 120.0), Vector2(1550.0, 120.0),
-				Vector2(2240.0, 140.0), Vector2(2720.0, 220.0), Vector2(3280.0, 220.0), Vector2(3710.0, 190.0),
-				Vector2(4180.0, 120.0), Vector2(4500.0, 130.0), Vector2(5200.0, 290.0), Vector2(5680.0, 260.0),
-				Vector2(6710.0, 180.0), Vector2(7010.0, 130.0), Vector2(7700.0, 190.0), Vector2(8680.0, 200.0)
-			])
-			_spawn_spore_pods([
-				Vector2(250.0, 440.0), Vector2(600.0, 350.0), Vector2(1050.0, 260.0), Vector2(1550.0, 200.0),
-				Vector2(2100.0, 290.0), Vector2(2980.0, 470.0), Vector2(3500.0, 370.0), Vector2(4500.0, 200.0),
-				Vector2(5050.0, 320.0), Vector2(6520.0, 330.0), Vector2(7100.0, 220.0), Vector2(8450.0, 360.0)
-			])
-			_spawn_turrets([
-				Vector2(700.0, 350.0), Vector2(1150.0, 260.0), Vector2(1650.0, 200.0), Vector2(2550.0, 390.0),
-				Vector2(3600.0, 370.0), Vector2(4050.0, 250.0), Vector2(4620.0, 200.0), Vector2(5480.0, 440.0),
-				Vector2(6600.0, 330.0), Vector2(7980.0, 270.0), Vector2(8520.0, 360.0)
-			])
-			_spawn_crawlers([
-				Vector2(520.0, 350.0), Vector2(1000.0, 260.0), Vector2(1450.0, 200.0), Vector2(2020.0, 290.0),
-				Vector2(2950.0, 470.0), Vector2(3480.0, 370.0), Vector2(4420.0, 200.0), Vector2(4980.0, 320.0),
-				Vector2(6500.0, 330.0), Vector2(7150.0, 220.0), Vector2(8450.0, 360.0)
-			])
-			_spawn_grenadiers([
-				Vector2(780.0, 350.0), Vector2(1740.0, 200.0), Vector2(2680.0, 390.0), Vector2(3980.0, 250.0),
-				Vector2(4720.0, 200.0), Vector2(6550.0, 330.0), Vector2(8150.0, 270.0)
-			])
-			_spawn_tentacle_whippers([
-				Vector2(800.0, 350.0), Vector2(1750.0, 200.0), Vector2(2480.0, 390.0), Vector2(3700.0, 370.0),
-				Vector2(4580.0, 200.0), Vector2(6750.0, 330.0), Vector2(8200.0, 270.0)
-			])
-			_spawn_psychic_orbs([
-				Vector2(900.0, 220.0), Vector2(1900.0, 170.0), Vector2(2850.0, 280.0), Vector2(4200.0, 160.0),
-				Vector2(5600.0, 240.0), Vector2(7100.0, 170.0), Vector2(8350.0, 260.0)
-			])
+		8: # Authored encounters alternate combat lanes and traversal.
+			_spawn_bio_eyes([Vector2(1550.0, 160.0), Vector2(2390.0, 200.0), Vector2(3230.0, 180.0), Vector2(4070.0, 190.0), Vector2(4770.0, 175.0), Vector2(7620.0, 165.0), Vector2(8510.0, 240.0)])
+			_spawn_spore_pods([Vector2(1190.0, 370.0), Vector2(2060.0, 430.0), Vector2(2940.0, 340.0), Vector2(3970.0, 420.0), Vector2(4860.0, 330.0), Vector2(7460.0, 320.0), Vector2(8290.0, 400.0)])
+			_spawn_tentacle_whippers([Vector2(1410.0, 370.0), Vector2(2310.0, 430.0), Vector2(3170.0, 340.0), Vector2(4070.0, 420.0), Vector2(4930.0, 330.0), Vector2(7620.0, 320.0), Vector2(8510.0, 400.0)])
+			_spawn_psychic_orbs([Vector2(1610.0, 140.0), Vector2(3080.0, 150.0), Vector2(4610.0, 180.0), Vector2(6920.0, 180.0), Vector2(8460.0, 180.0)])
+			_spawn_crawlers([Vector2(710.0, 440.0), Vector2(2180.0, 430.0), Vector2(3850.0, 420.0), Vector2(7530.0, 320.0), Vector2(8400.0, 400.0)])
+			_spawn_turrets([Vector2(2470.0, 430.0), Vector2(4180.0, 420.0), Vector2(5000.0, 330.0), Vector2(8560.0, 400.0)])
 			_spawn_sensors([
-				{"pos": Vector2(360.0, 280.0), "weapon": Global.WeaponType.SPREAD},
-				{"pos": Vector2(1550.0, 120.0), "weapon": Global.WeaponType.FIRE},
-				{"pos": Vector2(3280.0, 220.0), "weapon": Global.WeaponType.LASER},
-				{"pos": Vector2(4500.0, 130.0), "weapon": Global.WeaponType.SPREAD},
-				{"pos": Vector2(5840.0, 440.0), "weapon": Global.WeaponType.FIRE},
-				{"pos": Vector2(7010.0, 130.0), "weapon": Global.WeaponType.LASER},
-				{"pos": Vector2(8680.0, 200.0), "weapon": Global.WeaponType.FIRE}
+				{"pos": Vector2(520.0, 280.0), "weapon": Global.WeaponType.SPREAD},
+				{"pos": Vector2(1550.0, 160.0), "weapon": Global.WeaponType.FIRE},
+				{"pos": Vector2(2390.0, 200.0), "weapon": Global.WeaponType.LASER},
+				{"pos": Vector2(4070.0, 190.0), "weapon": Global.WeaponType.SPREAD},
+				{"pos": Vector2(5740.0, 280.0), "weapon": Global.WeaponType.FIRE},
+				{"pos": Vector2(6150.0, 440.0), "weapon": Global.WeaponType.MACHINE},
+				{"pos": Vector2(7620.0, 165.0), "weapon": Global.WeaponType.LASER},
+				{"pos": Vector2(8510.0, 240.0), "weapon": Global.WeaponType.SPREAD},
 			])
 
 
@@ -2059,7 +1881,23 @@ func get_safe_respawn_position(target_x: float) -> Vector2:
 		var screen_left: float = camera.global_position.x - half_w
 		target_x = maxf(target_x, screen_left + 60.0)
 	if Global.current_stage == 1 and target_x >= 6220.0 and target_x <= 7720.0:
-		return Vector2(6160.0, 360.0)
+		# Respawn on a visible stable river ledge instead of behind the scroll wall.
+		var river_spawn := Vector2(7800.0, 320.0)
+		var closest_distance := INF
+		for p in platforms:
+			var r: Rect2 = p["rect"]
+			if r.position.x < 6220.0 or r.end.x > 7720.0:
+				continue
+			if p.get("is_drop", false) or p["type"] == PlatformType.ROPE_BRIDGE:
+				continue
+			if r.end.x - 24.0 < target_x:
+				continue
+			var safe_x := clampf(target_x, r.position.x + 24.0, r.end.x - 24.0)
+			var distance := absf(safe_x - target_x)
+			if distance < closest_distance:
+				closest_distance = distance
+				river_spawn = Vector2(safe_x, r.position.y - 80.0)
+		return river_spawn
 	for g in ground_segments:
 		if target_x >= g.position.x + 40.0 and target_x <= g.end.x - 40.0:
 			return Vector2(target_x, g.position.y - 120.0)

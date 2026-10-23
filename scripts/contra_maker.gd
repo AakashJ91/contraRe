@@ -278,7 +278,7 @@ func _load_current_stage_geometry(force_default: bool = false) -> void:
 	if force_default:
 		map_info = LevelMaps.get_default_map_data(Global.current_stage)
 	else:
-		map_info = LevelMaps.get_map_data(Global.current_stage)
+		map_info = LevelMaps.get_map_data(Global.current_stage, true)
 	
 	for g in map_info.get("ground_segments", []):
 		editor_ground.append(g)
@@ -357,6 +357,8 @@ func _apply_to_stage() -> void:
 	
 	if stage.has_method("_setup_colliders"):
 		stage._setup_colliders()
+	if stage.has_method("_init_stage_hazards"):
+		stage._init_stage_hazards()
 	
 	_sync_editor_bg_props_to_stage()
 	stage.queue_redraw()
@@ -812,6 +814,7 @@ func save_level_to_file(slot_id: int = 1) -> void:
 	
 	var data: Dictionary = {
 		"stage_theme": Global.current_stage,
+		"campaign_revision": LevelMaps.CAMPAIGN_REVISION,
 		"cam_x": cam_x,
 		"cam_y": cam_y,
 		"ground_segments": [],
@@ -829,6 +832,10 @@ func save_level_to_file(slot_id: int = 1) -> void:
 			"x": r.position.x, "y": r.position.y, "w": r.size.x, "h": r.size.y,
 			"type": p.get("type", 0),
 			"is_drop": p.get("is_drop", false),
+			"drop_delay": p.get("drop_delay", 0.85),
+			"respawn_time": p.get("respawn_time", 2.8),
+			"is_lift": p.get("is_lift", false),
+			"lift_amplitude": p.get("lift_amplitude", 36.0),
 			"variant": p.get("variant", "default")
 		})
 	for e in editor_enemies:
@@ -866,6 +873,8 @@ func save_level_to_file(slot_id: int = 1) -> void:
 				stage.platforms.append(p.duplicate(true))
 		if stage.has_method("_setup_colliders"):
 			stage._setup_colliders()
+		if stage.has_method("_init_stage_hazards"):
+			stage._init_stage_hazards()
 		
 		_sync_editor_bg_props_to_stage()
 		
@@ -901,6 +910,9 @@ func load_level_from_file(slot_id: int = 1) -> void:
 		return
 	
 	var data: Dictionary = json.data
+	# Loading an older slot is an explicit choice to restore it as the active map.
+	data["campaign_revision"] = LevelMaps.CAMPAIGN_REVISION
+	json_str = JSON.stringify(data, "	")
 	Global.current_stage = clampi(data.get("stage_theme", Global.current_stage), 1, 8)
 	if stage != null and stage.has_method("_setup_background"):
 		stage._setup_background()
@@ -920,6 +932,10 @@ func load_level_from_file(slot_id: int = 1) -> void:
 			"rect": Rect2(p_dict["x"], p_dict["y"], p_dict["w"], p_dict["h"]),
 			"type": LevelMaps.parse_platform_type(p_dict.get("type", 0)),
 			"is_drop": p_dict.get("is_drop", false),
+			"drop_delay": p_dict.get("drop_delay", 0.85),
+			"respawn_time": p_dict.get("respawn_time", 2.8),
+			"is_lift": p_dict.get("is_lift", false),
+			"lift_amplitude": p_dict.get("lift_amplitude", 36.0),
 			"variant": p_dict.get("variant", "default")
 		})
 	

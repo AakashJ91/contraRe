@@ -1,6 +1,6 @@
 # Contra Re (Godot 4 - Android & PC)
 
-An authentic retro arcade clone of **Contra** (Stage 1 Jungle & Wall Defense Core), built in **Godot 4.7** with native Android export and PC support.
+An eight-stage 2D action game inspired by **Contra**, built in **GDScript** for standard **Godot 4.7**, with Android and PC support.
 
 ---
 
@@ -74,7 +74,33 @@ You can run the game directly on Windows:
 .\builds\ContraRe.exe
 ```
 
-Or open the project in Godot 4.7:
+Or open the project in standard Godot 4.7 (the game does not require .NET):
 ```powershell
-& "D:\GitHub\Godot_v4.7.2-stable_mono_win64\Godot_v4.7.2-stable_mono_win64_console.exe" --path .
+godot --path .
 ```
+
+## Campaign progression
+
+| Stage | Route progression |
+| --- | --- |
+| 1 — Jungle | Beach training, outpost flank, canopy ledges, mech, two river routes, fortress assault |
+| 2 — Waterfall | Foothill ascent, basin descent, supply shelves, mech, three-spire climb |
+| 3 — Hive | Low combat chambers, elevated rib routes, unstable tissue, mech, organ shelves |
+| 4 — Tundra | Broad slippery fields, steel braking decks, icicle shelves, mech, glacier assault |
+| 5 — Refinery | Production decks, vent trenches, conveyor supply routes, mech, furnace gantries |
+| 6 — Dynamo | Safe observation decks, surge platforms, upper circuits, mech, charged towers |
+| 7 — Hangar | Cargo bays, fixed gantries or optional lifts, tripwire ambushes, mech, launch deck |
+| 8 — Sanctum | Neural gate, sentry flanks, unstable synapses, mech, layered final defenses |
+
+All default maps avoid rope bridge platforms. Each stage includes a quiet rearm stretch after its mini-boss.
+
+Campaign revision 2 takes precedence over older editor overrides during normal play.
+Older custom stage files are preserved and still load in Contra Maker. Saving one again,
+or explicitly loading a saved slot, makes that custom map the active override again.
+Lift tags, lift amplitudes, and falling-platform delays survive editor saves.
+
+Run the static layout check with `python tests/check_campaign_routes.py`. It checks
+forward jumps using player movement constants, fixed routes through every ground section,
+weapon-support access, bridge exclusion, and boss floor continuity. Optional moving and
+falling routes use their initial platform positions; hazard timing and combat need playtesting
+in standard Godot.
