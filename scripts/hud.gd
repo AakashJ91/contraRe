@@ -19,6 +19,7 @@ var health_pip_warning: Texture2D = null
 var health_pip_critical: Texture2D = null
 var health_pip_empty: Texture2D = null
 var medal_texture: Texture2D = null
+var medal_frames: Array[Texture2D] = []
 
 func _ready() -> void:
 	mouse_filter = Control.MOUSE_FILTER_PASS
@@ -31,8 +32,42 @@ func _ready() -> void:
 	Global.mini_boss_defeated.connect(_on_mini_boss_defeated)
 	Global.stage_started.connect(_on_stage_started)
 	
+	medal_frames.clear()
+	for i in range(8):
+		var fp := "res://assets/ui/medal_anim/frame_%d.png" % i
+		if ResourceLoader.exists(fp):
+			medal_frames.append(load(fp))
+		elif FileAccess.file_exists(fp):
+			var img := Image.load_from_file(fp)
+			if img != null and not img.is_empty():
+				medal_frames.append(ImageTexture.create_from_image(img))
+	
+	if medal_frames.is_empty():
+		var anim_sheet_path := "res://assets/ui/medal_life_anim.png"
+		var sheet_tex: Texture2D = null
+		if ResourceLoader.exists(anim_sheet_path):
+			sheet_tex = load(anim_sheet_path)
+		elif FileAccess.file_exists(anim_sheet_path):
+			var s_img := Image.load_from_file(anim_sheet_path)
+			if s_img != null and not s_img.is_empty():
+				sheet_tex = ImageTexture.create_from_image(s_img)
+		if sheet_tex != null:
+			var fw := float(sheet_tex.get_width()) / 8.0
+			var fh := float(sheet_tex.get_height())
+			for i in range(8):
+				var atlas := AtlasTexture.new()
+				atlas.atlas = sheet_tex
+				atlas.region = Rect2(float(i) * fw, 0.0, fw, fh)
+				medal_frames.append(atlas)
+
 	if ResourceLoader.exists("res://assets/ui/medal_life.png"):
 		medal_texture = load("res://assets/ui/medal_life.png")
+	elif FileAccess.file_exists("res://assets/ui/medal_life.png"):
+		var m_img := Image.load_from_file("res://assets/ui/medal_life.png")
+		if m_img != null and not m_img.is_empty():
+			medal_texture = ImageTexture.create_from_image(m_img)
+	if medal_texture == null and not medal_frames.is_empty():
+		medal_texture = medal_frames[0]
 	if ResourceLoader.exists("res://assets/ui/health_pip_full.png"):
 		health_pip_full = load("res://assets/ui/health_pip_full.png")
 	if ResourceLoader.exists("res://assets/ui/health_pip_warning.png"):
@@ -127,45 +162,49 @@ func _draw() -> void:
 	# =========================================================================
 	var screen_w: float = maxf(960.0, get_viewport_rect().size.x)
 	var is_mob: bool = Global.is_mobile_device()
-	var base_y: float = 22.0 if is_mob else 18.0
+	var base_y: float = 24.0 if is_mob else 21.0
 	
 	# -------------------------------------------------------------------------
-	# MODULE 1: REST (COMMANDO LIVES)
+	# MODULE 1: COMMANDO LIVES (ANIMATED MEDALS)
 	# -------------------------------------------------------------------------
 	var cur_x: float = 16.0
-	_draw_pixel_text("REST", Vector2(cur_x, base_y), Color(0.35, 0.95, 0.55), 13 if is_mob else 11)
-	cur_x += 42.0 if is_mob else 38.0
 	
 	var shown_lives := mini(lives, 3)
-	var medal_w: float = 12.0 if is_mob else 10.0
-	var medal_h: float = 16.0 if is_mob else 14.0
-	var icon_step: float = medal_w + (4.0 if is_mob else 3.0)
-	var my: float = base_y - (13.0 if is_mob else 11.5)
+	var medal_w: float = 18.0 if is_mob else 16.0
+	var medal_h: float = 25.0 if is_mob else 22.0
+	var icon_step: float = medal_w + (5.0 if is_mob else 4.0)
+	var my: float = base_y - medal_h + 3.0
 	
 	for i in range(shown_lives):
 		var lx: float = cur_x + float(i) * icon_step
-		if medal_texture != null:
-			draw_texture_rect(medal_texture, Rect2(lx, my, medal_w, medal_h), false)
+		var cur_tex: Texture2D = medal_texture
+		if not medal_frames.is_empty():
+			var f_idx: int = int(fmod(anim_timer * 6.5 + float(i) * 1.5, float(medal_frames.size())))
+			f_idx = clampi(f_idx, 0, medal_frames.size() - 1)
+			cur_tex = medal_frames[f_idx]
+		
+		if cur_tex != null:
+			draw_texture_rect(cur_tex, Rect2(lx, my, medal_w, medal_h), false)
 		else:
 			# Fallback: Mini commando torso
-			draw_rect(Rect2(lx, 13.0 if is_mob else 11.0, 8.5 if is_mob else 7.0, 10.0 if is_mob else 8.0), Color(0.18, 0.40, 0.90))
-			draw_circle(Vector2(lx + (4.2 if is_mob else 3.5), 11.0 if is_mob else 9.0), 3.0 if is_mob else 2.5, Color(0.96, 0.78, 0.62))
-			draw_rect(Rect2(lx + 0.5, 9.0 if is_mob else 7.5, 7.5 if is_mob else 6.0, 2.5 if is_mob else 2.0), Color(0.95, 0.20, 0.20))
-	cur_x += float(shown_lives) * icon_step + 4.0
+			draw_rect(Rect2(lx, 13.0 if is_mob else 11.0, 11.0 if is_mob else 9.0, 13.0 if is_mob else 11.0), Color(0.18, 0.40, 0.90))
+			draw_circle(Vector2(lx + (5.5 if is_mob else 4.5), 11.0 if is_mob else 9.0), 4.0 if is_mob else 3.5, Color(0.96, 0.78, 0.62))
+			draw_rect(Rect2(lx + 0.5, 9.0 if is_mob else 7.5, 9.5 if is_mob else 7.5, 3.0 if is_mob else 2.5), Color(0.95, 0.20, 0.20))
+	cur_x += float(shown_lives) * icon_step + 6.0
 	
 	var lives_str := "x" + str(lives)
-	_draw_pixel_text(lives_str, Vector2(cur_x, base_y), Color(1.0, 0.85, 0.25), 14 if is_mob else 12)
-	cur_x += 32.0 if is_mob else 28.0
+	_draw_pixel_text(lives_str, Vector2(cur_x, base_y + 1.0), Color(1.0, 0.85, 0.25), 15 if is_mob else 13)
+	cur_x += 36.0 if is_mob else 32.0
 	
 	# -------------------------------------------------------------------------
 	# MODULE 2: PLAYER HEALTH (3 HP PIPS)
 	# -------------------------------------------------------------------------
-	_draw_pixel_text("HP", Vector2(cur_x, base_y), Color(1.0, 0.35, 0.35), 13 if is_mob else 11)
-	cur_x += 22.0 if is_mob else 18.0
-	var pip_w: float = 11.0 if is_mob else 9.0
-	var pip_h: float = 15.0 if is_mob else 13.0
-	var pip_step: float = pip_w + (4.0 if is_mob else 3.0)
-	var hy: float = base_y - (12.0 if is_mob else 10.5)
+	_draw_pixel_text("HP", Vector2(cur_x, base_y + 1.0), Color(1.0, 0.35, 0.35), 14 if is_mob else 12)
+	cur_x += 26.0 if is_mob else 22.0
+	var pip_w: float = 16.0 if is_mob else 14.0
+	var pip_h: float = 23.0 if is_mob else 20.0
+	var pip_step: float = pip_w + (5.0 if is_mob else 4.0)
+	var hy: float = base_y - pip_h + 2.0
 	
 	for i in range(player_max_health):
 		var hx: float = cur_x + float(i) * pip_step
@@ -191,15 +230,15 @@ func _draw() -> void:
 		else:
 			# Fallback procedural rendering
 			draw_rect(pip_rect, Color(0.06, 0.09, 0.14, 0.92))
-			draw_rect(pip_rect, Color(0.30, 0.42, 0.55, 0.85), false, 1.0)
+			draw_rect(pip_rect, Color(0.30, 0.42, 0.55, 0.85), false, 1.2)
 			if i < player_health:
 				var hp_col := Color(0.20, 0.95, 0.40)
 				if player_health == 2:
 					hp_col = Color(1.0, 0.82, 0.20)
 				elif player_health <= 1:
 					hp_col = Color(1.0, 0.22, 0.22)
-				draw_rect(Rect2(hx + 1.5, hy + 1.5, pip_w - 3.0, pip_h - 3.0), hp_col)
-	cur_x += float(player_max_health) * pip_step + 12.0
+				draw_rect(Rect2(hx + 2.0, hy + 2.0, pip_w - 4.0, pip_h - 4.0), hp_col)
+	cur_x += float(player_max_health) * pip_step + 14.0
 	
 	# -------------------------------------------------------------------------
 	# MODULE 4: CONTRA MAKER LEVEL EDITOR BUTTON
@@ -216,10 +255,10 @@ func _draw() -> void:
 	# BOSS CORE HEALTH BAR
 	# =========================================================================
 	if show_boss_bar and boss_health > 0.0:
-		var bar_w: float = 280.0 if is_mob else 240.0
+		var bar_w: float = 300.0 if is_mob else 260.0
 		var bar_x: float = (screen_w - bar_w) * 0.5
-		var bar_y: float = 26.0 if is_mob else 24.0
-		var bar_h: float = 10.0 if is_mob else 8.0
+		var bar_y: float = 28.0 if is_mob else 25.0
+		var bar_h: float = 12.0 if is_mob else 10.0
 		
 		# Boss bar housing
 		draw_rect(Rect2(bar_x - 2.0, bar_y - 1.0, bar_w + 4.0, bar_h + 2.0), Color(0.04, 0.06, 0.09, 0.92))

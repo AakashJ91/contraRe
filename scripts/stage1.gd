@@ -71,8 +71,10 @@ var is_boss_cutscene_triggered: bool = false
 
 var bg_texture: Texture2D = null
 var ground_tile_texture: Texture2D = null
+var ground_fill_texture: Texture2D = null
 var boss_ground_texture: Texture2D = null
 var ground_textures_by_stage: Dictionary = {}
+var ground_fill_textures_by_stage: Dictionary = {}
 var platform_girder_texture: Texture2D = null
 var platform_bridge_texture: Texture2D = null
 var platform_turf_texture: Texture2D = null
@@ -92,8 +94,12 @@ var platform_tech_catwalk_texture: Texture2D = null
 var platform_bio_rib_texture: Texture2D = null
 var ground_edge_right_texture: Texture2D = null
 var ground_edge_left_texture: Texture2D = null
+var ground_edge_left_fill_texture: Texture2D = null
+var ground_edge_right_fill_texture: Texture2D = null
 var ground_edge_left_textures_by_stage: Dictionary = {}
 var ground_edge_right_textures_by_stage: Dictionary = {}
+var ground_edge_left_fill_textures_by_stage: Dictionary = {}
+var ground_edge_right_fill_textures_by_stage: Dictionary = {}
 var ground_frames_by_stage: Dictionary = {}
 var ground_edge_left_frames_by_stage: Dictionary = {}
 var ground_edge_right_frames_by_stage: Dictionary = {}
@@ -186,6 +192,12 @@ static func get_stage_texture(path: String) -> Texture2D:
 		var tex: Texture2D = load(path)
 		s_stage_textures[path] = tex
 		return tex
+	if FileAccess.file_exists(path):
+		var img := Image.load_from_file(path)
+		if img != null and not img.is_empty():
+			var tex := ImageTexture.create_from_image(img)
+			s_stage_textures[path] = tex
+			return tex
 	# Check stagewise subdirectories if given a flat assets/tiles/ path
 	if path.begins_with("res://assets/tiles/"):
 		var fname := path.get_file()
@@ -196,6 +208,13 @@ static func get_stage_texture(path: String) -> Texture2D:
 				s_stage_textures[path] = tex
 				s_stage_textures[sub_path] = tex
 				return tex
+			if FileAccess.file_exists(sub_path):
+				var img := Image.load_from_file(sub_path)
+				if img != null and not img.is_empty():
+					var tex := ImageTexture.create_from_image(img)
+					s_stage_textures[path] = tex
+					s_stage_textures[sub_path] = tex
+					return tex
 	return null
 
 static func get_stage_frames(path_fmt: String, count: int) -> Array[Texture2D]:
@@ -222,11 +241,16 @@ static func get_cached_shader(path: String) -> Shader:
 func _load_textures() -> void:
 	var stg := clampi(Global.current_stage, 1, 8)
 	
-	ground_tile_texture = get_stage_texture("res://assets/tiles/stage1_jungle/ground_tile.png")
+	ground_tile_texture = get_stage_texture("res://assets/tiles/stage1_jungle/genrate_ground_tiles.png")
+	if ground_tile_texture == null:
+		ground_tile_texture = get_stage_texture("res://assets/tiles/stage1_jungle/ground_tile.png")
+	ground_fill_texture = get_stage_texture("res://assets/tiles/stage1_jungle/ground_fill.png")
 	boss_ground_texture = get_stage_texture("res://assets/tiles/common/ground_boss_fortress.png")
 	
 	ground_textures_by_stage.clear()
 	ground_textures_by_stage[1] = ground_tile_texture
+	ground_fill_textures_by_stage.clear()
+	ground_fill_textures_by_stage[1] = ground_fill_texture
 	
 	match stg:
 		2:
@@ -274,10 +298,38 @@ func _load_textures() -> void:
 	ground_edge_left_textures_by_stage.clear()
 	ground_edge_right_textures_by_stage.clear()
 	
-	ground_edge_left_texture = get_stage_texture("res://assets/tiles/stage1_jungle/ground_edge_left.png")
-	ground_edge_right_texture = get_stage_texture("res://assets/tiles/stage1_jungle/ground_edge_right.png")
+	ground_edge_left_texture = get_stage_texture("res://assets/tiles/stage1_jungle/ground_left.png")
+	if ground_edge_left_texture == null:
+		ground_edge_left_texture = get_stage_texture("res://assets/tiles/stage1_jungle/groun_left.png")
+	if ground_edge_left_texture == null:
+		ground_edge_left_texture = get_stage_texture("res://assets/tiles/stage1_jungle/ground_edge_left.png")
+
+	ground_edge_right_texture = get_stage_texture("res://assets/tiles/stage1_jungle/ground_right.png")
+	if ground_edge_right_texture == null:
+		ground_edge_right_texture = get_stage_texture("res://assets/tiles/stage1_jungle/groun_right.png")
+	if ground_edge_right_texture == null:
+		ground_edge_right_texture = get_stage_texture("res://assets/tiles/stage1_jungle/ground_edge_right.png")
+
 	ground_edge_left_textures_by_stage[1] = ground_edge_left_texture
 	ground_edge_right_textures_by_stage[1] = ground_edge_right_texture
+
+	ground_edge_left_fill_textures_by_stage.clear()
+	ground_edge_right_fill_textures_by_stage.clear()
+
+	ground_edge_left_fill_texture = get_stage_texture("res://assets/tiles/stage1_jungle/ground_left_fill.png")
+	if ground_edge_left_fill_texture == null:
+		ground_edge_left_fill_texture = get_stage_texture("res://assets/tiles/stage1_jungle/ground_left_Fill.png")
+
+	ground_edge_right_fill_texture = get_stage_texture("res://assets/tiles/stage1_jungle/ground_right_fill.png")
+	if ground_edge_right_fill_texture == null:
+		ground_edge_right_fill_texture = get_stage_texture("res://assets/tiles/stage1_jungle/ground_righ_fill.png")
+	if ground_edge_right_fill_texture == null:
+		ground_edge_right_fill_texture = get_stage_texture("res://assets/tiles/stage1_jungle/ground_right_Fill.png")
+	if ground_edge_right_fill_texture == null:
+		ground_edge_right_fill_texture = get_stage_texture("res://assets/tiles/stage1_jungle/ground_right_Fill - Copy.png")
+
+	ground_edge_left_fill_textures_by_stage[1] = ground_edge_left_fill_texture
+	ground_edge_right_fill_textures_by_stage[1] = ground_edge_right_fill_texture
 	
 	var edge_stage_dir_and_names: Dictionary = {
 		2: ["stage2_waterfall", "waterfall"],
@@ -2189,7 +2241,7 @@ func _spawn_flying_blimp() -> void:
 	if blimp_scene == null:
 		return
 	var cam_x := camera.global_position.x
-	var spawn_x := cam_x - 300.0
+	var spawn_x := cam_x - 520.0
 	var b = blimp_scene.instantiate()
 	b.global_position = Vector2(spawn_x, randf_range(160.0, 240.0))
 	var weapons = [Global.WeaponType.SPREAD, Global.WeaponType.FIRE, Global.WeaponType.MACHINE, Global.WeaponType.LASER]
@@ -2322,6 +2374,57 @@ func _draw_stage_mechanics_foreground(view_left: float, view_right: float, cam_x
 				for ring in range(3):
 					var r_radius := fmod(anim_timer * 220.0 + float(ring) * 90.0, 480.0)
 					draw_arc(Vector2(cam_x, 270.0), r_radius, 0.0, TAU, 32, Color(1.0, 0.4, 0.8, pulse_alpha * 0.6), 2.5)
+func _draw_ground_tile_span(tex: Texture2D, start_x: float, span_w: float, g: Rect2, tint: Color, fill_tex: Texture2D = null) -> void:
+	if tex == null or span_w <= 0.0:
+		return
+	var gw: float = float(tex.get_width())
+	var gh: float = float(tex.get_height())
+	
+	if gh <= 100.0:
+		# Pixel-art tile (e.g. 48x48 genrate_ground_tiles.png)
+		# Grass tufts sit ~8px above walking surface g.position.y
+		var tile_w: float = gw
+		var num_tiles: int = int(ceil(span_w / tile_w))
+		var top_y: float = g.position.y - 8.0
+		var top_h: float = gh
+		var total_bot_y: float = g.position.y + g.size.y
+		
+		# Ground fill tile (e.g. 48x48 ground_fill.png)
+		var f_tex: Texture2D = fill_tex if fill_tex != null else tex
+		var fw: float = float(f_tex.get_width())
+		var fh: float = float(f_tex.get_height())
+		
+		for j in range(num_tiles):
+			var tx: float = start_x + float(j) * tile_w
+			var tw: float = minf(tile_w, start_x + span_w - tx)
+			var ratio_w: float = tw / tile_w
+			
+			# 1. Draw top ground tile
+			var trect := Rect2(tx, top_y, tw, top_h)
+			var src_top := Rect2(0.0, 0.0, gw * ratio_w, top_h)
+			draw_texture_rect_region(tex, trect, src_top, tint)
+			
+			# 2. Draw ground fill below it repeating till end of ground
+			var curr_y: float = top_y + top_h
+			while curr_y < total_bot_y:
+				var step_h: float = minf(fh, total_bot_y - curr_y)
+				var fill_rect := Rect2(tx, curr_y, tw, step_h)
+				var src_fill := Rect2(0.0, 0.0, fw * ratio_w, step_h) if fill_tex != null else Rect2(0.0, 24.0, gw * ratio_w, step_h)
+				draw_texture_rect_region(f_tex, fill_rect, src_fill, tint)
+				curr_y += step_h
+	else:
+		# Large pre-rendered ground textures (1024x729, etc.)
+		var tile_w: float = 256.0 if (Global.current_stage == 1 and gh > 100.0) else (128.0 if gh > 100.0 else gw)
+		var num_tiles: int = int(ceil(span_w / tile_w))
+		var ground_draw_y: float = g.position.y - 30.0
+		var ground_draw_h: float = g.size.y + 30.0
+		for j in range(num_tiles):
+			var tx: float = start_x + float(j) * tile_w
+			var tw: float = minf(tile_w, start_x + span_w - tx)
+			var ratio_w: float = tw / tile_w
+			var trect := Rect2(tx, ground_draw_y, tw, ground_draw_h)
+			var src_partial := Rect2(0.0, 0.0, gw * ratio_w, gh)
+			draw_texture_rect_region(tex, trect, src_partial, tint)
 
 func _draw_platforms(view_left: float, view_right: float) -> void:
 	var g_tint := Color.WHITE
@@ -2411,16 +2514,19 @@ func _draw_platforms(view_left: float, view_right: float) -> void:
 				var er_idx: int = int(fmod(anim_timer * edge_anim_fps, float(erf.size())))
 				active_edge_right_tex = erf[er_idx]
 
-		var actual_left_w: float = edge_w if (has_left_edge and active_edge_left_tex != null) else 0.0
-		var actual_right_w: float = edge_w if (has_right_edge and active_edge_right_tex != null) else 0.0
+		var active_edge_left_fill_tex: Texture2D = ground_edge_left_fill_textures_by_stage.get(Global.current_stage, ground_edge_left_fill_texture)
+		var active_edge_right_fill_tex: Texture2D = ground_edge_right_fill_textures_by_stage.get(Global.current_stage, ground_edge_right_fill_texture)
+
+		var is_retro_edge_l: bool = (active_edge_left_tex != null and active_edge_left_tex.get_height() <= 100)
+		var is_retro_edge_r: bool = (active_edge_right_tex != null and active_edge_right_tex.get_height() <= 100)
+		var actual_left_w: float = (float(active_edge_left_tex.get_width()) if is_retro_edge_l else edge_w) if (has_left_edge and active_edge_left_tex != null) else 0.0
+		var actual_right_w: float = (float(active_edge_right_tex.get_width()) if is_retro_edge_r else edge_w) if (has_right_edge and active_edge_right_tex != null) else 0.0
 		
 		var mid_start_x: float = g.position.x + actual_left_w
 		var mid_end_x: float = g.end.x - actual_right_w
 		var mid_width: float = maxf(0.0, mid_end_x - mid_start_x)
-		var ground_draw_y: float = g.position.y - 30.0
-		var ground_draw_h: float = g.size.y + 30.0
-		
 		var active_ground_tex: Texture2D = ground_textures_by_stage.get(Global.current_stage, ground_tile_texture)
+		var active_fill_tex: Texture2D = ground_fill_textures_by_stage.get(Global.current_stage, ground_fill_texture)
 		if ground_frames_by_stage.has(Global.current_stage):
 			var gf: Array = ground_frames_by_stage[Global.current_stage]
 			if not gf.is_empty():
@@ -2429,6 +2535,10 @@ func _draw_platforms(view_left: float, view_right: float) -> void:
 		if active_ground_tex == null:
 			active_ground_tex = ground_tile_texture
 
+		var is_retro_tile: bool = (active_ground_tex != null and active_ground_tex.get_height() <= 100)
+		var ground_draw_y: float = g.position.y - (8.0 if is_retro_tile else 30.0)
+		var ground_draw_h: float = g.size.y + (8.0 if is_retro_tile else 30.0)
+
 		if active_ground_tex != null:
 			if Global.current_stage == 1 and g.end.x >= BOSS_TRIGGER_X and boss_ground_texture != null:
 				var boss_floor_start_x: float = BOSS_TRIGGER_X - 20.0
@@ -2436,18 +2546,8 @@ func _draw_platforms(view_left: float, view_right: float) -> void:
 				# 1. Approach Jungle Ground (mid_start_x to boss_floor_start_x)
 				var jungle_w: float = maxf(0.0, minf(mid_end_x, boss_floor_start_x) - mid_start_x)
 				if jungle_w > 0.0:
-					var gw: float = float(active_ground_tex.get_width())
-					var gh: float = float(active_ground_tex.get_height())
-					var tile_w: float = 256.0 if (Global.current_stage == 1 and gh > 100.0) else (128.0 if gh > 100.0 else gw)
-					var num_tiles: int = int(ceil(jungle_w / tile_w))
-					for j in range(num_tiles):
-						var tx: float = mid_start_x + float(j) * tile_w
-						var tw: float = minf(tile_w, boss_floor_start_x - tx)
-						var ratio_w: float = tw / tile_w
-						var trect := Rect2(tx, ground_draw_y, tw, ground_draw_h)
-						var src_partial := Rect2(0.0, 0.0, gw * ratio_w, gh)
-						var draw_tint := Color.WHITE if active_ground_tex != ground_tile_texture else g_tint
-						draw_texture_rect_region(active_ground_tex, trect, src_partial, draw_tint)
+					var draw_tint := Color.WHITE if active_ground_tex != ground_tile_texture else g_tint
+					_draw_ground_tile_span(active_ground_tex, mid_start_x, jungle_w, g, draw_tint, active_fill_tex)
 				
 				# 2. Fortress Blast Deck Flooring for Boss Arena (boss_floor_start_x to mid_end_x)
 				var boss_deck_w: float = maxf(0.0, mid_end_x - boss_floor_start_x)
@@ -2474,32 +2574,53 @@ func _draw_platforms(view_left: float, view_right: float) -> void:
 					draw_circle(Vector2(boss_floor_start_x - 5.0, hy), 1.2, Color(0.8, 0.85, 0.9))
 					draw_circle(Vector2(boss_floor_start_x + 5.0, hy), 1.2, Color(0.8, 0.85, 0.9))
 			else:
-				var gw: float = float(active_ground_tex.get_width())
-				var gh: float = float(active_ground_tex.get_height())
-				var tile_w: float = 256.0 if (Global.current_stage == 1 and gh > 100.0) else (128.0 if gh > 100.0 else gw)
-				var num_tiles: int = int(ceil(mid_width / tile_w))
-				
-				for j in range(num_tiles):
-					var tx: float = mid_start_x + float(j) * tile_w
-					var tw: float = minf(tile_w, mid_end_x - tx)
-					var ratio_w: float = tw / tile_w
-					var trect := Rect2(tx, ground_draw_y, tw, ground_draw_h)
-					var src_partial := Rect2(0.0, 0.0, gw * ratio_w, gh)
-					var draw_tint := Color.WHITE if active_ground_tex != ground_tile_texture else g_tint
-					draw_texture_rect_region(active_ground_tex, trect, src_partial, draw_tint)
+				var draw_tint := Color.WHITE if active_ground_tex != ground_tile_texture else g_tint
+				_draw_ground_tile_span(active_ground_tex, mid_start_x, mid_width, g, draw_tint, active_fill_tex)
 		else:
 			draw_rect(Rect2(mid_start_x, g.position.y, mid_width, g.size.y), col_dirt)
 			draw_rect(Rect2(mid_start_x, g.position.y, mid_width, 8.0), col_top)
 		
 		if has_left_edge and active_edge_left_tex != null:
-			var left_rect := Rect2(g.position.x, ground_draw_y, actual_left_w, ground_draw_h)
 			var left_tint := Color.WHITE if active_edge_left_tex != ground_edge_left_texture else g_tint
-			draw_texture_rect(active_edge_left_tex, left_rect, false, left_tint)
+			if is_retro_edge_l:
+				var top_y := g.position.y - 8.0
+				var top_h := float(active_edge_left_tex.get_height())
+				var total_bot_y := g.position.y + g.size.y
+				draw_texture_rect(active_edge_left_tex, Rect2(g.position.x, top_y, actual_left_w, top_h), false, left_tint)
+				var curr_y := top_y + top_h
+				var fill_tex_l: Texture2D = active_edge_left_fill_tex if active_edge_left_fill_tex != null else active_edge_left_tex
+				var fill_w: float = float(fill_tex_l.get_width())
+				var fill_h: float = float(fill_tex_l.get_height())
+				var use_sub_slice: bool = (active_edge_left_fill_tex == null)
+				while curr_y < total_bot_y:
+					var step_h := minf(24.0 if use_sub_slice else fill_h, total_bot_y - curr_y)
+					var sub_slice := Rect2(0.0, 24.0, fill_w, step_h) if use_sub_slice else Rect2(0.0, 0.0, fill_w, step_h)
+					draw_texture_rect_region(fill_tex_l, Rect2(g.position.x, curr_y, actual_left_w, step_h), sub_slice, left_tint)
+					curr_y += step_h
+			else:
+				var left_rect := Rect2(g.position.x, ground_draw_y, actual_left_w, ground_draw_h)
+				draw_texture_rect(active_edge_left_tex, left_rect, false, left_tint)
 		
 		if has_right_edge and active_edge_right_tex != null:
-			var right_rect := Rect2(g.end.x - actual_right_w, ground_draw_y, actual_right_w, ground_draw_h)
 			var right_tint := Color.WHITE if active_edge_right_tex != ground_edge_right_texture else g_tint
-			draw_texture_rect(active_edge_right_tex, right_rect, false, right_tint)
+			if is_retro_edge_r:
+				var top_y := g.position.y - 8.0
+				var top_h := float(active_edge_right_tex.get_height())
+				var total_bot_y := g.position.y + g.size.y
+				draw_texture_rect(active_edge_right_tex, Rect2(g.end.x - actual_right_w, top_y, actual_right_w, top_h), false, right_tint)
+				var curr_y := top_y + top_h
+				var fill_tex_r: Texture2D = active_edge_right_fill_tex if active_edge_right_fill_tex != null else active_edge_right_tex
+				var fill_w: float = float(fill_tex_r.get_width())
+				var fill_h: float = float(fill_tex_r.get_height())
+				var use_sub_slice: bool = (active_edge_right_fill_tex == null)
+				while curr_y < total_bot_y:
+					var step_h := minf(24.0 if use_sub_slice else fill_h, total_bot_y - curr_y)
+					var sub_slice := Rect2(0.0, 24.0, fill_w, step_h) if use_sub_slice else Rect2(0.0, 0.0, fill_w, step_h)
+					draw_texture_rect_region(fill_tex_r, Rect2(g.end.x - actual_right_w, curr_y, actual_right_w, step_h), sub_slice, right_tint)
+					curr_y += step_h
+			else:
+				var right_rect := Rect2(g.end.x - actual_right_w, ground_draw_y, actual_right_w, ground_draw_h)
+				draw_texture_rect(active_edge_right_tex, right_rect, false, right_tint)
 
 	# Elevated Platforms
 	for p_idx in range(platforms.size()):

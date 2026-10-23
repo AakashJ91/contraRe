@@ -2,6 +2,7 @@ extends Area2D
 
 @export var weapon_type: Global.WeaponType = Global.WeaponType.SPREAD
 var velocity_y: float = -120.0
+var velocity_x: float = 0.0
 var bounce_count: int = 0
 var anim_timer: float = 0.0
 var is_landed: bool = false
@@ -56,6 +57,10 @@ func _physics_process(delta: float) -> void:
 				global_position.y = cur_py - 8.0
 		queue_redraw()
 		return
+	
+	if velocity_x != 0.0:
+		global_position.x += velocity_x * delta
+		velocity_x = move_toward(velocity_x, 0.0, 75.0 * delta)
 	
 	velocity_y += 500.0 * delta
 	var prev_y: float = global_position.y

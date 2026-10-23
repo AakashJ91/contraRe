@@ -3,7 +3,7 @@ extends Area2D
 @export var powerup_scene: PackedScene = preload("res://scenes/powerup_item.tscn")
 @export var explosion_scene: PackedScene = preload("res://scenes/explosion.tscn")
 @export var weapon_type: Global.WeaponType = Global.WeaponType.SPREAD
-@export var speed: float = 140.0
+@export var speed: float = 240.0
 
 var base_y: float = 0.0
 var elapsed: float = 0.0
@@ -21,6 +21,16 @@ func _physics_process(delta: float) -> void:
 	elapsed += delta
 	global_position.x += speed * delta
 	global_position.y = base_y + sin(elapsed * 4.0) * 35.0
+	
+	# Clean despawn when blimp flies far past the visible screen
+	var cam := get_viewport().get_camera_2d()
+	if cam != null:
+		var half_w: float = (get_viewport_rect().size.x / cam.zoom.x) * 0.5 if cam.zoom.x > 0.0 else 520.0
+		if (speed > 0.0 and global_position.x > cam.global_position.x + half_w + 140.0) or \
+		   (speed < 0.0 and global_position.x < cam.global_position.x - half_w - 140.0):
+			queue_free()
+			return
+	
 	queue_redraw()
 
 func take_damage(_dmg: float = 1.0) -> void:
@@ -37,6 +47,8 @@ func _pop() -> void:
 		var item = powerup_scene.instantiate()
 		item.weapon_type = weapon_type
 		item.global_position = global_position
+		if "velocity_x" in item:
+			item.velocity_x = speed * 0.35
 		get_parent().add_child(item)
 	
 	queue_free()

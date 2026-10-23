@@ -48,6 +48,12 @@ func _bg_warm_task() -> void:
 	
 	var s_stage1 = load("res://scripts/stage1.gd")
 	if s_stage1 != null:
+		s_stage1.get_stage_texture("res://assets/tiles/stage1_jungle/genrate_ground_tiles.png")
+		s_stage1.get_stage_texture("res://assets/tiles/stage1_jungle/ground_fill.png")
+		s_stage1.get_stage_texture("res://assets/tiles/stage1_jungle/ground_left.png")
+		s_stage1.get_stage_texture("res://assets/tiles/stage1_jungle/ground_right.png")
+		s_stage1.get_stage_texture("res://assets/tiles/stage1_jungle/ground_left_fill.png")
+		s_stage1.get_stage_texture("res://assets/tiles/stage1_jungle/ground_right_fill.png")
 		s_stage1.get_stage_texture("res://assets/tiles/stage1_jungle/ground_tile.png")
 		s_stage1.get_stage_texture("res://assets/tiles/common/ground_boss_fortress.png")
 		s_stage1.get_stage_texture("res://assets/tiles/common/platform_girder.png")

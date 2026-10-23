@@ -157,17 +157,30 @@ static func _ensure_player_assets_loaded() -> void:
 		if ResourceLoader.exists(ip2):
 			s_tex_invisible_frames.append(load(ip2))
 			found_invis2 = true
+		elif FileAccess.file_exists(ip2):
+			var img := Image.load_from_file(ip2)
+			if img != null and not img.is_empty():
+				s_tex_invisible_frames.append(ImageTexture.create_from_image(img))
+				found_invis2 = true
+	
+	if ResourceLoader.exists("res://assets/vfx/effect/invisible2.png"):
+		s_tex_invisible_sheet = load("res://assets/vfx/effect/invisible2.png")
+	elif ResourceLoader.exists("res://assets/vfx/invisible2.png"):
+		s_tex_invisible_sheet = load("res://assets/vfx/invisible2.png")
+	elif FileAccess.file_exists("res://assets/vfx/effect/invisible2.png"):
+		var s_img := Image.load_from_file("res://assets/vfx/effect/invisible2.png")
+		if s_img != null and not s_img.is_empty():
+			s_tex_invisible_sheet = ImageTexture.create_from_image(s_img)
+	elif FileAccess.file_exists("res://assets/vfx/invisible2.png"):
+		var s_img := Image.load_from_file("res://assets/vfx/invisible2.png")
+		if s_img != null and not s_img.is_empty():
+			s_tex_invisible_sheet = ImageTexture.create_from_image(s_img)
+	elif ResourceLoader.exists("res://assets/vfx/effect/invisible.png"):
+		s_tex_invisible_sheet = load("res://assets/vfx/effect/invisible.png")
+	elif ResourceLoader.exists("res://assets/vfx/invisible.png"):
+		s_tex_invisible_sheet = load("res://assets/vfx/invisible.png")
 	
 	if not found_invis2:
-		if ResourceLoader.exists("res://assets/vfx/effect/invisible2.png"):
-			s_tex_invisible_sheet = load("res://assets/vfx/effect/invisible2.png")
-		elif ResourceLoader.exists("res://assets/vfx/invisible2.png"):
-			s_tex_invisible_sheet = load("res://assets/vfx/invisible2.png")
-		elif ResourceLoader.exists("res://assets/vfx/effect/invisible.png"):
-			s_tex_invisible_sheet = load("res://assets/vfx/effect/invisible.png")
-		elif ResourceLoader.exists("res://assets/vfx/invisible.png"):
-			s_tex_invisible_sheet = load("res://assets/vfx/invisible.png")
-		
 		if s_tex_invisible_sheet != null:
 			var frame_count := 5 if s_tex_invisible_sheet.get_width() >= 600 else 12
 			var frame_w := float(s_tex_invisible_sheet.get_width()) / float(frame_count)
@@ -249,9 +262,8 @@ func _physics_process(delta: float) -> void:
 	
 	invisible_anim_timer += delta * 15.0
 	
-	var is_invis := (state == PlayerState.RESPAWNING or is_invulnerable)
 	if outline_material != null:
-		outline_material.set_shader_parameter("outline_width", 0.0 if is_invis else border_width)
+		outline_material.set_shader_parameter("outline_width", border_width)
 	
 	if sparkle_overlay != null:
 		sparkle_overlay.queue_redraw()
@@ -630,10 +642,7 @@ func _draw() -> void:
 	_draw_player_character()
 
 func _draw_player_character() -> void:
-	var is_invis: bool = (state == PlayerState.RESPAWNING or is_invulnerable)
 	var p_alpha: float = 1.0
-	if is_invis:
-		p_alpha = 0.55 + 0.25 * sin(invisible_anim_timer * 1.5)
 	var p_modulate := Color(1.0, 1.0, 1.0, p_alpha)
 	
 	# 1. JUMP STATE (Rotating Somersault Ball)
